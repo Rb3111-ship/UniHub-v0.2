@@ -29,13 +29,30 @@ class AppState extends ChangeNotifier {
   /// With a client, the signed-in user's profile drives role, tenant and name.
   AppState({SupabaseClient? client}) : _client = client {
     final c = client;
-    if (c != null) {
+    if (c == null) {
+      final mock = MockEventRepository();
+      _eventRepository = mock;
+      _events = mock.all;
+    } else {
+      _eventRepository = SupabaseEventRepository(c, _domainForSlug);
+      // Real accounts start empty; registrations/tickets/reviews move to the
+      // database in a later step.
+      _registeredEventIds.clear();
+      _ticketIds.clear();
+      _reviews.clear();
       _session = c.auth.currentSession;
       _authSub = c.auth.onAuthStateChange.listen(_onAuthChange);
     }
   }
 
   final SupabaseClient? _client;
+  late final EventRepository _eventRepository;
+  List<Event> _events = [];
+  bool _eventsLoading = false;
+  bool _eventsError = false;
+  String? _tenantId;
+
+  String _domainForSlug(String slug) => tenantDetails[slug.toUpperCase()]?['domain'] ?? '';
   StreamSubscription<AuthState>? _authSub;
   Session? _session;
   MockProfile? _remoteProfile;
@@ -60,6 +77,8 @@ class AppState extends ChangeNotifier {
       _profileFailed = false;
       _currentRole = UserRole.student;
       _currentTenant = '';
+      _tenantId = null;
+      _events = [];
       notifyListeners();
     } else if (data.event != AuthChangeEvent.tokenRefreshed) {
       loadProfile();
@@ -75,11 +94,12 @@ class AppState extends ChangeNotifier {
     try {
       final row = await c
           .from('profiles')
-          .select('display_name, role, tenants(slug)')
+          .select('display_name, role, tenant_id, tenants(slug)')
           .eq('id', user.id)
           .single();
       final slug = ((row['tenants'] as Map?)?['slug'] as String?)?.toUpperCase();
       final role = row['role'] as String;
+      _tenantId = row['tenant_id'] as String?;
       final type = switch (role) {
         'student' => ProfileType.student,
         'commercial_planner' => ProfileType.commercialPlanner,
@@ -105,6 +125,7 @@ class AppState extends ChangeNotifier {
       _profileFailed = true;
     }
     notifyListeners();
+    if (_remoteProfile != null) refreshEvents();
   }
 
   Future<void> signIn(String email, String password) async {
@@ -183,7 +204,6 @@ class AppState extends ChangeNotifier {
     ),
   ];
   
-  final EventRepository _eventRepository = EventRepository();
   String _selectedCategory = 'All';
 
   // Ticket tracking state (mocked backend database)
@@ -220,7 +240,24 @@ class AppState extends ChangeNotifier {
   String get currentTenant => _currentTenant;
   PlannerType get currentPlannerType => _currentPlannerType;
   
-  List<Event> get events => _eventRepository.getEvents();
+  List<Event> get events => List.unmodifiable(_events);
+  bool get eventsLoading => _eventsLoading;
+  bool get eventsError => _eventsError;
+
+  /// Reloads the feed from the backend (pull-to-refresh, after sign-in).
+  Future<void> refreshEvents() async {
+    if (_eventsLoading) return;
+    _eventsLoading = true;
+    _eventsError = false;
+    notifyListeners();
+    try {
+      _events = await _eventRepository.fetchUpcoming();
+    } catch (_) {
+      _eventsError = true;
+    }
+    _eventsLoading = false;
+    notifyListeners();
+  }
   String get selectedCategory => _selectedCategory;
   List<String> get registeredEventIds => _registeredEventIds;
 
@@ -289,8 +326,14 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void addEvent(Event event) {
-    _eventRepository.addEvent(event);
+  /// Publishes an event. Throws (e.g. PostgrestException 42501) if not allowed.
+  Future<void> addEvent(Event event) async {
+    final tenantId = event.isUniversityOfficial ? _tenantId : null;
+    if (event.isUniversityOfficial && usesBackend && tenantId == null) {
+      throw const AuthException('No university linked to this account');
+    }
+    final created = await _eventRepository.create(event, tenantId: tenantId);
+    _events = [..._events, created]..sort((a, b) => a.date.compareTo(b.date));
     notifyListeners();
   }
 

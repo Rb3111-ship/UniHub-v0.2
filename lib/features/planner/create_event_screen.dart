@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
@@ -112,7 +113,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                   prefixIcon: Icon(Icons.title_rounded),
                 ),
-                validator: (val) => val == null || val.isEmpty ? "Please enter a title" : null,
+                validator: (val) => val == null || val.trim().length < 3 ? "Please enter a title (at least 3 characters)" : null,
               ),
               const SizedBox(height: 16),
 
@@ -143,7 +144,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                   prefixIcon: Icon(Icons.location_on_rounded),
                 ),
-                validator: (val) => val == null || val.isEmpty ? "Please enter a location" : null,
+                validator: (val) => val == null || val.trim().length < 2 ? "Please enter a location" : null,
               ),
               const SizedBox(height: 16),
 
@@ -158,7 +159,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
-                  if (date != null) {
+                  if (date != null && context.mounted) {
                     final time = await showTimePicker(
                       context: context,
                       initialTime: TimeOfDay.fromDateTime(_selectedDate),
@@ -313,7 +314,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
 
               // Publish Button
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     final newEvent = Event(
                       id: 'evt-${DateTime.now().millisecondsSinceEpoch}',
@@ -328,9 +329,26 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       requiresQrCode: _requiresQr,
                       allowReviews: _allowReviews,
                       categories: List.from(_selectedCategories),
+                      capacity: _capacity.round(),
+                      endDate: _selectedDate.add(const Duration(hours: 2)),
                     );
                     
-                    appState.addEvent(newEvent);
+                    try {
+                      await appState.addEvent(newEvent);
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      final denied = e is PostgrestException && e.code == '42501';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: Colors.red,
+                          content: Text(denied
+                              ? localizations.eventPublishNotAllowed
+                              : localizations.eventPublishFailed),
+                        ),
+                      );
+                      return;
+                    }
+                    if (!context.mounted) return;
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

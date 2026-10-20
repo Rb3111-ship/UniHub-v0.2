@@ -1,6 +1,80 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 
-class EventRepository {
+/// Source of events. [SupabaseEventRepository] is the real one;
+/// [MockEventRepository] keeps tests and offline demos working.
+abstract class EventRepository {
+  /// Published events that have not ended yet, soonest first.
+  /// Row Level Security decides what the signed-in user may see.
+  Future<List<Event>> fetchUpcoming();
+
+  /// Publishes [event]. [tenantId] is null for public (commercial) events.
+  Future<Event> create(Event event, {required String? tenantId});
+}
+
+class SupabaseEventRepository implements EventRepository {
+  SupabaseEventRepository(this._client, this._domainForSlug);
+
+  final SupabaseClient _client;
+
+  /// Maps a university slug (e.g. "tum") to its e-mail domain (e.g. "tum.de").
+  final String Function(String slug) _domainForSlug;
+
+  static const _select = '*, tenants(slug)';
+
+  Event _fromRow(Map<String, dynamic> row) {
+    final slug = (row['tenants'] as Map?)?['slug'] as String?;
+    final imagePath = row['image_path'] as String?;
+    return Event.fromRow(
+      row,
+      universityDomain: slug == null ? '' : _domainForSlug(slug),
+      imageUrl: imagePath == null
+          ? null
+          : _client.storage.from('event-images').getPublicUrl(imagePath),
+    );
+  }
+
+  @override
+  Future<List<Event>> fetchUpcoming() async {
+    final rows = await _client
+        .from('events')
+        .select(_select)
+        .eq('status', 'published')
+        .gte('ends_at', DateTime.now().toUtc().toIso8601String())
+        .order('starts_at');
+    return rows.map<Event>(_fromRow).toList();
+  }
+
+  @override
+  Future<Event> create(Event event, {required String? tenantId}) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw const AuthException('Not signed in');
+    }
+    final row = await _client
+        .from('events')
+        .insert({
+          'tenant_id': tenantId,
+          'organizer_id': user.id,
+          'title': event.title.trim(),
+          'description': event.description.trim(),
+          'location': event.location.trim(),
+          'starts_at': event.date.toUtc().toIso8601String(),
+          'ends_at': event.endDate.toUtc().toIso8601String(),
+          'capacity': event.capacity,
+          'price_cents': 0,
+          'requires_qr': event.requiresQrCode,
+          'allow_reviews': event.allowReviews,
+          'categories': event.categories,
+          'status': 'published',
+        })
+        .select(_select)
+        .single();
+    return _fromRow(row);
+  }
+}
+
+class MockEventRepository implements EventRepository {
   final List<Event> _events = [
     Event(
       id: 'evt-1',
@@ -69,13 +143,18 @@ class EventRepository {
     ),
   ];
 
-  List<Event> getEvents() {
-    // Sort events by date: closest event first
+  /// Synchronous snapshot, soonest first (used to seed state without a loading flash).
+  List<Event> get all {
     _events.sort((a, b) => a.date.compareTo(b.date));
     return List.unmodifiable(_events);
   }
 
-  void addEvent(Event event) {
+  @override
+  Future<List<Event>> fetchUpcoming() async => all;
+
+  @override
+  Future<Event> create(Event event, {required String? tenantId}) async {
     _events.add(event);
+    return event;
   }
 }

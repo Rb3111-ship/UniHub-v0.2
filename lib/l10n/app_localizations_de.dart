@@ -333,4 +333,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get authRetry => 'Erneut versuchen';
+
+  @override
+  String get eventsLoadFailed => 'Events konnten nicht geladen werden.';
+
+  @override
+  String get eventPublishNotAllowed =>
+      'Dein Konto ist noch nicht zum Veröffentlichen von Events freigegeben.';
+
+  @override
+  String get eventPublishFailed =>
+      'Das Event konnte nicht veröffentlicht werden. Bitte prüfe die Angaben und versuche es erneut.';
 }

@@ -328,4 +328,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authRetry => 'Try again';
+
+  @override
+  String get eventsLoadFailed => 'Could not load events.';
+
+  @override
+  String get eventPublishNotAllowed =>
+      'Your account is not approved to publish events yet.';
+
+  @override
+  String get eventPublishFailed =>
+      'The event could not be published. Please check the details and try again.';
 }

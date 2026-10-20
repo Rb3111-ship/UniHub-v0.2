@@ -102,5 +102,8 @@
   "authErrNetwork": "Keine Verbindung. Prüfe dein Internet und versuche es erneut.",
   "authSignOut": "Abmelden",
   "authProfileLoadFailed": "Profil konnte nicht geladen werden.",
-  "authRetry": "Erneut versuchen"
+  "authRetry": "Erneut versuchen",
+  "eventsLoadFailed": "Events konnten nicht geladen werden.",
+  "eventPublishNotAllowed": "Dein Konto ist noch nicht zum Veröffentlichen von Events freigegeben.",
+  "eventPublishFailed": "Das Event konnte nicht veröffentlicht werden. Bitte prüfe die Angaben und versuche es erneut."
 }

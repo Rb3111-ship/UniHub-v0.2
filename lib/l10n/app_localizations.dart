@@ -721,6 +721,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get authRetry;
+
+  /// No description provided for @eventsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load events.'**
+  String get eventsLoadFailed;
+
+  /// No description provided for @eventPublishNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is not approved to publish events yet.'**
+  String get eventPublishNotAllowed;
+
+  /// No description provided for @eventPublishFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The event could not be published. Please check the details and try again.'**
+  String get eventPublishFailed;
 }
 
 class _AppLocalizationsDelegate

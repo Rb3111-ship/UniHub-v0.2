@@ -116,5 +116,8 @@
   "authErrNetwork": "No connection. Check your internet and try again.",
   "authSignOut": "Sign out",
   "authProfileLoadFailed": "Could not load your profile.",
-  "authRetry": "Try again"
+  "authRetry": "Try again",
+  "eventsLoadFailed": "Could not load events.",
+  "eventPublishNotAllowed": "Your account is not approved to publish events yet.",
+  "eventPublishFailed": "The event could not be published. Please check the details and try again."
 }

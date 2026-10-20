@@ -3,6 +3,7 @@ class Event {
   final String title;
   final String description;
   final DateTime date;
+  final DateTime? _endDate;
   final String location;
   final String universityDomain; // e.g. "tum.de", "lmu.de"
   final bool isUniversityOfficial;
@@ -11,6 +12,8 @@ class Event {
   final List<String> categories; // e.g. ["Music", "Tech", "Academic"]
   final String? imageUrl;
   final List<String>? galleryImages;
+  final int? capacity; // null = unlimited
+  final int priceCents;
 
   const Event({
     required this.id,
@@ -25,7 +28,37 @@ class Event {
     required this.categories,
     this.imageUrl,
     this.galleryImages,
-  });
+    DateTime? endDate,
+    this.capacity,
+    this.priceCents = 0,
+  }) : _endDate = endDate;
+
+  /// End of the event; defaults to two hours after the start.
+  DateTime get endDate => _endDate ?? date.add(const Duration(hours: 2));
+
+  /// Builds an event from a row of the `events` table.
+  factory Event.fromRow(
+    Map<String, dynamic> row, {
+    required String universityDomain,
+    String? imageUrl,
+  }) {
+    return Event(
+      id: row['id'] as String,
+      title: row['title'] as String,
+      description: (row['description'] as String?) ?? '',
+      date: DateTime.parse(row['starts_at'] as String).toLocal(),
+      endDate: DateTime.parse(row['ends_at'] as String).toLocal(),
+      location: row['location'] as String,
+      universityDomain: universityDomain,
+      isUniversityOfficial: row['tenant_id'] != null,
+      requiresQrCode: row['requires_qr'] as bool,
+      allowReviews: row['allow_reviews'] as bool,
+      categories: List<String>.from(row['categories'] as List),
+      imageUrl: imageUrl,
+      capacity: row['capacity'] as int?,
+      priceCents: (row['price_cents'] as int?) ?? 0,
+    );
+  }
 
   String get category => categories.isNotEmpty ? categories.first : 'Other';
 
@@ -42,6 +75,9 @@ class Event {
     List<String>? categories,
     String? imageUrl,
     List<String>? galleryImages,
+    DateTime? endDate,
+    int? capacity,
+    int? priceCents,
   }) {
     return Event(
       id: id ?? this.id,
@@ -56,6 +92,9 @@ class Event {
       categories: categories ?? this.categories,
       imageUrl: imageUrl ?? this.imageUrl,
       galleryImages: galleryImages ?? this.galleryImages,
+      endDate: endDate ?? _endDate,
+      capacity: capacity ?? this.capacity,
+      priceCents: priceCents ?? this.priceCents,
     );
   }
 }

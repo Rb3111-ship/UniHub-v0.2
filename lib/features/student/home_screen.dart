@@ -205,16 +205,41 @@ class StudentHomeScreen extends StatelessWidget {
     bool isOfficialFeed,
     AppState appState,
   ) {
-    if (events.isEmpty) {
+    final l10n = AppLocalizations.of(context)!;
+    if (appState.eventsLoading && appState.events.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (appState.eventsError && appState.events.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey.shade400),
+            Text(l10n.eventsLoadFailed),
             const SizedBox(height: 12),
-            const Text(
-              "No events found in this category.",
-              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            FilledButton(onPressed: appState.refreshEvents, child: Text(l10n.authRetry)),
+          ],
+        ),
+      );
+    }
+    if (events.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: appState.refreshEvents,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: 320,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey.shade400),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "No events found in this category.",
+                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -225,7 +250,10 @@ class StudentHomeScreen extends StatelessWidget {
     // Responsive grid layout column configurations
     final crossAxisCount = screenWidth >= 1100 ? 3 : (screenWidth >= 700 ? 2 : 1);
 
-    return GridView.builder(
+    return RefreshIndicator(
+      onRefresh: appState.refreshEvents,
+      child: GridView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: events.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -238,7 +266,7 @@ class StudentHomeScreen extends StatelessWidget {
         final event = events[index];
         return _buildEventTile(context, event, isOfficialFeed, appState);
       },
-    );
+    ));
   }
 
   Widget _buildEventTile(
