@@ -58,6 +58,7 @@ class StudentProfileScreen extends StatelessWidget {
                 DropdownMenuItem(value: 'TUM', child: Text('TUM')),
                 DropdownMenuItem(value: 'LMU', child: Text('LMU')),
                 DropdownMenuItem(value: 'UHH', child: Text('UHH')),
+                DropdownMenuItem(value: 'HAW', child: Text('HAW')),
               ],
               onChanged: (newTenant) {
                 if (newTenant != null) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
+import 'register_action.dart';
 
 class EventDetailsScreen extends StatelessWidget {
   final Event event;
@@ -329,7 +330,7 @@ class EventDetailsScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final isRegistered = appState.isRegistered(event.id);
     final ctaText = isRegistered
-        ? "You are Registered"
+        ? (appState.isWaitlisted(event.id) ? "You are on the waitlist" : "You are Registered")
         : (event.requiresQrCode ? "Confirm Registration" : "RSVP to Event");
 
     return Container(
@@ -355,7 +356,7 @@ class EventDetailsScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    isRegistered ? "TICKET RESERVED" : "FREE ADMISSION",
+                    isRegistered ? (appState.isWaitlisted(event.id) ? "WAITLISTED" : "TICKET RESERVED") : "FREE ADMISSION",
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -377,15 +378,7 @@ class EventDetailsScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: isRegistered
                   ? null
-                  : () {
-                      appState.registerForEvent(event.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: Colors.green,
-                          content: Text("Successfully registered for ${event.title}!"),
-                        ),
-                      );
-                    },
+                  : () => registerWithFeedback(context, appState, event),
               style: ElevatedButton.styleFrom(
                 backgroundColor: isRegistered ? theme.colorScheme.surfaceContainer : brandColor,
                 foregroundColor: isRegistered ? theme.colorScheme.onSurfaceVariant : Colors.white,

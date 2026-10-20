@@ -344,4 +344,68 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get eventPublishFailed =>
       'Das Event konnte nicht veröffentlicht werden. Bitte prüfe die Angaben und versuche es erneut.';
+
+  @override
+  String registerSuccess(String title) {
+    return 'Erfolgreich für $title angemeldet!';
+  }
+
+  @override
+  String registerWaitlisted(String title) {
+    return '$title ist voll. Du stehst auf der Warteliste.';
+  }
+
+  @override
+  String get registerEventOver => 'Dieses Event ist bereits vorbei.';
+
+  @override
+  String get registerEventUnavailable =>
+      'Dieses Event ist für dich nicht verfügbar.';
+
+  @override
+  String get registerPaidNotSupported =>
+      'Kostenpflichtige Events werden noch nicht unterstützt.';
+
+  @override
+  String get registerFailed =>
+      'Anmeldung fehlgeschlagen. Bitte versuche es erneut.';
+
+  @override
+  String get ctaWaitlisted => 'Warteliste';
+
+  @override
+  String get ticketsWaitlistBadge => 'WARTELISTE';
+
+  @override
+  String get ticketsWaitlistNote =>
+      'Du bekommst automatisch ein Ticket, sobald ein Platz frei wird.';
+
+  @override
+  String get ticketCancel => 'Anmeldung stornieren';
+
+  @override
+  String get ticketCancelConfirmTitle => 'Anmeldung stornieren?';
+
+  @override
+  String get ticketCancelConfirmBody =>
+      'Dein Ticket wird ungültig und dein Platz geht an die nächste Person.';
+
+  @override
+  String get ticketCancelYes => 'Ja, stornieren';
+
+  @override
+  String get ticketCancelNo => 'Behalten';
+
+  @override
+  String get ticketCancelled => 'Anmeldung storniert.';
+
+  @override
+  String get ticketCancelFailed =>
+      'Stornierung nicht möglich. Bitte versuche es erneut.';
+
+  @override
+  String get ticketCancelCheckedIn => 'Du bist bereits eingecheckt.';
+
+  @override
+  String get ticketsRefresh => 'Aktualisieren';
 }

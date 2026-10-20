@@ -739,6 +739,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The event could not be published. Please check the details and try again.'**
   String get eventPublishFailed;
+
+  /// No description provided for @registerSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Successfully registered for {title}!'**
+  String registerSuccess(String title);
+
+  /// No description provided for @registerWaitlisted.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is full. You are on the waitlist.'**
+  String registerWaitlisted(String title);
+
+  /// No description provided for @registerEventOver.
+  ///
+  /// In en, this message translates to:
+  /// **'This event has already ended.'**
+  String get registerEventOver;
+
+  /// No description provided for @registerEventUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This event is not available to you.'**
+  String get registerEventUnavailable;
+
+  /// No description provided for @registerPaidNotSupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid events are not supported yet.'**
+  String get registerPaidNotSupported;
+
+  /// No description provided for @registerFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration failed. Please try again.'**
+  String get registerFailed;
+
+  /// No description provided for @ctaWaitlisted.
+  ///
+  /// In en, this message translates to:
+  /// **'Waitlisted'**
+  String get ctaWaitlisted;
+
+  /// No description provided for @ticketsWaitlistBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'ON WAITLIST'**
+  String get ticketsWaitlistBadge;
+
+  /// No description provided for @ticketsWaitlistNote.
+  ///
+  /// In en, this message translates to:
+  /// **'You will get a ticket automatically if a spot opens up.'**
+  String get ticketsWaitlistNote;
+
+  /// No description provided for @ticketCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel registration'**
+  String get ticketCancel;
+
+  /// No description provided for @ticketCancelConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel registration?'**
+  String get ticketCancelConfirmTitle;
+
+  /// No description provided for @ticketCancelConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your ticket will stop working and your spot goes to the next person.'**
+  String get ticketCancelConfirmBody;
+
+  /// No description provided for @ticketCancelYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, cancel'**
+  String get ticketCancelYes;
+
+  /// No description provided for @ticketCancelNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it'**
+  String get ticketCancelNo;
+
+  /// No description provided for @ticketCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration cancelled.'**
+  String get ticketCancelled;
+
+  /// No description provided for @ticketCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not cancel. Please try again.'**
+  String get ticketCancelFailed;
+
+  /// No description provided for @ticketCancelCheckedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'You are already checked in.'**
+  String get ticketCancelCheckedIn;
+
+  /// No description provided for @ticketsRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get ticketsRefresh;
 }
 
 class _AppLocalizationsDelegate

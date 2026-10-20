@@ -2,8 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
+import '../../../core/models/event_model.dart';
+import '../../../core/models/registration_model.dart';
 
 class PlannerScannerScreen extends StatefulWidget {
   const PlannerScannerScreen({super.key});
@@ -22,6 +25,8 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
   );
   
   bool _isScanning = true;
+  List<Event> _managedEvents = [];
+  Event? _selectedEvent;
 
   @override
   void initState() {
@@ -32,6 +37,29 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
     )..repeat(reverse: true);
 
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_animationController);
+
+    final appState = context.read<AppState>();
+    if (appState.usesBackend) _loadManagedEvents(appState);
+  }
+
+  Future<void> _loadManagedEvents(AppState appState) async {
+    try {
+      final events = await appState.loadManagedEvents();
+      if (!mounted) return;
+      // Prefer events that are happening soon: upcoming first, then recent ones.
+      final now = DateTime.now();
+      events.sort((a, b) {
+        final aLive = a.endDate.isAfter(now) ? 0 : 1;
+        final bLive = b.endDate.isAfter(now) ? 0 : 1;
+        return aLive != bLive ? aLive - bLive : a.date.compareTo(b.date);
+      });
+      setState(() {
+        _managedEvents = events;
+        _selectedEvent = events.isEmpty ? null : events.first;
+      });
+    } catch (_) {
+      // The picker stays empty; the planner can reopen the tab to retry.
+    }
   }
 
   @override
@@ -41,12 +69,73 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
     super.dispose();
   }
 
+  Future<void> _handleBackendScan(String rawValue, AppState appState) async {
+    final event = _selectedEvent;
+    if (event == null) {
+      _showScanResultBottomSheet(context, false, '', '',
+          message: 'Choose the event you are scanning for first.');
+      return;
+    }
+    const prefix = 'unihub:1:';
+    if (!rawValue.startsWith(prefix)) {
+      _showScanResultBottomSheet(context, false, '', 'Not a UniHub ticket',
+          message: 'This is not a UniHub ticket.');
+      return;
+    }
+    try {
+      final CheckInResult r = await appState.checkInTicket(rawValue.substring(prefix.length), event.id);
+      if (!mounted) return;
+      final message = switch (r.result) {
+        'granted' => 'Welcome, ${r.attendeeName ?? 'guest'}! Attendance has been registered.',
+        'already_used' => '${r.attendeeName ?? 'This guest'} was already checked in.',
+        'wrong_event' => 'This ticket is for a different event.',
+        'cancelled' => 'This ticket was cancelled.',
+        _ => 'Invalid ticket.',
+      };
+      _showScanResultBottomSheet(context, r.ok, r.attendeeName ?? '', r.ticketDisplayId, message: message);
+    } catch (e) {
+      if (!mounted) return;
+      final denied = e is PostgrestException && e.code == '42501';
+      _showScanResultBottomSheet(context, false, '', '',
+          message: denied
+              ? 'You are not allowed to scan tickets for this event.'
+              : 'Could not reach the server. Check your connection and scan again.');
+    }
+  }
+
+  Future<void> _enterCodeManually(AppState appState) async {
+    final controller = TextEditingController();
+    final code = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Enter ticket code'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Paste the code from the ticket'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('Check in')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (code == null || code.isEmpty || !mounted) return;
+    _handleQrCode(code.startsWith('unihub:1:') ? code : 'unihub:1:$code', appState);
+  }
+
   void _handleQrCode(String rawValue, AppState appState) {
     if (!_isScanning) return;
-    
+
     setState(() {
       _isScanning = false;
     });
+
+    if (appState.usesBackend) {
+      _handleBackendScan(rawValue, appState);
+      return;
+    }
 
     try {
       final Map<String, dynamic> data = jsonDecode(rawValue);
@@ -96,8 +185,9 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
     BuildContext context,
     bool success,
     String userName,
-    String ticketId,
-  ) {
+    String ticketId, {
+    String? message,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -159,9 +249,7 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
               
               // Message
               Text(
-                success 
-                    ? "Welcome, $userName! Attendance has been registered." 
-                    : "Invalid or Already Scanned Ticket.",
+                message ?? (success ? "Welcome, $userName! Attendance has been registered." : "Invalid or Already Scanned Ticket."),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -176,6 +264,7 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
               const SizedBox(height: 12),
               
               // Ticket details
+              if (ticketId.isNotEmpty)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -211,6 +300,39 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
     });
   }
 
+  Widget _buildEventPicker(ThemeData theme) {
+    if (_managedEvents.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        color: theme.colorScheme.surfaceContainer,
+        child: Text(
+          'You have no events yet. Create one to start checking in guests.',
+          style: TextStyle(color: theme.colorScheme.secondary, fontSize: 13),
+        ),
+      );
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      color: theme.colorScheme.surfaceContainer,
+      child: DropdownButton<String>(
+        isExpanded: true,
+        underline: const SizedBox(),
+        value: _selectedEvent?.id,
+        items: _managedEvents
+            .map((e) => DropdownMenuItem(
+                  value: e.id,
+                  child: Text('${e.title}  -  ${e.date.day}.${e.date.month}.', overflow: TextOverflow.ellipsis),
+                ))
+            .toList(),
+        onChanged: (id) => setState(() {
+          _selectedEvent = _managedEvents.firstWhere((e) => e.id == id);
+        }),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
@@ -221,6 +343,12 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
       appBar: AppBar(
         title: Text(localizations.plannerScannerTitle),
         actions: [
+          if (appState.usesBackend)
+            IconButton(
+              tooltip: 'Enter code manually',
+              icon: const Icon(Icons.keyboard_rounded),
+              onPressed: () => _enterCodeManually(appState),
+            ),
           IconButton(
             icon: const Icon(Icons.flash_on_rounded),
             onPressed: () {
@@ -231,6 +359,7 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
       ),
       body: Column(
         children: [
+          if (appState.usesBackend) _buildEventPicker(theme),
           Expanded(
             flex: 4,
             child: Stack(
@@ -304,7 +433,8 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
                     },
                   ),
 
-                // Mock Scan Trigger Button
+                // Mock Scan Trigger Button (demo mode only)
+                if (!appState.usesBackend)
                 Positioned(
                   bottom: 20,
                   child: ElevatedButton.icon(

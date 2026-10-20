@@ -5,6 +5,7 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
 import 'details_screen.dart';
+import 'register_action.dart';
 
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});
@@ -501,21 +502,13 @@ class StudentHomeScreen extends StatelessWidget {
   ) {
     final isRegistered = appState.isRegistered(event.id);
     final ctaText = isRegistered 
-        ? "Registered" 
+        ? (appState.isWaitlisted(event.id) ? AppLocalizations.of(context)!.ctaWaitlisted : "Registered") 
         : (event.requiresQrCode ? "Register" : "RSVP");
 
     return ElevatedButton(
       onPressed: isRegistered
           ? null
-          : () {
-              appState.registerForEvent(event.id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  backgroundColor: Colors.green,
-                  content: Text("Successfully registered for ${event.title}!"),
-                ),
-              );
-            },
+          : () => registerWithFeedback(context, appState, event),
       style: ElevatedButton.styleFrom(
         backgroundColor: isRegistered
             ? theme.colorScheme.surfaceContainer

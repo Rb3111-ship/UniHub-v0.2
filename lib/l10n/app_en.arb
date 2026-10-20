@@ -119,5 +119,37 @@
   "authRetry": "Try again",
   "eventsLoadFailed": "Could not load events.",
   "eventPublishNotAllowed": "Your account is not approved to publish events yet.",
-  "eventPublishFailed": "The event could not be published. Please check the details and try again."
+  "eventPublishFailed": "The event could not be published. Please check the details and try again.",
+  "registerSuccess": "Successfully registered for {title}!",
+  "@registerSuccess": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "registerWaitlisted": "{title} is full. You are on the waitlist.",
+  "@registerWaitlisted": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "registerEventOver": "This event has already ended.",
+  "registerEventUnavailable": "This event is not available to you.",
+  "registerPaidNotSupported": "Paid events are not supported yet.",
+  "registerFailed": "Registration failed. Please try again.",
+  "ctaWaitlisted": "Waitlisted",
+  "ticketsWaitlistBadge": "ON WAITLIST",
+  "ticketsWaitlistNote": "You will get a ticket automatically if a spot opens up.",
+  "ticketCancel": "Cancel registration",
+  "ticketCancelConfirmTitle": "Cancel registration?",
+  "ticketCancelConfirmBody": "Your ticket will stop working and your spot goes to the next person.",
+  "ticketCancelYes": "Yes, cancel",
+  "ticketCancelNo": "Keep it",
+  "ticketCancelled": "Registration cancelled.",
+  "ticketCancelFailed": "Could not cancel. Please try again.",
+  "ticketCancelCheckedIn": "You are already checked in.",
+  "ticketsRefresh": "Refresh"
 }

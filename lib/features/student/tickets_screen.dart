@@ -4,6 +4,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
+import '../../../core/models/registration_model.dart';
+import 'register_action.dart';
 import 'review_screen.dart';
 
 class StudentTicketsScreen extends StatelessWidget {
@@ -15,16 +17,19 @@ class StudentTicketsScreen extends StatelessWidget {
     final appState = context.watch<AppState>();
     final theme = Theme.of(context);
 
-    final registeredIds = appState.registeredEventIds;
-    final allEvents = appState.events;
-    
-    // Filter events registered by student
-    final registeredEvents = allEvents.where((e) => registeredIds.contains(e.id)).toList();
+    final registeredEvents = appState.registeredEvents;
 
     if (registeredEvents.isEmpty) {
       return Scaffold(
         appBar: AppBar(
           title: Text(localizations.studentTicketsTitle),
+        actions: [
+          IconButton(
+            tooltip: localizations.ticketsRefresh,
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: appState.refreshRegistrations,
+          ),
+        ],
         ),
         body: Center(
           child: Padding(
@@ -64,8 +69,18 @@ class StudentTicketsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.studentTicketsTitle),
+        actions: [
+          IconButton(
+            tooltip: localizations.ticketsRefresh,
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: appState.refreshRegistrations,
+          ),
+        ],
       ),
-      body: ListView.separated(
+      body: RefreshIndicator(
+        onRefresh: appState.refreshRegistrations,
+        child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16.0),
         itemCount: registeredEvents.length,
         separatorBuilder: (_, __) => const SizedBox(height: 20),
@@ -74,6 +89,7 @@ class StudentTicketsScreen extends StatelessWidget {
           final ticketId = appState.getTicketId(event.id);
           return _buildTicket(context, event, ticketId, appState);
         },
+      ),
       ),
     );
   }
@@ -86,17 +102,15 @@ class StudentTicketsScreen extends StatelessWidget {
   ) {
     final localizations = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    if (appState.registrationFor(event.id)?.status == RegistrationStatus.waitlisted) {
+      return _buildWaitlistCard(context, event, appState);
+    }
     final isScanned = appState.isTicketScanned(ticketId);
     
     // Dynamic color matching event's tenant
     final brandColor = appState.getUniversityColor(event.universityDomain);
-    final qrPayload = '{"ticketId": "$ticketId", "eventId": "${event.id}", "userId": "student-1", "userName": "Alex Smith"}';
+    final qrPayload = appState.qrPayload(event.id);
 
-    // Mock seating information determined deterministically by ticket ID
-    final seatSection = String.fromCharCode(65 + (ticketId.hashCode % 4)); // A, B, C, D
-    final seatRow = (ticketId.hashCode % 10) + 1;
-    final seatNumber = (ticketId.hashCode % 20) + 1;
-    final seatInfo = "SEC-$seatSection / ROW-$seatRow / SEAT-$seatNumber";
 
     final dateStr = "${event.date.day}.${event.date.month}.${event.date.year} @ ${event.date.hour.toString().padLeft(2, '0')}:${event.date.minute.toString().padLeft(2, '0')}";
 
@@ -171,11 +185,27 @@ class StudentTicketsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _buildInfoCol(context, "SEATING", seatInfo),
+                      _buildInfoCol(context, "ENTRY", event.requiresQrCode ? "QR check-in" : "Open entry"),
                       const SizedBox(width: 24),
                       _buildInfoCol(context, "TICKET ID", ticketId),
                     ],
                   ),
+                  if (!isScanned)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () => cancelWithConfirmation(context, appState, event),
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        label: Text(localizations.ticketCancel),
+                        style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+                      ),
+                    ),
+                  // Debug builds only: lets a single-device tester paste the code into the scanner.
+                  if (kDebugMode && appState.usesBackend && appState.registrationFor(event.id)?.ticketCode != null)
+                    SelectableText(
+                      'debug code: ${appState.registrationFor(event.id)!.ticketCode}',
+                      style: const TextStyle(fontSize: 9, color: Colors.grey),
+                    ),
                 ],
               ),
             ),
@@ -348,6 +378,46 @@ class StudentTicketsScreen extends StatelessWidget {
                 ],
               ),
             )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWaitlistCard(BuildContext context, Event event, AppState appState) {
+    final localizations = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                localizations.ticketsWaitlistBadge,
+                style: const TextStyle(color: Colors.orange, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(event.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text(localizations.ticketsWaitlistNote, style: TextStyle(color: theme.colorScheme.secondary)),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => cancelWithConfirmation(context, appState, event),
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: Text(localizations.ticketCancel),
+                style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
+              ),
+            ),
           ],
         ),
       ),

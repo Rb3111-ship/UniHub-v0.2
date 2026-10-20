@@ -339,4 +339,64 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get eventPublishFailed =>
       'The event could not be published. Please check the details and try again.';
+
+  @override
+  String registerSuccess(String title) {
+    return 'Successfully registered for $title!';
+  }
+
+  @override
+  String registerWaitlisted(String title) {
+    return '$title is full. You are on the waitlist.';
+  }
+
+  @override
+  String get registerEventOver => 'This event has already ended.';
+
+  @override
+  String get registerEventUnavailable => 'This event is not available to you.';
+
+  @override
+  String get registerPaidNotSupported => 'Paid events are not supported yet.';
+
+  @override
+  String get registerFailed => 'Registration failed. Please try again.';
+
+  @override
+  String get ctaWaitlisted => 'Waitlisted';
+
+  @override
+  String get ticketsWaitlistBadge => 'ON WAITLIST';
+
+  @override
+  String get ticketsWaitlistNote =>
+      'You will get a ticket automatically if a spot opens up.';
+
+  @override
+  String get ticketCancel => 'Cancel registration';
+
+  @override
+  String get ticketCancelConfirmTitle => 'Cancel registration?';
+
+  @override
+  String get ticketCancelConfirmBody =>
+      'Your ticket will stop working and your spot goes to the next person.';
+
+  @override
+  String get ticketCancelYes => 'Yes, cancel';
+
+  @override
+  String get ticketCancelNo => 'Keep it';
+
+  @override
+  String get ticketCancelled => 'Registration cancelled.';
+
+  @override
+  String get ticketCancelFailed => 'Could not cancel. Please try again.';
+
+  @override
+  String get ticketCancelCheckedIn => 'You are already checked in.';
+
+  @override
+  String get ticketsRefresh => 'Refresh';
 }

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
+import '../models/registration_model.dart';
 import '../services/event_repository.dart';
+import '../services/registration_repository.dart';
 
 enum UserRole { student, planner }
 enum PlannerType { universityAdmin, commercialPlanner }
@@ -35,6 +37,7 @@ class AppState extends ChangeNotifier {
       _events = mock.all;
     } else {
       _eventRepository = SupabaseEventRepository(c, _domainForSlug);
+      _registrationRepository = RegistrationRepository(c, _domainForSlug);
       // Real accounts start empty; registrations/tickets/reviews move to the
       // database in a later step.
       _registeredEventIds.clear();
@@ -47,6 +50,8 @@ class AppState extends ChangeNotifier {
 
   final SupabaseClient? _client;
   late final EventRepository _eventRepository;
+  RegistrationRepository? _registrationRepository;
+  List<Registration> _registrations = [];
   List<Event> _events = [];
   bool _eventsLoading = false;
   bool _eventsError = false;
@@ -79,6 +84,7 @@ class AppState extends ChangeNotifier {
       _currentTenant = '';
       _tenantId = null;
       _events = [];
+      _registrations = [];
       notifyListeners();
     } else if (data.event != AuthChangeEvent.tokenRefreshed) {
       loadProfile();
@@ -125,7 +131,10 @@ class AppState extends ChangeNotifier {
       _profileFailed = true;
     }
     notifyListeners();
-    if (_remoteProfile != null) refreshEvents();
+    if (_remoteProfile != null) {
+      refreshEvents();
+      refreshRegistrations();
+    }
   }
 
   Future<void> signIn(String email, String password) async {
@@ -259,7 +268,57 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
   String get selectedCategory => _selectedCategory;
-  List<String> get registeredEventIds => _registeredEventIds;
+  List<String> get registeredEventIds => usesBackend
+      ? _registrations.map((r) => r.event.id).toList()
+      : _registeredEventIds;
+
+  /// Events the user is registered or waitlisted for (includes events that already
+  /// ended, which the public feed no longer lists).
+  List<Event> get registeredEvents => usesBackend
+      ? _registrations.map((r) => r.event).toList()
+      : events.where((e) => _registeredEventIds.contains(e.id)).toList();
+
+  Registration? registrationFor(String eventId) {
+    for (final r in _registrations) {
+      if (r.event.id == eventId) return r;
+    }
+    return null;
+  }
+
+  bool isWaitlisted(String eventId) =>
+      registrationFor(eventId)?.status == RegistrationStatus.waitlisted;
+
+  Future<void> refreshRegistrations() async {
+    final repo = _registrationRepository;
+    if (repo == null) return;
+    try {
+      _registrations = await repo.fetchMine();
+      notifyListeners();
+    } catch (_) {
+      // Keep showing the last known list; pull-to-refresh retries.
+    }
+  }
+
+  /// Events the signed-in planner organizes (for choosing what to scan).
+  Future<List<Event>> loadManagedEvents() async {
+    final repo = _registrationRepository;
+    if (repo == null) return events;
+    return repo.fetchManagedEvents();
+  }
+
+  /// Validates a scanned QR value for [eventId] on the server.
+  Future<CheckInResult> checkInTicket(String code, String eventId) async {
+    final repo = _registrationRepository!;
+    final result = await repo.checkIn(code, eventId);
+    return result;
+  }
+
+  /// What the ticket QR code encodes.
+  String qrPayload(String eventId) {
+    if (usesBackend) return 'unihub:1:${registrationFor(eventId)?.ticketCode ?? ''}';
+    final ticketId = _ticketIds[eventId] ?? '';
+    return '{"ticketId": "$ticketId", "eventId": "$eventId", "userId": "student-1", "userName": "${activeProfile.name}"}';
+  }
 
   final Map<String, Map<String, String>> tenantDetails = {
     'TUM': {
@@ -276,6 +335,11 @@ class AppState extends ChangeNotifier {
       'en': 'University of Hamburg',
       'de': 'Universität Hamburg',
       'domain': 'uni-hamburg.de',
+    },
+    'HAW': {
+      'en': 'Hamburg University of Applied Sciences',
+      'de': 'Hochschule für Angewandte Wissenschaften Hamburg',
+      'domain': 'haw-hamburg.de',
     },
   };
 
@@ -345,10 +409,36 @@ class AppState extends ChangeNotifier {
   }
 
   bool isRegistered(String eventId) {
+    if (usesBackend) return registrationFor(eventId)?.isActive ?? false;
     return _registeredEventIds.contains(eventId);
   }
 
-  void registerForEvent(String eventId) {
+  /// Registers for an event. With a backend the server enforces capacity and may
+  /// place the user on the waitlist. Throws PostgrestException on refusal.
+  Future<RegistrationStatus> registerForEvent(String eventId) async {
+    final repo = _registrationRepository;
+    if (repo != null) {
+      final status = await repo.register(eventId);
+      await refreshRegistrations();
+      return status;
+    }
+    _registerLocally(eventId);
+    return RegistrationStatus.registered;
+  }
+
+  Future<void> cancelRegistration(String eventId) async {
+    final repo = _registrationRepository;
+    if (repo != null) {
+      await repo.cancel(eventId);
+      await refreshRegistrations();
+      return;
+    }
+    _registeredEventIds.remove(eventId);
+    _ticketIds.remove(eventId);
+    notifyListeners();
+  }
+
+  void _registerLocally(String eventId) {
     if (!_registeredEventIds.contains(eventId)) {
       _registeredEventIds.add(eventId);
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
@@ -360,10 +450,14 @@ class AppState extends ChangeNotifier {
   }
 
   String getTicketId(String eventId) {
+    if (usesBackend) return registrationFor(eventId)?.displayTicketId ?? '';
     return _ticketIds[eventId] ?? '';
   }
 
   bool isTicketScanned(String ticketId) {
+    if (usesBackend) {
+      return _registrations.any((r) => r.displayTicketId == ticketId && r.isCheckedIn);
+    }
     return _scannedTicketIds.contains(ticketId);
   }
 
@@ -383,7 +477,9 @@ class AppState extends ChangeNotifier {
   // Dynamic university theme color mapping
   Color getUniversityColor(String domainOrTenant) {
     final key = domainOrTenant.toLowerCase();
-    if (key.contains('tum')) {
+    if (key.contains('haw')) {
+      return const Color(0xFF0072BC); // HAW Hamburg Blue (checked before 'hamburg')
+    } else if (key.contains('tum')) {
       return const Color(0xFF0065BD); // TUM Tech Blue
     } else if (key.contains('lmu')) {
       return const Color(0xFF0F9D58); // LMU Emerald Green
@@ -409,6 +505,7 @@ class AppState extends ChangeNotifier {
   }
 
   bool hasAttended(String eventId) {
+    if (usesBackend) return registrationFor(eventId)?.isCheckedIn ?? false;
     final ticketId = _ticketIds[eventId];
     if (ticketId == null || ticketId.isEmpty) return false;
     return _scannedTicketIds.contains(ticketId);
