@@ -1,4 +1,4 @@
-package com.example.uni_events_app
+package com.zunft.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,6 +1,6 @@
 {
-    "name": "uni_events_app",
-    "short_name": "uni_events_app",
+    "name": "UNIHUB",
+    "short_name": "UNIHUB",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
