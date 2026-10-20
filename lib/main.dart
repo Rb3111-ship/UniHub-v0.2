@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
+import 'app/config/env.dart';
 import 'app/config/theme.dart';
 import 'core/auth/user_role.dart';
 import 'features/shell/presentation/shell_screen.dart';
 
-void main() {
+Future<void> main() async {
   // Ensure Flutter engine bindings are initialized prior to loading dependencies
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: Env.supabaseUrl,
+    publishableKey: Env.supabaseKey,
+  );
   
   runApp(
     ChangeNotifierProvider(
