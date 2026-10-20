@@ -1,0 +1,30 @@
+name: uni_events_app
+description: A multi-tenant university events app with role-based shell navigation and dual-language localization.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+  provider: ^6.1.2
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.1.1
+
+  # Firebase core & auth (placeholder setup)
+  # firebase_core: ^3.0.0
+  # firebase_auth: ^5.0.0
+  # cloud_firestore: ^5.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true # Enable automatic l10n generation
