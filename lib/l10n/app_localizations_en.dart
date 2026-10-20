@@ -214,4 +214,118 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeDark => 'Dark';
+
+  @override
+  String get authWelcome => 'Welcome to UNIHUB';
+
+  @override
+  String get authTagline => 'Your campus events, in one place.';
+
+  @override
+  String get authSignIn => 'Sign in';
+
+  @override
+  String get authSignUp => 'Create account';
+
+  @override
+  String get authEmail => 'Email';
+
+  @override
+  String get authPassword => 'Password';
+
+  @override
+  String get authDisplayName => 'Your name';
+
+  @override
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authNoAccount => 'New here? Create an account';
+
+  @override
+  String get authHaveAccount => 'Already have an account? Sign in';
+
+  @override
+  String authUniDetected(String university) {
+    return 'University account detected: $university';
+  }
+
+  @override
+  String get authPublicAccount =>
+      'No university email detected. You will see public events only.';
+
+  @override
+  String get authVerifyTitle => 'Check your email';
+
+  @override
+  String authVerifyBody(String email) {
+    return 'We sent a code to $email. Enter it below.';
+  }
+
+  @override
+  String get authCode => 'Code from your email';
+
+  @override
+  String get authVerify => 'Verify';
+
+  @override
+  String get authResend => 'Resend code';
+
+  @override
+  String get authResent => 'A new code was sent.';
+
+  @override
+  String get authResetTitle => 'Reset password';
+
+  @override
+  String get authResetBody => 'Enter your email and we will send you a code.';
+
+  @override
+  String get authSendCode => 'Send code';
+
+  @override
+  String get authNewPassword => 'New password';
+
+  @override
+  String get authResetSubmit => 'Set new password';
+
+  @override
+  String get authBackToSignIn => 'Back to sign in';
+
+  @override
+  String get authErrInvalidEmail => 'Enter a valid email address.';
+
+  @override
+  String get authErrPasswordShort => 'Password must be at least 8 characters.';
+
+  @override
+  String get authErrNameRequired => 'Please enter your name.';
+
+  @override
+  String get authErrCodeRequired => 'Enter the code from your email.';
+
+  @override
+  String get authErrGeneric => 'Something went wrong. Please try again.';
+
+  @override
+  String get authErrBadCredentials => 'Wrong email or password.';
+
+  @override
+  String get authErrEmailNotConfirmed => 'Please confirm your email first.';
+
+  @override
+  String get authErrCodeInvalid => 'That code is wrong or has expired.';
+
+  @override
+  String get authErrNetwork =>
+      'No connection. Check your internet and try again.';
+
+  @override
+  String get authSignOut => 'Sign out';
+
+  @override
+  String get authProfileLoadFailed => 'Could not load your profile.';
+
+  @override
+  String get authRetry => 'Try again';
 }

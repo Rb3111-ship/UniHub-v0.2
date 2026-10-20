@@ -49,7 +49,8 @@ class StudentProfileScreen extends StatelessWidget {
             icon: Icons.school_rounded,
             title: "Active Tenant (University)",
             subtitle: appState.getTenantDisplayName(),
-            trailing: DropdownButton<String>(
+            // With a real account the university comes from the verified e-mail domain.
+            trailing: appState.usesBackend ? const SizedBox.shrink() : DropdownButton<String>(
               value: appState.currentTenant,
               underline: const SizedBox(),
               icon: const Icon(Icons.arrow_drop_down_rounded),
@@ -176,12 +177,16 @@ class StudentProfileScreen extends StatelessWidget {
           // Sign out / reset simulation button
           ElevatedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Firebase Authentication: Signed out mock user")),
-              );
+              if (appState.usesBackend) {
+                appState.signOut();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Mock mode: no account to sign out of")),
+                );
+              }
             },
             icon: const Icon(Icons.logout_rounded),
-            label: const Text("Sign Out"),
+            label: Text(localizations.authSignOut),
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.colorScheme.errorContainer,
               foregroundColor: theme.colorScheme.onErrorContainer,

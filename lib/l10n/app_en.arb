@@ -66,5 +66,55 @@
   "wallpaperSunset": "Sunset",
   "themeSystem": "System",
   "themeLight": "Light",
-  "themeDark": "Dark"
+  "themeDark": "Dark",
+  "authWelcome": "Welcome to UNIHUB",
+  "authTagline": "Your campus events, in one place.",
+  "authSignIn": "Sign in",
+  "authSignUp": "Create account",
+  "authEmail": "Email",
+  "authPassword": "Password",
+  "authDisplayName": "Your name",
+  "authForgotPassword": "Forgot password?",
+  "authNoAccount": "New here? Create an account",
+  "authHaveAccount": "Already have an account? Sign in",
+  "authUniDetected": "University account detected: {university}",
+  "@authUniDetected": {
+    "placeholders": {
+      "university": {
+        "type": "String"
+      }
+    }
+  },
+  "authPublicAccount": "No university email detected. You will see public events only.",
+  "authVerifyTitle": "Check your email",
+  "authVerifyBody": "We sent a code to {email}. Enter it below.",
+  "@authVerifyBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authCode": "Code from your email",
+  "authVerify": "Verify",
+  "authResend": "Resend code",
+  "authResent": "A new code was sent.",
+  "authResetTitle": "Reset password",
+  "authResetBody": "Enter your email and we will send you a code.",
+  "authSendCode": "Send code",
+  "authNewPassword": "New password",
+  "authResetSubmit": "Set new password",
+  "authBackToSignIn": "Back to sign in",
+  "authErrInvalidEmail": "Enter a valid email address.",
+  "authErrPasswordShort": "Password must be at least 8 characters.",
+  "authErrNameRequired": "Please enter your name.",
+  "authErrCodeRequired": "Enter the code from your email.",
+  "authErrGeneric": "Something went wrong. Please try again.",
+  "authErrBadCredentials": "Wrong email or password.",
+  "authErrEmailNotConfirmed": "Please confirm your email first.",
+  "authErrCodeInvalid": "That code is wrong or has expired.",
+  "authErrNetwork": "No connection. Check your internet and try again.",
+  "authSignOut": "Sign out",
+  "authProfileLoadFailed": "Could not load your profile.",
+  "authRetry": "Try again"
 }

@@ -6,7 +6,7 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import 'app/config/env.dart';
 import 'app/config/theme.dart';
 import 'core/auth/user_role.dart';
-import 'features/shell/presentation/shell_screen.dart';
+import 'features/auth/auth_gate.dart';
 
 Future<void> main() async {
   // Ensure Flutter engine bindings are initialized prior to loading dependencies
@@ -19,7 +19,7 @@ Future<void> main() async {
   
   runApp(
     ChangeNotifierProvider(
-      create: (_) => AppState(),
+      create: (_) => AppState(client: Supabase.instance.client),
       child: const UniEventsApp(),
     ),
   );
@@ -55,7 +55,7 @@ class UniEventsApp extends StatelessWidget {
       ],
 
       // Home Screen Wrapper (Shell Layout)
-      home: const ShellScreen(),
+      home: const AuthGate(),
     );
   }
 }

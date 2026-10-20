@@ -151,6 +151,44 @@ class _ShellScreenState extends State<ShellScreen> {
     final theme = Theme.of(context);
     final active = appState.activeProfile;
 
+    if (appState.usesBackend) {
+      return PopupMenuButton<String>(
+        onSelected: (_) => appState.signOut(),
+        itemBuilder: (context) => [
+          PopupMenuItem<String>(
+            value: 'signout',
+            child: Row(children: [
+              const Icon(Icons.logout_rounded, size: 18),
+              const SizedBox(width: 12),
+              Text(AppLocalizations.of(context)!.authSignOut),
+            ]),
+          ),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: appState.getActiveTenantColor(),
+                child: const Icon(Icons.person_rounded, size: 12, color: Colors.white),
+              ),
+              const SizedBox(width: 8),
+              Text(active.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_drop_down_rounded, size: 18),
+            ],
+          ),
+        ),
+      );
+    }
+
     IconData profileIcon = Icons.person_rounded;
     if (active.type == ProfileType.universityOrganizer) {
       profileIcon = Icons.school_rounded;

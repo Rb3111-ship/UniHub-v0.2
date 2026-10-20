@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
 import '../services/event_repository.dart';
@@ -23,6 +25,135 @@ class MockProfile {
 }
 
 class AppState extends ChangeNotifier {
+  /// [client] null = offline mock mode (tests, demos): no sign-in, fake profiles.
+  /// With a client, the signed-in user's profile drives role, tenant and name.
+  AppState({SupabaseClient? client}) : _client = client {
+    final c = client;
+    if (c != null) {
+      _session = c.auth.currentSession;
+      _authSub = c.auth.onAuthStateChange.listen(_onAuthChange);
+    }
+  }
+
+  final SupabaseClient? _client;
+  StreamSubscription<AuthState>? _authSub;
+  Session? _session;
+  MockProfile? _remoteProfile;
+  bool _profileFailed = false;
+
+  bool get usesBackend => _client != null;
+  bool get isSignedIn => !usesBackend || _session != null;
+  bool get profileReady => !usesBackend || _remoteProfile != null;
+  bool get profileFailed => _profileFailed;
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
+
+  void _onAuthChange(AuthState data) {
+    _session = data.session;
+    final user = data.session?.user;
+    if (user == null) {
+      _remoteProfile = null;
+      _profileFailed = false;
+      _currentRole = UserRole.student;
+      _currentTenant = '';
+      notifyListeners();
+    } else if (data.event != AuthChangeEvent.tokenRefreshed) {
+      loadProfile();
+    }
+  }
+
+  /// Loads the signed-in user's profile + university from the database.
+  Future<void> loadProfile() async {
+    final c = _client;
+    final user = c?.auth.currentUser;
+    if (c == null || user == null) return;
+    _profileFailed = false;
+    try {
+      final row = await c
+          .from('profiles')
+          .select('display_name, role, tenants(slug)')
+          .eq('id', user.id)
+          .single();
+      final slug = ((row['tenants'] as Map?)?['slug'] as String?)?.toUpperCase();
+      final role = row['role'] as String;
+      final type = switch (role) {
+        'student' => ProfileType.student,
+        'commercial_planner' => ProfileType.commercialPlanner,
+        _ => ProfileType.universityOrganizer, // organizer, tenant_admin, platform_admin
+      };
+      _currentRole = type == ProfileType.student ? UserRole.student : UserRole.planner;
+      if (type != ProfileType.student) {
+        _currentPlannerType = type == ProfileType.commercialPlanner
+            ? PlannerType.commercialPlanner
+            : PlannerType.universityAdmin;
+      }
+      _currentTenant = (slug != null && tenantDetails.containsKey(slug)) ? slug : '';
+      _remoteProfile = MockProfile(
+        name: (row['display_name'] as String?)?.trim().isNotEmpty == true
+            ? row['display_name'] as String
+            : (user.email ?? ''),
+        email: user.email ?? '',
+        universityDomain: tenantDetails[_currentTenant]?['domain'] ?? 'public',
+        type: type,
+      );
+    } catch (_) {
+      _remoteProfile = null;
+      _profileFailed = true;
+    }
+    notifyListeners();
+  }
+
+  Future<void> signIn(String email, String password) async {
+    await _client!.auth.signInWithPassword(email: email.trim(), password: password);
+  }
+
+  /// Returns true if the user is signed in immediately, false if an e-mail code is needed.
+  Future<bool> signUp(String email, String password, String displayName) async {
+    final res = await _client!.auth.signUp(
+      email: email.trim(),
+      password: password,
+      data: {'display_name': displayName.trim()},
+    );
+    return res.session != null;
+  }
+
+  Future<void> verifySignUpCode(String email, String code) async {
+    await _client!.auth.verifyOTP(email: email.trim(), token: code.trim(), type: OtpType.signup);
+  }
+
+  Future<void> resendSignUpCode(String email) async {
+    await _client!.auth.resend(type: OtpType.signup, email: email.trim());
+  }
+
+  Future<void> sendPasswordResetCode(String email) async {
+    await _client!.auth.resetPasswordForEmail(email.trim());
+  }
+
+  Future<void> resetPasswordWithCode(String email, String code, String newPassword) async {
+    await _client!.auth.verifyOTP(email: email.trim(), token: code.trim(), type: OtpType.recovery);
+    await _client!.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  Future<void> signOut() async {
+    await _client?.auth.signOut();
+  }
+
+  /// Email domain -> university display name, for the live hint on the sign-up form.
+  String? universityForEmail(String email) {
+    final at = email.indexOf('@');
+    if (at < 0) return null;
+    final domain = email.substring(at + 1).trim().toLowerCase();
+    for (final entry in tenantDetails.entries) {
+      final d = entry.value['domain']!;
+      if (domain == d || domain.endsWith('.$d')) return entry.value[_currentLocale.languageCode];
+    }
+    return null;
+  }
+
   UserRole _currentRole = UserRole.student;
   Locale _currentLocale = const Locale('en');
   String _currentTenant = 'TUM'; // Munich Tech University (Example Tenant)
@@ -264,7 +395,7 @@ class AppState extends ChangeNotifier {
   }
 
   int get activeProfileIndex => _activeProfileIndex;
-  MockProfile get activeProfile => mockProfiles[_activeProfileIndex];
+  MockProfile get activeProfile => _remoteProfile ?? mockProfiles[_activeProfileIndex];
 
   void setActiveProfileIndex(int index) {
     if (index >= 0 && index < mockProfiles.length && _activeProfileIndex != index) {

@@ -216,4 +216,121 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get themeDark => 'Dunkel';
+
+  @override
+  String get authWelcome => 'Willkommen bei UNIHUB';
+
+  @override
+  String get authTagline => 'Deine Campus-Events an einem Ort.';
+
+  @override
+  String get authSignIn => 'Anmelden';
+
+  @override
+  String get authSignUp => 'Konto erstellen';
+
+  @override
+  String get authEmail => 'E-Mail';
+
+  @override
+  String get authPassword => 'Passwort';
+
+  @override
+  String get authDisplayName => 'Dein Name';
+
+  @override
+  String get authForgotPassword => 'Passwort vergessen?';
+
+  @override
+  String get authNoAccount => 'Neu hier? Konto erstellen';
+
+  @override
+  String get authHaveAccount => 'Schon ein Konto? Anmelden';
+
+  @override
+  String authUniDetected(String university) {
+    return 'Hochschulkonto erkannt: $university';
+  }
+
+  @override
+  String get authPublicAccount =>
+      'Keine Hochschul-E-Mail erkannt. Du siehst nur öffentliche Events.';
+
+  @override
+  String get authVerifyTitle => 'Prüfe deine E-Mails';
+
+  @override
+  String authVerifyBody(String email) {
+    return 'Wir haben einen Code an $email gesendet. Gib ihn unten ein.';
+  }
+
+  @override
+  String get authCode => 'Code aus deiner E-Mail';
+
+  @override
+  String get authVerify => 'Bestätigen';
+
+  @override
+  String get authResend => 'Code erneut senden';
+
+  @override
+  String get authResent => 'Ein neuer Code wurde gesendet.';
+
+  @override
+  String get authResetTitle => 'Passwort zurücksetzen';
+
+  @override
+  String get authResetBody =>
+      'Gib deine E-Mail ein, wir senden dir einen Code.';
+
+  @override
+  String get authSendCode => 'Code senden';
+
+  @override
+  String get authNewPassword => 'Neues Passwort';
+
+  @override
+  String get authResetSubmit => 'Neues Passwort speichern';
+
+  @override
+  String get authBackToSignIn => 'Zurück zur Anmeldung';
+
+  @override
+  String get authErrInvalidEmail => 'Gib eine gültige E-Mail-Adresse ein.';
+
+  @override
+  String get authErrPasswordShort =>
+      'Das Passwort muss mindestens 8 Zeichen haben.';
+
+  @override
+  String get authErrNameRequired => 'Bitte gib deinen Namen ein.';
+
+  @override
+  String get authErrCodeRequired => 'Gib den Code aus deiner E-Mail ein.';
+
+  @override
+  String get authErrGeneric =>
+      'Etwas ist schiefgelaufen. Bitte versuche es erneut.';
+
+  @override
+  String get authErrBadCredentials => 'E-Mail oder Passwort ist falsch.';
+
+  @override
+  String get authErrEmailNotConfirmed => 'Bitte bestätige zuerst deine E-Mail.';
+
+  @override
+  String get authErrCodeInvalid => 'Der Code ist falsch oder abgelaufen.';
+
+  @override
+  String get authErrNetwork =>
+      'Keine Verbindung. Prüfe dein Internet und versuche es erneut.';
+
+  @override
+  String get authSignOut => 'Abmelden';
+
+  @override
+  String get authProfileLoadFailed => 'Profil konnte nicht geladen werden.';
+
+  @override
+  String get authRetry => 'Erneut versuchen';
 }

@@ -505,6 +505,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get themeDark;
+
+  /// No description provided for @authWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to UNIHUB'**
+  String get authWelcome;
+
+  /// No description provided for @authTagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Your campus events, in one place.'**
+  String get authTagline;
+
+  /// No description provided for @authSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get authSignIn;
+
+  /// No description provided for @authSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get authSignUp;
+
+  /// No description provided for @authEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get authEmail;
+
+  /// No description provided for @authPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get authPassword;
+
+  /// No description provided for @authDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name'**
+  String get authDisplayName;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password?'**
+  String get authForgotPassword;
+
+  /// No description provided for @authNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'New here? Create an account'**
+  String get authNoAccount;
+
+  /// No description provided for @authHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? Sign in'**
+  String get authHaveAccount;
+
+  /// No description provided for @authUniDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'University account detected: {university}'**
+  String authUniDetected(String university);
+
+  /// No description provided for @authPublicAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'No university email detected. You will see public events only.'**
+  String get authPublicAccount;
+
+  /// No description provided for @authVerifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email'**
+  String get authVerifyTitle;
+
+  /// No description provided for @authVerifyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a code to {email}. Enter it below.'**
+  String authVerifyBody(String email);
+
+  /// No description provided for @authCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code from your email'**
+  String get authCode;
+
+  /// No description provided for @authVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get authVerify;
+
+  /// No description provided for @authResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code'**
+  String get authResend;
+
+  /// No description provided for @authResent.
+  ///
+  /// In en, this message translates to:
+  /// **'A new code was sent.'**
+  String get authResent;
+
+  /// No description provided for @authResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get authResetTitle;
+
+  /// No description provided for @authResetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and we will send you a code.'**
+  String get authResetBody;
+
+  /// No description provided for @authSendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get authSendCode;
+
+  /// No description provided for @authNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get authNewPassword;
+
+  /// No description provided for @authResetSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Set new password'**
+  String get authResetSubmit;
+
+  /// No description provided for @authBackToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get authBackToSignIn;
+
+  /// No description provided for @authErrInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address.'**
+  String get authErrInvalidEmail;
+
+  /// No description provided for @authErrPasswordShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 8 characters.'**
+  String get authErrPasswordShort;
+
+  /// No description provided for @authErrNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name.'**
+  String get authErrNameRequired;
+
+  /// No description provided for @authErrCodeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code from your email.'**
+  String get authErrCodeRequired;
+
+  /// No description provided for @authErrGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get authErrGeneric;
+
+  /// No description provided for @authErrBadCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong email or password.'**
+  String get authErrBadCredentials;
+
+  /// No description provided for @authErrEmailNotConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your email first.'**
+  String get authErrEmailNotConfirmed;
+
+  /// No description provided for @authErrCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is wrong or has expired.'**
+  String get authErrCodeInvalid;
+
+  /// No description provided for @authErrNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection. Check your internet and try again.'**
+  String get authErrNetwork;
+
+  /// No description provided for @authSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get authSignOut;
+
+  /// No description provided for @authProfileLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load your profile.'**
+  String get authProfileLoadFailed;
+
+  /// No description provided for @authRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get authRetry;
 }
 
 class _AppLocalizationsDelegate
