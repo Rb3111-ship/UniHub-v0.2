@@ -117,6 +117,7 @@ def run(s: Sim, tag: str) -> None:
     assert tum and haw and lmu, "seed universities missing"
 
     def mk_user(email, confirmed=True):
+        s.postgres()
         uid = uuid.uuid4()
         c.execute(
             "insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, "
@@ -127,6 +128,7 @@ def run(s: Sim, tag: str) -> None:
         return uid
 
     def promote(uid, role, verified=True):
+        s.postgres()
         c.execute("update public.profiles set role = %s::public.user_role, organizer_verified = %s where id = %s",
                   [role, verified, uid])
 
@@ -433,13 +435,140 @@ def run(s: Sim, tag: str) -> None:
     b = s.rows("select public, file_size_limit, allowed_mime_types from storage.buckets where id='event-images'")[0]
     check("bucket has a size limit and image-only types", b[1] is not None and b[1] <= 10_000_000 and set(b[2] or []) <= {"image/jpeg", "image/png", "image/webp"}, str(b))
 
+    print("\n[14] Event cancellation and image paths")
+    ev_c = mk_event(org_tum, tum, "To cancel")
+    s.user(stu_tum);  s.call("select public.register_for_event(%s)", [ev_c])
+    s.postgres(); cc = code_of(stu_tum, ev_c)
+    s.user(org_tum)
+    _, err = s.call("update public.events set status = 'cancelled' where id = %s", [ev_c]); check("organizer can cancel own event", err is None, str(err))
+    s.user(stu_tum)
+    check("a registered attendee still sees the cancelled event", s.scalar("select status::text from public.events where id = %s", [ev_c]) == "cancelled")
+    s.user(stu_tum2)
+    check("someone who never registered does not see it", s.scalar("select count(*) from public.events where id = %s", [ev_c]) == 0)
+    _, err = s.call("select public.register_for_event(%s)", [ev_c]); check("cannot register for a cancelled event", err is not None)
+    s.user(org_tum)
+    _, err = s.call("update public.events set status = 'published' where id = %s", [ev_c]); check("a cancelled event cannot be re-opened", err is not None and "cancelled_is_final" in err, str(err))
+    _, err = s.call("update public.events set status = 'draft' where id = %s", [ev_tum]); check("a published event cannot go back to draft", err is not None and "cannot_unpublish" in err, str(err))
+    r, _ = s.call("select public.check_in_ticket(%s, %s)", [cc, ev_c]); check("tickets of a cancelled event do not check in", r and r["result"] == "cancelled" and not r["ok"], str(r))
+    for label, path in (("not a uuid folder", "bad.png"), ("someone else's folder", f"{org_haw}/a.png"),
+                        ("path traversal", f"{org_tum}/../x.png"), ("nested folders", f"{org_tum}/a/b.png"),
+                        ("spaces and symbols", f"{org_tum}/a b$.png"), ("over-long name", f"{org_tum}/" + "a" * 101)):
+        _, err = s.call("update public.events set image_path = %s where id = %s", [path, ev_tum]); check(f"image path rejected: {label}", err is not None, "accepted a bad path")
+    _, err = s.call("update public.events set image_path = %s where id = %s", [f"{org_tum}/{tag}.png", ev_tum]); check("image path accepted: own folder", err is None, str(err))
+
+    print("\n[15] Organizer requests (becoming an organizer)")
+    rq_haw = mk_user(f"rq1-{tag}@haw-hamburg.de")
+    rq_pub = mk_user(f"rq2-{tag}@gmail.com")
+    rq_tum = mk_user(f"rq3-{tag}@tum.de")
+    s.user(rq_haw)
+    _, err = s.call("select public.request_organizer_access('organizer', 'HAW Film Club', 'We screen films')"); check("student with a university can request organizer access", err is None, str(err))
+    _, err = s.call("select public.request_organizer_access('organizer', 'Again', '')"); check("a second pending request is refused", err is not None and "request_pending" in err, str(err))
+    for bad in ("platform_admin", "tenant_admin", "student"):
+        _, err = s.call("select public.request_organizer_access(%s::public.user_role, 'X Org', '')", [bad]); check(f"cannot request the {bad} role", err is not None, "accepted")
+    s.user(rq_pub)
+    _, err = s.call("select public.request_organizer_access('organizer', 'Fake Uni Club', '')"); check("no university -> cannot request university organizer", err is not None and "no_university" in err, str(err))
+    _, err = s.call("select public.request_organizer_access('commercial_planner', 'Acme Events', 'We run concerts')"); check("anyone can request commercial planner access", err is None, str(err))
+    _, err = s.call("select public.request_organizer_access('commercial_planner', %s, '')", ["x"]); check("request needs a real organization name", err is not None)
+    s.user(rq_tum)
+    s.call("select public.request_organizer_access('organizer', 'TUM Robotics', '')")
+    s.user(org_tum)
+    _, err = s.call("select public.request_organizer_access('organizer', 'Already one', '')"); check("an existing organizer cannot request again", err is not None and "already_organizer" in err, str(err))
+    s.user(rq_haw)
+    for label, q in (("insert", "insert into public.organizer_requests (user_id, requested_role, organization_name) values (%s, 'organizer', 'Hack')"),
+                     ("update", "update public.organizer_requests set status = 'approved'"),
+                     ("delete", "delete from public.organizer_requests")):
+        s.fails(f"cannot {label} requests directly", q, [rq_haw] if "%s" in q else None, contains="permission denied")
+    check("a user sees only their own request", {r[0] for r in s.rows("select user_id from public.organizer_requests")} == {rq_haw})
+    s.user(stu_tum2)
+    check("other users see no requests", s.scalar("select count(*) from public.organizer_requests") == 0)
+    s.user(t_admin)
+    seen = {r[0] for r in s.rows("select user_id from public.organizer_requests")}
+    check("tenant admin sees organizer requests of THEIR university only", seen == {rq_haw}, str(seen))
+    s.user(p_admin)
+    seen = {r[0] for r in s.rows("select user_id from public.organizer_requests")}
+    check("platform admin sees all requests", {rq_haw, rq_pub, rq_tum} <= seen)
+    req = lambda uid: s.scalar("select id from public.organizer_requests where user_id = %s and status = 'pending'", [uid])
+    s.postgres(); r_haw, r_pub, r_tum = req(rq_haw), req(rq_pub), req(rq_tum)
+    s.user(rq_tum)
+    _, err = s.call("select public.review_organizer_request(%s, true)", [r_tum]); check("a student cannot approve requests (not even their own)", err is not None and "not_authorized" in err, str(err))
+    s.user(org_tum)
+    _, err = s.call("select public.review_organizer_request(%s, true)", [r_tum]); check("an organizer cannot approve requests", err is not None)
+    s.user(t_admin)
+    _, err = s.call("select public.review_organizer_request(%s, true)", [r_pub]); check("tenant admin cannot approve a commercial planner", err is not None)
+    _, err = s.call("select public.review_organizer_request(%s, true)", [r_tum]); check("tenant admin cannot approve another university's request", err is not None)
+    _, err = s.call("select public.review_organizer_request(%s, true, 'Welcome')", [r_haw]); check("tenant admin approves a request from their university", err is None, str(err))
+    s.postgres()
+    row = s.rows("select role::text, organizer_verified from public.profiles where id = %s", [rq_haw])[0]
+    check("approval makes the user a verified organizer", row == ("organizer", True), str(row))
+    row = s.rows("select status::text, reviewed_by, review_note from public.organizer_requests where id = %s", [r_haw])[0]
+    check("the review is recorded (who, when, note)", row[0] == "approved" and row[1] == t_admin and row[2] == "Welcome", str(row))
+    s.user(rq_haw)
+    _, err = s.call("insert into public.events (organizer_id,tenant_id,title,location,starts_at,ends_at,status) values (%s,%s,'Film night','Hall',now()+interval '1 d',now()+interval '2 d','published')", [rq_haw, haw])
+    check("a newly approved organizer can publish for their university", err is None, str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.review_organizer_request(%s, true)", [r_haw]); check("a request cannot be reviewed twice", err is not None and "already_reviewed" in err, str(err))
+    _, err = s.call("select public.review_organizer_request(%s, false, 'Not enough info')", [r_pub]); check("platform admin can reject a request", err is None, str(err))
+    s.postgres()
+    check("a rejected user stays a student", s.scalar("select role::text from public.profiles where id = %s", [rq_pub]) == "student")
+    s.user(rq_pub)
+    _, err = s.call("select public.request_organizer_access('commercial_planner', 'Acme Events', 'Second try')"); check("after a rejection the user may apply again", err is None, str(err))
+    s.postgres()
+    s.c.execute("update public.profiles set role = 'tenant_admin' where id = %s", [rq_tum])
+    s.user(p_admin)
+    s.call("select public.review_organizer_request(%s, true)", [r_tum])
+    s.postgres()
+    check("approving never downgrades an admin", s.scalar("select role::text from public.profiles where id = %s", [rq_tum]) == "tenant_admin")
+
+    print("\n[16] Admin user list")
+    s.anon()
+    s.fails("anonymous cannot list users", "select * from public.admin_list_users()", contains="permission denied")
+    s.user(stu_tum)
+    _, err = s.call("select * from public.admin_list_users()"); check("a student cannot list users", err is not None and "not_authorized" in err, str(err))
+    s.user(org_tum)
+    _, err = s.call("select * from public.admin_list_users()"); check("an organizer cannot list users", err is not None)
+    s.user(t_admin)
+    rows = s.rows("select tenant_id, email from public.admin_list_users()")
+    check("tenant admin lists only their university's users, with e-mail", rows and all(r[0] == haw and r[1] for r in rows), str(rows[:2]))
+    rows = s.rows("select email from public.admin_list_users(%s)", [f"s3-{tag}"])
+    check("search by name or e-mail works", len(rows) == 1, str(rows))
+    s.user(p_admin)
+    rows = s.rows("select tenant_id from public.admin_list_users(null, 1000)")
+    check("platform admin sees every university", {r[0] for r in rows} >= {tum, haw})
+    check("the list size is capped at 200", len(rows) <= 200)
+    check("limit 1 returns 1 row", len(s.rows("select * from public.admin_list_users(null, 1)")) == 1)
+
+    print("\n[17] Delete my account")
+    gone = mk_user(f"gone-{tag}@haw-hamburg.de")
+    keeper = mk_user(f"keep-{tag}@haw-hamburg.de")
+    ev_g = mk_event(commercial, None, "Gone event", start="now() - interval '1 hour'", end="now() + interval '2 hours'", qr=False)
+    for u in (gone, keeper):
+        s.user(u); s.call("select public.register_for_event(%s)", [ev_g])
+    s.user(gone); s.call("select public.submit_review(%s,4,'bye')", [ev_g])
+    s.anon()
+    s.fails("anonymous cannot delete accounts", "select public.delete_my_account()", contains="permission denied")
+    s.user(org_tum)
+    _, err = s.call("select public.delete_my_account()"); check("an organizer who still owns events cannot delete the account", err is not None and "has_events" in err, str(err))
+    s.postgres()
+    s.c.execute("update public.profiles set role = 'student' where role = 'platform_admin' and id <> %s", [p_admin])
+    s.user(p_admin)
+    _, err = s.call("select public.delete_my_account()"); check("the last platform admin cannot delete themselves", err is not None and "last_admin" in err, str(err))
+    s.user(gone)
+    _, err = s.call("select public.delete_my_account()"); check("a student can delete their account", err is None, str(err))
+    s.postgres()
+    left = {t: s.scalar(f"select count(*) from public.{t} where user_id = %s", [gone]) for t in ("registrations", "tickets", "reviews")}
+    check("their registrations, tickets and reviews are gone", all(v == 0 for v in left.values()), str(left))
+    check("their profile and login are gone", s.scalar("select count(*) from public.profiles where id = %s", [gone]) == 0 and s.scalar("select count(*) from auth.users where id = %s", [gone]) == 0)
+    check("other users were not affected", s.scalar("select count(*) from public.registrations where user_id = %s", [keeper]) == 1)
+    check("their review no longer counts", s.scalar("select count(*) from public.reviews where event_id = %s", [ev_g]) == 0)
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
         "anon": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count"},
         "authenticated": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
                           "register_for_event", "cancel_registration", "check_in_ticket", "submit_review", "admin_set_role",
-                          "is_verified_publisher"},
+                          "is_verified_publisher", "user_tenant", "request_organizer_access",
+                          "review_organizer_request", "admin_list_users", "delete_my_account"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")
@@ -457,6 +586,7 @@ def run(s: Sim, tag: str) -> None:
         "reviews": (set(["SELECT"]), set(["SELECT"])),
         "event_rating_stats": (set(["SELECT"]), set(["SELECT"])), "event_stats": (set(), set(["SELECT"])),
         "organizer_profiles": (set(["SELECT"]), set(["SELECT"])),
+        "organizer_requests": (set(), set(["SELECT"])),
     }
     grants = {}
     for table, grantee, priv in s.rows("select table_name, grantee, privilege_type from information_schema.role_table_grants "
