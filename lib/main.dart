@@ -8,21 +8,89 @@ import 'app/config/theme.dart';
 import 'core/auth/user_role.dart';
 import 'features/auth/auth_gate.dart';
 
-Future<void> main() async {
-  // Ensure Flutter engine bindings are initialized prior to loading dependencies
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Draw something immediately; the backend is connected afterwards so a slow or
+  // failing start-up shows a message instead of a frozen launch screen.
+  runApp(const _Bootstrap());
+}
 
-  await Supabase.initialize(
-    url: Env.supabaseUrl,
-    publishableKey: Env.supabaseKey,
-  );
-  
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => AppState(client: Supabase.instance.client),
-      child: const UniEventsApp(),
-    ),
-  );
+class _Bootstrap extends StatefulWidget {
+  const _Bootstrap();
+
+  @override
+  State<_Bootstrap> createState() => _BootstrapState();
+}
+
+class _BootstrapState extends State<_Bootstrap> {
+  Object? _error;
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _start();
+  }
+
+  Future<void> _start() async {
+    setState(() => _error = null);
+    try {
+      await Supabase.initialize(
+        url: Env.supabaseUrl,
+        publishableKey: Env.supabaseKey,
+      ).timeout(const Duration(seconds: 20));
+      if (mounted) setState(() => _ready = true);
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_ready) {
+      return ChangeNotifierProvider(
+        create: (_) => AppState(client: Supabase.instance.client),
+        child: const UniEventsApp(),
+      );
+    }
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: const Color(0xFF1E40AF),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('UniHub',
+                    style: TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 24),
+                if (_error == null)
+                  const CircularProgressIndicator(color: Colors.white)
+                else ...[
+                  const Text('UniHub could not start. Check your internet connection and try again.',
+                      textAlign: TextAlign.center, style: TextStyle(color: Colors.white)),
+                  const SizedBox(height: 12),
+                  Text('$_error',
+                      textAlign: TextAlign.center,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF1E40AF)),
+                    onPressed: _start,
+                    child: const Text('Try again'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class UniEventsApp extends StatelessWidget {
