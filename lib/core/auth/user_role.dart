@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
+import '../models/dashboard_model.dart';
 import '../models/registration_model.dart';
 import '../services/event_repository.dart';
+import '../services/insights_repository.dart';
 import '../services/registration_repository.dart';
 
 enum UserRole { student, planner }
@@ -38,6 +40,7 @@ class AppState extends ChangeNotifier {
     } else {
       _eventRepository = SupabaseEventRepository(c, _domainForSlug);
       _registrationRepository = RegistrationRepository(c, _domainForSlug);
+      _insightsRepository = InsightsRepository(c);
       // Real accounts start empty; registrations/tickets/reviews move to the
       // database in a later step.
       _registeredEventIds.clear();
@@ -51,6 +54,14 @@ class AppState extends ChangeNotifier {
   final SupabaseClient? _client;
   late final EventRepository _eventRepository;
   RegistrationRepository? _registrationRepository;
+  InsightsRepository? _insightsRepository;
+  Map<String, EventRating> _ratings = {};
+  Set<String> _myReviewedEventIds = {};
+  final Set<String> _locallyReviewed = {}; // mock mode only
+  DashboardData _dashboard = const DashboardData();
+  List<({Review review, String eventTitle})> _feedback = [];
+  bool _dashboardLoading = false;
+  bool _dashboardError = false;
   List<Registration> _registrations = [];
   List<Event> _events = [];
   bool _eventsLoading = false;
@@ -85,6 +96,10 @@ class AppState extends ChangeNotifier {
       _tenantId = null;
       _events = [];
       _registrations = [];
+      _ratings = {};
+      _myReviewedEventIds = {};
+      _dashboard = const DashboardData();
+      _feedback = [];
       notifyListeners();
     } else if (data.event != AuthChangeEvent.tokenRefreshed) {
       loadProfile();
@@ -134,6 +149,8 @@ class AppState extends ChangeNotifier {
     if (_remoteProfile != null) {
       refreshEvents();
       refreshRegistrations();
+      refreshMyReviews();
+      if (_currentRole == UserRole.planner) refreshDashboard();
     }
   }
 
@@ -266,6 +283,7 @@ class AppState extends ChangeNotifier {
     }
     _eventsLoading = false;
     notifyListeners();
+    refreshRatings();
   }
   String get selectedCategory => _selectedCategory;
   List<String> get registeredEventIds => usesBackend
@@ -310,6 +328,7 @@ class AppState extends ChangeNotifier {
   Future<CheckInResult> checkInTicket(String code, String eventId) async {
     final repo = _registrationRepository!;
     final result = await repo.checkIn(code, eventId);
+    refreshDashboard(); // door numbers and scan log changed
     return result;
   }
 
@@ -399,6 +418,7 @@ class AppState extends ChangeNotifier {
     final created = await _eventRepository.create(event, tenantId: tenantId);
     _events = [..._events, created]..sort((a, b) => a.date.compareTo(b.date));
     notifyListeners();
+    refreshDashboard();
   }
 
   void setPlannerType(PlannerType type) {
@@ -494,6 +514,105 @@ class AppState extends ChangeNotifier {
   }
 
   List<Review> get reviews => _reviews;
+
+  // ---- ratings & reviews ---------------------------------------------------
+
+  /// Verified average rating for an event, or null if nobody has rated it yet.
+  EventRating? ratingFor(String eventId) {
+    if (usesBackend) return _ratings[eventId];
+    final verified = _reviews.where((r) => r.eventId == eventId && r.isVerified).toList();
+    if (verified.isEmpty) return null;
+    final avg = verified.map((r) => r.rating).reduce((a, b) => a + b) / verified.length;
+    return EventRating(avg, verified.length);
+  }
+
+  bool hasReviewed(String eventId) =>
+      usesBackend ? _myReviewedEventIds.contains(eventId) : _locallyReviewed.contains(eventId);
+
+  Future<void> refreshRatings() async {
+    final repo = _insightsRepository;
+    if (repo == null) return;
+    try {
+      _ratings = await repo.fetchRatings();
+      notifyListeners();
+    } catch (_) {
+      // Ratings are optional decoration; keep the last known values.
+    }
+  }
+
+  Future<void> refreshMyReviews() async {
+    final repo = _insightsRepository;
+    if (repo == null) return;
+    try {
+      _myReviewedEventIds = await repo.fetchMyReviewedEventIds();
+      notifyListeners();
+    } catch (_) {
+      // Retried on the next refresh.
+    }
+  }
+
+  /// Sends a review. With a backend the server decides whether it is verified
+  /// and refuses early, duplicate or unticketed reviews (throws PostgrestException).
+  Future<void> submitReview(Event event, int rating, String comment, bool claimedAttendance) async {
+    final repo = _insightsRepository;
+    if (repo != null) {
+      await repo.submitReview(
+        eventId: event.id,
+        rating: rating,
+        comment: comment,
+        claimedAttendance: claimedAttendance,
+      );
+      _myReviewedEventIds = {..._myReviewedEventIds, event.id};
+      notifyListeners();
+      refreshRatings();
+      return;
+    }
+    final verified = event.requiresQrCode;
+    _reviews.add(Review(
+      id: 'rev-${DateTime.now().millisecondsSinceEpoch}',
+      eventId: event.id,
+      rating: rating.toDouble(),
+      comment: comment,
+      timestamp: DateTime.now(),
+      isVerified: verified,
+      claimedAttendance: verified ? true : claimedAttendance,
+    ));
+    _locallyReviewed.add(event.id);
+    notifyListeners();
+  }
+
+  // ---- planner dashboard ---------------------------------------------------
+
+  DashboardData get dashboard => _dashboard;
+  List<({Review review, String eventTitle})> get feedback => _feedback;
+  bool get dashboardLoading => _dashboardLoading;
+  bool get dashboardError => _dashboardError;
+
+  Future<void> refreshDashboard() async {
+    final repo = _insightsRepository;
+    if (repo == null || _dashboardLoading) return;
+    _dashboardLoading = true;
+    _dashboardError = false;
+    notifyListeners();
+    try {
+      final results = await Future.wait([
+        repo.fetchStats(),
+        repo.fetchRecentScans(),
+        repo.fetchFeedback(),
+      ]);
+      final stats = results[0] as List<EventStat>;
+      final managedIds = stats.map((s) => s.eventId).toSet();
+      _dashboard = DashboardData(stats: stats, scans: results[1] as List<ScanEntry>);
+      // Reviews of events the planner does not manage are not feedback for them.
+      _feedback = (results[2] as List<({Review review, String eventTitle})>)
+          .where((f) => managedIds.contains(f.review.eventId))
+          .toList();
+    } catch (_) {
+      _dashboardError = true;
+    }
+    _dashboardLoading = false;
+    notifyListeners();
+  }
 
   List<Review> getReviewsForEvent(String eventId) {
     return _reviews.where((r) => r.eventId == eventId).toList();

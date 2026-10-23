@@ -346,7 +346,9 @@ class StudentTicketsScreen extends StatelessWidget {
                   if (event.allowReviews) ...[
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
-                      onPressed: (event.requiresQrCode && !isScanned)
+                      onPressed: ((event.requiresQrCode && !isScanned) ||
+                              appState.hasReviewed(event.id) ||
+                              (appState.usesBackend && event.date.isAfter(DateTime.now())))
                           ? null
                           : () {
                               Navigator.push(
@@ -357,7 +359,9 @@ class StudentTicketsScreen extends StatelessWidget {
                               );
                             },
                       icon: const Icon(Icons.star_rate_rounded),
-                      label: Text(localizations.buttonLeaveReview),
+                      label: Text(appState.hasReviewed(event.id)
+                          ? localizations.reviewAlreadySubmitted
+                          : localizations.buttonLeaveReview),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isScanned ? Colors.green : brandColor,
                         foregroundColor: Colors.white,
@@ -367,6 +371,14 @@ class StudentTicketsScreen extends StatelessWidget {
                         disabledForegroundColor: theme.colorScheme.onSurfaceVariant.withOpacity(0.38),
                       ),
                     ),
+                    if (appState.usesBackend && event.date.isAfter(DateTime.now())) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        localizations.reviewOpensAtStart,
+                        style: TextStyle(fontSize: 10, color: theme.colorScheme.secondary),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                     if (event.requiresQrCode && !isScanned) ...[
                       const SizedBox(height: 6),
                       Text(

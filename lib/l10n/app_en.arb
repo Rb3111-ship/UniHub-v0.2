@@ -151,5 +151,116 @@
   "ticketCancelled": "Registration cancelled.",
   "ticketCancelFailed": "Could not cancel. Please try again.",
   "ticketCancelCheckedIn": "You are already checked in.",
-  "ticketsRefresh": "Refresh"
+  "ticketsRefresh": "Refresh",
+  "reviewErrCheckInRequired": "You can review this event after you have been checked in.",
+  "reviewErrNotStarted": "You can review an event after it has started.",
+  "reviewErrAlready": "You have already reviewed this event.",
+  "reviewErrNotAllowed": "Reviews are not enabled for this event.",
+  "reviewErrGeneric": "Your review could not be sent. Please try again.",
+  "reviewAlreadySubmitted": "Review submitted",
+  "reviewOpensAtStart": "Reviews open when the event starts.",
+  "detailsNoRatings": "No ratings yet",
+  "detailsEventRating": "Event rating",
+  "detailsReviewCount": "{count, plural, =1{1 verified review} other{{count} verified reviews}}",
+  "@detailsReviewCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardNoEventsYet": "No events yet. Create one to see your numbers here.",
+  "dashboardLoadFailed": "Could not load the dashboard.",
+  "scanLogEmpty": "No scans yet.",
+  "scanLogGranted": "{ticket} checked in",
+  "@scanLogGranted": {
+    "placeholders": {
+      "ticket": {
+        "type": "String"
+      }
+    }
+  },
+  "scanLogAlreadyUsed": "{ticket} scanned again (already used)",
+  "@scanLogAlreadyUsed": {
+    "placeholders": {
+      "ticket": {
+        "type": "String"
+      }
+    }
+  },
+  "scanLogInvalid": "Invalid ticket code",
+  "scanLogWrongEvent": "{ticket} belongs to another event",
+  "@scanLogWrongEvent": {
+    "placeholders": {
+      "ticket": {
+        "type": "String"
+      }
+    }
+  },
+  "scanLogCancelled": "{ticket} was cancelled",
+  "@scanLogCancelled": {
+    "placeholders": {
+      "ticket": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardSeatsLine": "{registered} of {capacity} seats, {checkedIn} checked in",
+  "@dashboardSeatsLine": {
+    "placeholders": {
+      "registered": {
+        "type": "int"
+      },
+      "capacity": {
+        "type": "int"
+      },
+      "checkedIn": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardUnlimitedLine": "{registered} registered (no limit), {checkedIn} checked in",
+  "@dashboardUnlimitedLine": {
+    "placeholders": {
+      "registered": {
+        "type": "int"
+      },
+      "checkedIn": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardWaitlistCount": "{count} on waitlist",
+  "@dashboardWaitlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "agoJustNow": "just now",
+  "agoMinutes": "{n} min ago",
+  "@agoMinutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agoHours": "{n} h ago",
+  "@agoHours": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "agoDays": "{n} d ago",
+  "@agoDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  }
 }

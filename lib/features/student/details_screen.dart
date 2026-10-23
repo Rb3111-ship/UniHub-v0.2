@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
+import 'package:uni_events_app/l10n/app_localizations.dart';
 import 'register_action.dart';
 
 class EventDetailsScreen extends StatelessWidget {
@@ -16,15 +17,14 @@ class EventDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final brandColor = appState.getUniversityColor(event.universityDomain);
 
-    // Get mock organizer reviews ratings
-    final reviews = appState.getReviewsForEvent(event.id);
-    final averageRating = reviews.isEmpty
-        ? 4.5
-        : reviews.map((r) => r.rating).reduce((a, b) => a + b) / reviews.length;
+    // Only verified reviews count towards the rating shown to students.
+    final rating = appState.ratingFor(event.id);
+    final averageRating = rating?.average ?? 0.0;
 
     final gallery = _getGalleryImages(event);
     final dateStr = "${event.date.day}.${event.date.month}.${event.date.year} @ ${event.date.hour.toString().padLeft(2, '0')}:${event.date.minute.toString().padLeft(2, '0')}";
@@ -160,15 +160,17 @@ class EventDetailsScreen extends StatelessWidget {
                                 _buildDetailRow(
                                   context,
                                   Icons.star_rounded,
-                                  "Organizer Rating",
-                                  "${averageRating.toStringAsFixed(1)} / 5.0 (${reviews.length} reviews)",
+                                  l10n.detailsEventRating,
+                                  rating == null
+                                      ? l10n.detailsNoRatings
+                                      : "${averageRating.toStringAsFixed(1)} / 5.0 (${l10n.detailsReviewCount(rating.count)})",
                                   customTrailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: List.generate(5, (starIdx) {
                                       return Icon(
                                         Icons.star_rounded,
                                         size: 16,
-                                        color: starIdx < averageRating.floor() ? Colors.amber.shade700 : Colors.grey.shade400,
+                                        color: starIdx < averageRating.round() ? Colors.amber.shade700 : Colors.grey.shade400,
                                       );
                                     }),
                                   ),

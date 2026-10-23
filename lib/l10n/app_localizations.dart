@@ -847,6 +847,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refresh'**
   String get ticketsRefresh;
+
+  /// No description provided for @reviewErrCheckInRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You can review this event after you have been checked in.'**
+  String get reviewErrCheckInRequired;
+
+  /// No description provided for @reviewErrNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'You can review an event after it has started.'**
+  String get reviewErrNotStarted;
+
+  /// No description provided for @reviewErrAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'You have already reviewed this event.'**
+  String get reviewErrAlready;
+
+  /// No description provided for @reviewErrNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews are not enabled for this event.'**
+  String get reviewErrNotAllowed;
+
+  /// No description provided for @reviewErrGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Your review could not be sent. Please try again.'**
+  String get reviewErrGeneric;
+
+  /// No description provided for @reviewAlreadySubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Review submitted'**
+  String get reviewAlreadySubmitted;
+
+  /// No description provided for @reviewOpensAtStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews open when the event starts.'**
+  String get reviewOpensAtStart;
+
+  /// No description provided for @detailsNoRatings.
+  ///
+  /// In en, this message translates to:
+  /// **'No ratings yet'**
+  String get detailsNoRatings;
+
+  /// No description provided for @detailsEventRating.
+  ///
+  /// In en, this message translates to:
+  /// **'Event rating'**
+  String get detailsEventRating;
+
+  /// No description provided for @detailsReviewCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 verified review} other{{count} verified reviews}}'**
+  String detailsReviewCount(int count);
+
+  /// No description provided for @dashboardNoEventsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No events yet. Create one to see your numbers here.'**
+  String get dashboardNoEventsYet;
+
+  /// No description provided for @dashboardLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the dashboard.'**
+  String get dashboardLoadFailed;
+
+  /// No description provided for @scanLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No scans yet.'**
+  String get scanLogEmpty;
+
+  /// No description provided for @scanLogGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'{ticket} checked in'**
+  String scanLogGranted(String ticket);
+
+  /// No description provided for @scanLogAlreadyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{ticket} scanned again (already used)'**
+  String scanLogAlreadyUsed(String ticket);
+
+  /// No description provided for @scanLogInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid ticket code'**
+  String get scanLogInvalid;
+
+  /// No description provided for @scanLogWrongEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'{ticket} belongs to another event'**
+  String scanLogWrongEvent(String ticket);
+
+  /// No description provided for @scanLogCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'{ticket} was cancelled'**
+  String scanLogCancelled(String ticket);
+
+  /// No description provided for @dashboardSeatsLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{registered} of {capacity} seats, {checkedIn} checked in'**
+  String dashboardSeatsLine(int registered, int capacity, int checkedIn);
+
+  /// No description provided for @dashboardUnlimitedLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{registered} registered (no limit), {checkedIn} checked in'**
+  String dashboardUnlimitedLine(int registered, int checkedIn);
+
+  /// No description provided for @dashboardWaitlistCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} on waitlist'**
+  String dashboardWaitlistCount(int count);
+
+  /// No description provided for @agoJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'just now'**
+  String get agoJustNow;
+
+  /// No description provided for @agoMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} min ago'**
+  String agoMinutes(int n);
+
+  /// No description provided for @agoHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} h ago'**
+  String agoHours(int n);
+
+  /// No description provided for @agoDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} d ago'**
+  String agoDays(int n);
 }
 
 class _AppLocalizationsDelegate

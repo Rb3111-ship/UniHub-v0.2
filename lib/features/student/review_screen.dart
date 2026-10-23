@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
-import '../../../core/models/review_model.dart';
 
 class StudentReviewScreen extends StatefulWidget {
   final Event event;
@@ -19,11 +19,41 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
   final _commentController = TextEditingController();
   double _rating = 5.0;
   bool _claimedAttendance = false;
+  bool _submitting = false;
 
   @override
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit(AppState appState, AppLocalizations l10n) async {
+    if (!_formKey.currentState!.validate()) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() => _submitting = true);
+    try {
+      await appState.submitReview(
+        widget.event,
+        _rating.round(),
+        _commentController.text.trim(),
+        _claimedAttendance,
+      );
+      messenger.showSnackBar(
+        SnackBar(backgroundColor: Colors.green, content: Text(l10n.reviewSuccessMsg)),
+      );
+      navigator.pop();
+    } catch (e) {
+      final text = switch (e is PostgrestException ? (e.code == '23505' ? 'duplicate' : e.message) : '') {
+        'duplicate' => l10n.reviewErrAlready,
+        'check_in_required' => l10n.reviewErrCheckInRequired,
+        'event_not_started' => l10n.reviewErrNotStarted,
+        'reviews_not_allowed' => l10n.reviewErrNotAllowed,
+        _ => l10n.reviewErrGeneric,
+      };
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(text)));
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -166,31 +196,7 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
 
               // Submit Button
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    final isVerified = widget.event.requiresQrCode;
-                    final review = Review(
-                      id: 'rev-${DateTime.now().millisecondsSinceEpoch}',
-                      eventId: widget.event.id,
-                      rating: _rating,
-                      comment: _commentController.text.trim(),
-                      timestamp: DateTime.now(),
-                      isVerified: isVerified,
-                      claimedAttendance: isVerified ? true : _claimedAttendance,
-                    );
-
-                    appState.addReview(review);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: Colors.green,
-                        content: Text(localizations.reviewSuccessMsg),
-                      ),
-                    );
-
-                    Navigator.pop(context);
-                  }
-                },
+                onPressed: _submitting ? null : () => _submit(appState, localizations),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: brandColor,
                   foregroundColor: Colors.white,

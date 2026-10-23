@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/review_model.dart';
-import '../../../core/models/event_model.dart';
+import '../../../core/models/dashboard_model.dart';
 
 class PlannerDashboardScreen extends StatelessWidget {
   const PlannerDashboardScreen({super.key});
@@ -14,7 +14,10 @@ class PlannerDashboardScreen extends StatelessWidget {
     final appState = context.watch<AppState>();
 
     return Scaffold(
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: appState.refreshDashboard,
+        child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
             floating: true,
@@ -41,7 +44,21 @@ class PlannerDashboardScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             sliver: SliverList(
               delegate: SliverChildListDelegate(
-                [
+                appState.usesBackend
+                    ? _realSections(context, appState, localizations)
+                    : _mockSections(context, appState, localizations),
+              ),
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
+
+  List<Widget> _mockSections(BuildContext context, AppState appState, AppLocalizations localizations) {
+    return [
                   _buildQuickStats(context, appState, localizations),
                   const SizedBox(height: 24),
                   _buildSectionTitle(context, "Attendance By Event"),
@@ -81,17 +98,137 @@ class PlannerDashboardScreen extends StatelessWidget {
                   const SizedBox(height: 28),
                   _buildFeedbackSection(context, appState, localizations),
                   const SizedBox(height: 40),
+    ];
+  }
+
+  List<Widget> _realSections(BuildContext context, AppState appState, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final d = appState.dashboard;
+    if (appState.dashboardLoading && d.stats.isEmpty) {
+      return [const SizedBox(height: 160, child: Center(child: CircularProgressIndicator()))];
+    }
+    if (appState.dashboardError && d.stats.isEmpty) {
+      return [
+        const SizedBox(height: 80),
+        Center(child: Text(l10n.dashboardLoadFailed)),
+        const SizedBox(height: 12),
+        Center(child: FilledButton(onPressed: appState.refreshDashboard, child: Text(l10n.authRetry))),
+      ];
+    }
+    return [
+      _buildQuickStats(context, appState, l10n),
+      const SizedBox(height: 24),
+      _buildSectionTitle(context, "Attendance By Event"),
+      const SizedBox(height: 12),
+      if (d.stats.isEmpty)
+        _buildEmptyFeedback(theme, l10n.dashboardNoEventsYet)
+      else
+        for (final stat in d.stats.take(20)) ...[
+          _buildRealEventRow(context, stat, l10n),
+          const SizedBox(height: 12),
+        ],
+      const SizedBox(height: 12),
+      _buildSectionTitle(context, "Recent Scanner Logs"),
+      const SizedBox(height: 12),
+      if (d.scans.isEmpty)
+        _buildEmptyFeedback(theme, l10n.scanLogEmpty)
+      else
+        for (final e in d.scans) _buildLogTile(context, _scanText(e, l10n), _ago(e.scannedAt, l10n), e.ok),
+      const SizedBox(height: 28),
+      _buildFeedbackSection(context, appState, l10n),
+      const SizedBox(height: 40),
+    ];
+  }
+
+  String _scanText(ScanEntry e, AppLocalizations l10n) {
+    final ticket = e.ticketDisplayId.isEmpty ? 'Ticket' : e.ticketDisplayId;
+    final text = switch (e.result) {
+      'granted' => l10n.scanLogGranted(ticket),
+      'already_used' => l10n.scanLogAlreadyUsed(ticket),
+      'wrong_event' => l10n.scanLogWrongEvent(ticket),
+      'cancelled' => l10n.scanLogCancelled(ticket),
+      _ => l10n.scanLogInvalid,
+    };
+    return e.eventTitle.isEmpty ? text : '$text - ${e.eventTitle}';
+  }
+
+  String _ago(DateTime time, AppLocalizations l10n) {
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return l10n.agoJustNow;
+    if (diff.inMinutes < 60) return l10n.agoMinutes(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.agoHours(diff.inHours);
+    return l10n.agoDays(diff.inDays);
+  }
+
+  Widget _buildRealEventRow(BuildContext context, EventStat stat, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final detail = stat.capacity == null
+        ? l10n.dashboardUnlimitedLine(stat.registered, stat.checkedIn)
+        : l10n.dashboardSeatsLine(stat.registered, stat.capacity!, stat.checkedIn);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    stat.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                ),
+                if (stat.status != 'published')
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(stat.status.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                  ),
+                if (stat.averageRating != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade700),
+                  Text(' ${stat.averageRating!.toStringAsFixed(1)} (${stat.reviewCount})',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(detail, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+            if (stat.waitlisted > 0)
+              Text(l10n.dashboardWaitlistCount(stat.waitlisted),
+                  style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: stat.fillShare,
+                minHeight: 8,
+                backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildQuickStats(BuildContext context, AppState appState, AppLocalizations localizations) {
-    final attendanceRateStr = "${appState.attendanceRate.toStringAsFixed(1)}%";
+    final real = appState.usesBackend;
+    final d = appState.dashboard;
+    final rsvps = real ? d.totalRegistered : appState.totalRsvps;
+    final checkIns = real ? d.totalCheckedIn : appState.totalCheckIns;
+    final rate = real ? d.attendanceRate : appState.attendanceRate;
+    final activeEvents = real ? d.activeEvents : appState.events.length;
+    final attendanceRateStr = "${rate.toStringAsFixed(1)}%";
     return LayoutBuilder(
       builder: (context, constraints) {
         final crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
@@ -103,10 +240,10 @@ class PlannerDashboardScreen extends StatelessWidget {
           mainAxisSpacing: 12,
           childAspectRatio: 1.3,
           children: [
-            _buildStatCard(context, localizations.dashboardTotalRsvps, appState.totalRsvps.toString(), Icons.confirmation_number_rounded, const Color(0xFF636AE8)),
-            _buildStatCard(context, localizations.dashboardTotalCheckins, appState.totalCheckIns.toString(), Icons.qr_code_scanner_rounded, const Color(0xFFF15A24)),
+            _buildStatCard(context, localizations.dashboardTotalRsvps, rsvps.toString(), Icons.confirmation_number_rounded, const Color(0xFF636AE8)),
+            _buildStatCard(context, localizations.dashboardTotalCheckins, checkIns.toString(), Icons.qr_code_scanner_rounded, const Color(0xFFF15A24)),
             _buildStatCard(context, localizations.dashboardAttendanceRate, attendanceRateStr, Icons.trending_up_rounded, const Color(0xFF03DAC5)),
-            _buildStatCard(context, "Active Events", appState.events.length.toString(), Icons.event_available_rounded, Colors.purple),
+            _buildStatCard(context, "Active Events", activeEvents.toString(), Icons.event_available_rounded, Colors.purple),
           ],
         );
       },
@@ -115,9 +252,16 @@ class PlannerDashboardScreen extends StatelessWidget {
 
   Widget _buildFeedbackSection(BuildContext context, AppState appState, AppLocalizations localizations) {
     final theme = Theme.of(context);
-    final allReviews = appState.reviews;
-    final publicReviews = allReviews.where((r) => r.isVerified).toList();
-    final privateReviews = allReviews.where((r) => !r.isVerified).toList();
+    final items = appState.usesBackend
+        ? appState.feedback
+        : appState.reviews
+            .map((r) => (
+                  review: r,
+                  eventTitle: appState.events.where((e) => e.id == r.eventId).map((e) => e.title).firstOrNull ?? '',
+                ))
+            .toList();
+    final publicReviews = items.where((f) => f.review.isVerified).toList();
+    final privateReviews = items.where((f) => !f.review.isVerified).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,9 +277,8 @@ class PlannerDashboardScreen extends StatelessWidget {
             itemCount: publicReviews.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, idx) {
-              final review = publicReviews[idx];
-              final event = appState.events.firstWhere((e) => e.id == review.eventId, orElse: () => appState.events.first);
-              return _buildPublicReviewCard(context, review, event, theme, localizations);
+              final item = publicReviews[idx];
+              return _buildPublicReviewCard(context, item.review, item.eventTitle, theme, localizations);
             },
           ),
         const SizedBox(height: 28),
@@ -176,9 +319,8 @@ class PlannerDashboardScreen extends StatelessWidget {
             itemCount: privateReviews.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, idx) {
-              final review = privateReviews[idx];
-              final event = appState.events.firstWhere((e) => e.id == review.eventId, orElse: () => appState.events.first);
-              return _buildPrivateFeedbackCard(context, review, event, theme, localizations);
+              final item = privateReviews[idx];
+              return _buildPrivateFeedbackCard(context, item.review, item.eventTitle, theme, localizations);
             },
           ),
       ],
@@ -205,7 +347,7 @@ class PlannerDashboardScreen extends StatelessWidget {
   Widget _buildPublicReviewCard(
     BuildContext context,
     Review review,
-    Event event,
+    String eventTitle,
     ThemeData theme,
     AppLocalizations localizations,
   ) {
@@ -222,7 +364,7 @@ class PlannerDashboardScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    event.title,
+                    eventTitle,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -280,7 +422,7 @@ class PlannerDashboardScreen extends StatelessWidget {
   Widget _buildPrivateFeedbackCard(
     BuildContext context,
     Review review,
-    Event event,
+    String eventTitle,
     ThemeData theme,
     AppLocalizations localizations,
   ) {
@@ -298,7 +440,7 @@ class PlannerDashboardScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    event.title,
+                    eventTitle,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

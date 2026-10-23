@@ -408,4 +408,114 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ticketsRefresh => 'Aktualisieren';
+
+  @override
+  String get reviewErrCheckInRequired =>
+      'Du kannst dieses Event bewerten, nachdem du eingecheckt wurdest.';
+
+  @override
+  String get reviewErrNotStarted =>
+      'Du kannst ein Event bewerten, sobald es begonnen hat.';
+
+  @override
+  String get reviewErrAlready => 'Du hast dieses Event bereits bewertet.';
+
+  @override
+  String get reviewErrNotAllowed =>
+      'Für dieses Event sind keine Bewertungen aktiviert.';
+
+  @override
+  String get reviewErrGeneric =>
+      'Deine Bewertung konnte nicht gesendet werden. Bitte versuche es erneut.';
+
+  @override
+  String get reviewAlreadySubmitted => 'Bewertung abgegeben';
+
+  @override
+  String get reviewOpensAtStart =>
+      'Bewertungen sind ab Beginn des Events möglich.';
+
+  @override
+  String get detailsNoRatings => 'Noch keine Bewertungen';
+
+  @override
+  String get detailsEventRating => 'Event-Bewertung';
+
+  @override
+  String detailsReviewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count geprüfte Bewertungen',
+      one: '1 geprüfte Bewertung',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dashboardNoEventsYet =>
+      'Noch keine Events. Erstelle eines, um hier Zahlen zu sehen.';
+
+  @override
+  String get dashboardLoadFailed =>
+      'Das Dashboard konnte nicht geladen werden.';
+
+  @override
+  String get scanLogEmpty => 'Noch keine Scans.';
+
+  @override
+  String scanLogGranted(String ticket) {
+    return '$ticket eingecheckt';
+  }
+
+  @override
+  String scanLogAlreadyUsed(String ticket) {
+    return '$ticket erneut gescannt (bereits benutzt)';
+  }
+
+  @override
+  String get scanLogInvalid => 'Ungültiger Ticketcode';
+
+  @override
+  String scanLogWrongEvent(String ticket) {
+    return '$ticket gehört zu einem anderen Event';
+  }
+
+  @override
+  String scanLogCancelled(String ticket) {
+    return '$ticket wurde storniert';
+  }
+
+  @override
+  String dashboardSeatsLine(int registered, int capacity, int checkedIn) {
+    return '$registered von $capacity Plätzen, $checkedIn eingecheckt';
+  }
+
+  @override
+  String dashboardUnlimitedLine(int registered, int checkedIn) {
+    return '$registered angemeldet (unbegrenzt), $checkedIn eingecheckt';
+  }
+
+  @override
+  String dashboardWaitlistCount(int count) {
+    return '$count auf der Warteliste';
+  }
+
+  @override
+  String get agoJustNow => 'gerade eben';
+
+  @override
+  String agoMinutes(int n) {
+    return 'vor $n Min.';
+  }
+
+  @override
+  String agoHours(int n) {
+    return 'vor $n Std.';
+  }
+
+  @override
+  String agoDays(int n) {
+    return 'vor $n T.';
+  }
 }

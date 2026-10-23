@@ -399,4 +399,111 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ticketsRefresh => 'Refresh';
+
+  @override
+  String get reviewErrCheckInRequired =>
+      'You can review this event after you have been checked in.';
+
+  @override
+  String get reviewErrNotStarted =>
+      'You can review an event after it has started.';
+
+  @override
+  String get reviewErrAlready => 'You have already reviewed this event.';
+
+  @override
+  String get reviewErrNotAllowed => 'Reviews are not enabled for this event.';
+
+  @override
+  String get reviewErrGeneric =>
+      'Your review could not be sent. Please try again.';
+
+  @override
+  String get reviewAlreadySubmitted => 'Review submitted';
+
+  @override
+  String get reviewOpensAtStart => 'Reviews open when the event starts.';
+
+  @override
+  String get detailsNoRatings => 'No ratings yet';
+
+  @override
+  String get detailsEventRating => 'Event rating';
+
+  @override
+  String detailsReviewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count verified reviews',
+      one: '1 verified review',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dashboardNoEventsYet =>
+      'No events yet. Create one to see your numbers here.';
+
+  @override
+  String get dashboardLoadFailed => 'Could not load the dashboard.';
+
+  @override
+  String get scanLogEmpty => 'No scans yet.';
+
+  @override
+  String scanLogGranted(String ticket) {
+    return '$ticket checked in';
+  }
+
+  @override
+  String scanLogAlreadyUsed(String ticket) {
+    return '$ticket scanned again (already used)';
+  }
+
+  @override
+  String get scanLogInvalid => 'Invalid ticket code';
+
+  @override
+  String scanLogWrongEvent(String ticket) {
+    return '$ticket belongs to another event';
+  }
+
+  @override
+  String scanLogCancelled(String ticket) {
+    return '$ticket was cancelled';
+  }
+
+  @override
+  String dashboardSeatsLine(int registered, int capacity, int checkedIn) {
+    return '$registered of $capacity seats, $checkedIn checked in';
+  }
+
+  @override
+  String dashboardUnlimitedLine(int registered, int checkedIn) {
+    return '$registered registered (no limit), $checkedIn checked in';
+  }
+
+  @override
+  String dashboardWaitlistCount(int count) {
+    return '$count on waitlist';
+  }
+
+  @override
+  String get agoJustNow => 'just now';
+
+  @override
+  String agoMinutes(int n) {
+    return '$n min ago';
+  }
+
+  @override
+  String agoHours(int n) {
+    return '$n h ago';
+  }
+
+  @override
+  String agoDays(int n) {
+    return '$n d ago';
+  }
 }
