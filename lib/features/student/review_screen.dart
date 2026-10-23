@@ -122,7 +122,9 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
                   final starVal = index + 1.0;
                   final isSelected = starVal <= _rating;
                   return IconButton(
-                    iconSize: 44,
+                    iconSize: 40,
+                    visualDensity: VisualDensity.compact,
+                    tooltip: '${index + 1} / 5',
                     icon: Icon(
                       isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
                       color: isSelected ? Colors.amber.shade700 : Colors.grey,
@@ -146,6 +148,7 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
               TextFormField(
                 controller: _commentController,
                 maxLines: 4,
+                maxLength: 2000,
                 decoration: InputDecoration(
                   hintText: localizations.reviewCommentHint,
                   border: const OutlineInputBorder(
@@ -154,7 +157,7 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return "Please write a comment";
+                    return localizations.reviewErrCommentRequired;
                   }
                   return null;
                 },

@@ -1,206 +1,126 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
+import '../../../core/utils/image_type.dart';
 import 'account_section.dart';
+import 'privacy_screen.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context)!;
     final appState = context.watch<AppState>();
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(localizations.studentProfileTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.studentProfileTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // User profile card
-          _buildUserProfileCard(context),
+          const _ProfileHeader(),
           const SizedBox(height: 24),
           if (appState.usesBackend) ...[
             const AccountSection(),
             const SizedBox(height: 12),
           ],
 
-          _buildSectionTitle(context, "Preferences"),
+          _sectionTitle(context, l10n.prefSection),
           const SizedBox(height: 8),
-
-          // Localization toggle
-          _buildSettingCard(
+          _settingCard(
             context,
             icon: Icons.language_rounded,
-            title: localizations.languageLabel,
-            subtitle: appState.currentLocale.languageCode == 'en'
-                ? localizations.languageEnglish
-                : localizations.languageGerman,
+            title: l10n.languageLabel,
+            subtitle: appState.currentLocale.languageCode == 'en' ? l10n.languageEnglish : l10n.languageGerman,
             trailing: Switch(
               value: appState.currentLocale.languageCode == 'de',
-              onChanged: (isGerman) {
-                appState.setLocale(isGerman ? const Locale('de') : const Locale('en'));
-              },
+              onChanged: (isGerman) => appState.setLocale(isGerman ? const Locale('de') : const Locale('en')),
             ),
           ),
           const SizedBox(height: 12),
-
-          // Tenant selector
-          _buildSettingCard(
-            context,
-            icon: Icons.school_rounded,
-            title: "Active Tenant (University)",
-            subtitle: appState.getTenantDisplayName(),
-            // With a real account the university comes from the verified e-mail domain.
-            trailing: appState.usesBackend ? const SizedBox.shrink() : DropdownButton<String>(
-              value: appState.currentTenant,
-              underline: const SizedBox(),
-              icon: const Icon(Icons.arrow_drop_down_rounded),
-              items: const [
-                DropdownMenuItem(value: 'TUM', child: Text('TUM')),
-                DropdownMenuItem(value: 'LMU', child: Text('LMU')),
-                DropdownMenuItem(value: 'UHH', child: Text('UHH')),
-                DropdownMenuItem(value: 'HAW', child: Text('HAW')),
-              ],
-              onChanged: (newTenant) {
-                if (newTenant != null) {
-                  appState.setTenant(newTenant);
-                }
-              },
-            ),
-          ),
+          _universityCard(context, appState, l10n),
           const SizedBox(height: 24),
 
-          // Customization: Theme Mode
-          _buildSectionTitle(context, localizations.prefThemeMode),
+          _sectionTitle(context, l10n.prefThemeMode),
           const SizedBox(height: 8),
           Card(
             margin: EdgeInsets.zero,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  Icon(Icons.brightness_medium_rounded, color: theme.colorScheme.primary, size: 24),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: SegmentedButton<ThemeMode>(
-                        style: SegmentedButton.styleFrom(
-                          selectedBackgroundColor: appState.getActiveTenantColor(),
-                          selectedForegroundColor: Colors.white,
-                        ),
-                        segments: [
-                          ButtonSegment(
-                            value: ThemeMode.system,
-                            label: Text(localizations.themeSystem),
-                            icon: const Icon(Icons.settings_suggest_rounded, size: 16),
-                          ),
-                          ButtonSegment(
-                            value: ThemeMode.light,
-                            label: Text(localizations.themeLight),
-                            icon: const Icon(Icons.light_mode_rounded, size: 16),
-                          ),
-                          ButtonSegment(
-                            value: ThemeMode.dark,
-                            label: Text(localizations.themeDark),
-                            icon: const Icon(Icons.dark_mode_rounded, size: 16),
-                          ),
-                        ],
-                        selected: {appState.themeMode},
-                        onSelectionChanged: (newSelection) {
-                          appState.setThemeMode(newSelection.first);
-                        },
-                        showSelectedIcon: false,
-                      ),
-                    ),
+              padding: const EdgeInsets.all(12.0),
+              child: SegmentedButton<ThemeMode>(
+                style: SegmentedButton.styleFrom(
+                  selectedBackgroundColor: appState.getActiveTenantColor(),
+                  selectedForegroundColor: Colors.white,
+                ),
+                segments: [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    label: Text(l10n.themeSystem),
+                    icon: const Icon(Icons.settings_suggest_rounded, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    label: Text(l10n.themeLight),
+                    icon: const Icon(Icons.light_mode_rounded, size: 16),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    label: Text(l10n.themeDark),
+                    icon: const Icon(Icons.dark_mode_rounded, size: 16),
                   ),
                 ],
+                selected: {appState.themeMode},
+                onSelectionChanged: (s) => appState.setThemeMode(s.first),
+                showSelectedIcon: false,
               ),
             ),
           ),
           const SizedBox(height: 24),
 
-          // Customization: Wallpaper
-          _buildSectionTitle(context, localizations.prefWallpaper),
-          const SizedBox(height: 8),
+          _sectionTitle(context, l10n.prefWallpaper),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 2, bottom: 8),
+            child: Text(l10n.wallpaperHint, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+          ),
           Row(
             children: [
-              _buildWallpaperCard(
-                context,
-                appState,
-                WallpaperPattern.minimalVelvet,
-                "Minimal Velvet",
-                Icons.lens_blur_rounded,
-                appState.getActiveTenantColor(),
-              ),
+              _wallpaperCard(context, appState, WallpaperPattern.minimalVelvet, l10n.wallpaperNone, Icons.lens_blur_rounded),
               const SizedBox(width: 12),
-              _buildWallpaperCard(
-                context,
-                appState,
-                WallpaperPattern.frostedGeometry,
-                "Frosted Geometry",
-                Icons.grid_on_rounded,
-                appState.getActiveTenantColor(),
-              ),
+              _wallpaperCard(context, appState, WallpaperPattern.frostedGeometry, l10n.wallpaperGrid, Icons.grid_on_rounded),
               const SizedBox(width: 12),
-              _buildWallpaperCard(
-                context,
-                appState,
-                WallpaperPattern.cyberAurora,
-                "Cyber Aurora",
-                Icons.waves_rounded,
-                appState.getActiveTenantColor(),
-              ),
+              _wallpaperCard(context, appState, WallpaperPattern.cyberAurora, l10n.wallpaperSunset, Icons.waves_rounded),
             ],
           ),
           const SizedBox(height: 24),
 
-          _buildSectionTitle(context, "Account"),
-          const SizedBox(height: 8),
-
-          _buildSettingCard(
-            context,
-            icon: Icons.notifications_active_outlined,
-            title: "Push Notifications",
-            subtitle: "Receive reminders for upcoming events",
-            trailing: Switch(value: true, onChanged: (_) {}),
-          ),
-          const SizedBox(height: 12),
-
-          _buildSettingCard(
-            context,
-            icon: Icons.security_rounded,
-            title: "Privacy & Data",
-            subtitle: "Manage your shared calendar preferences",
-            trailing: const Icon(Icons.chevron_right_rounded),
-          ),
-          const SizedBox(height: 32),
-
-          // Sign out / reset simulation button
-          ElevatedButton.icon(
-            onPressed: () {
-              if (appState.usesBackend) {
-                appState.signOut();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Mock mode: no account to sign out of")),
-                );
-              }
-            },
-            icon: const Icon(Icons.logout_rounded),
-            label: Text(localizations.authSignOut),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.errorContainer,
-              foregroundColor: theme.colorScheme.onErrorContainer,
-              minimumSize: const Size(double.infinity, 50),
-              elevation: 0,
-            ),
-          ),
           if (appState.usesBackend) ...[
+            _sectionTitle(context, l10n.accountSectionTitle),
+            const SizedBox(height: 8),
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: Icon(Icons.security_rounded, color: theme.colorScheme.primary),
+                title: Text(l10n.privacyTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(l10n.privacySubtitle),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: appState.signOut,
+              icon: const Icon(Icons.logout_rounded),
+              label: Text(l10n.authSignOut),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.errorContainer,
+                foregroundColor: theme.colorScheme.onErrorContainer,
+                minimumSize: const Size(double.infinity, 50),
+                elevation: 0,
+              ),
+            ),
             const SizedBox(height: 12),
             const DeleteAccountButton(),
           ],
@@ -210,94 +130,40 @@ class StudentProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUserProfileCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final appState = context.read<AppState>();
-    final profile = appState.activeProfile;
-    final initials = _getInitials(profile.name);
-
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      color: appState.getActiveTenantColor().withOpacity(0.08),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: BorderSide(color: appState.getActiveTenantColor().withOpacity(0.2), width: 1.5),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 36,
-              backgroundColor: appState.getActiveTenantColor(),
-              child: Text(
-                initials,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    profile.name,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  Text(
-                    profile.email,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: appState.getActiveTenantColor().withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      profile.type == ProfileType.student
-                          ? "Student Member"
-                          : (profile.type == ProfileType.universityOrganizer
-                              ? "University Event Organizer"
-                              : "Commercial Planner"),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: appState.getActiveTenantColor(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  Widget _universityCard(BuildContext context, AppState appState, AppLocalizations l10n) {
+    if (!appState.usesBackend) {
+      // Demo mode only: pick a university to preview its branding.
+      return _settingCard(
+        context,
+        icon: Icons.school_rounded,
+        title: l10n.universityLabel,
+        subtitle: appState.getTenantDisplayName(),
+        trailing: DropdownButton<String>(
+          value: appState.currentTenant,
+          underline: const SizedBox(),
+          items: [
+            for (final t in appState.tenantDetails.keys) DropdownMenuItem(value: t, child: Text(t)),
           ],
+          onChanged: (t) {
+            if (t != null) appState.setTenant(t);
+          },
         ),
-      ),
+      );
+    }
+    // Real accounts: the university comes from the verified e-mail domain and cannot
+    // be picked (otherwise anyone could see another university's events).
+    final hasUniversity = appState.currentTenant.isNotEmpty;
+    return _settingCard(
+      context,
+      icon: Icons.school_rounded,
+      title: hasUniversity ? appState.getTenantDisplayName() : l10n.universityLabel,
+      subtitle: hasUniversity ? l10n.universityFromEmail : l10n.universityNone,
+      trailing: Icon(hasUniversity ? Icons.verified_rounded : Icons.public_rounded,
+          color: hasUniversity ? Colors.green : Colors.grey),
     );
   }
 
-  String _getInitials(String name) {
-    final parts = name.split(' ');
-    if (parts.length >= 2) {
-      return "${parts[0].isNotEmpty ? parts[0][0] : ''}${parts[1].isNotEmpty ? parts[1][0] : ''}".toUpperCase();
-    }
-    return name.isNotEmpty ? name[0].toUpperCase() : "US";
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
+  Widget _sectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 4.0),
       child: Text(
@@ -312,7 +178,7 @@ class StudentProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingCard(
+  Widget _settingCard(
     BuildContext context, {
     required IconData icon,
     required String title,
@@ -332,24 +198,13 @@ class StudentProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.secondary,
-                    ),
-                  ),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             trailing,
           ],
         ),
@@ -357,97 +212,238 @@ class StudentProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWallpaperCard(
+  Widget _wallpaperCard(
     BuildContext context,
     AppState appState,
     WallpaperPattern pattern,
     String label,
     IconData icon,
-    Color brandColor,
   ) {
     final isSelected = appState.selectedWallpaper == pattern;
     final theme = Theme.of(context);
+    final brandColor = appState.getActiveTenantColor();
+    final dark = pattern == WallpaperPattern.cyberAurora || pattern == WallpaperPattern.minimalVelvet;
 
-    Widget backgroundPreview;
-    if (pattern == WallpaperPattern.cyberAurora) {
-      backgroundPreview = Container(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF120C1F), Color(0xFF3B1E6C), Color(0xFF1E3B6C), Color(0xFF0C141F)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-      );
-    } else if (pattern == WallpaperPattern.frostedGeometry) {
-      backgroundPreview = Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: CustomPaint(
-          painter: GridPainter(color: theme.colorScheme.onSurface.withOpacity(0.15)),
-        ),
-      );
-    } else {
-      backgroundPreview = Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF121214), // matte dark
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-      );
-    }
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => appState.setWallpaper(pattern),
-        child: Container(
-          height: 80,
+    final Widget preview = switch (pattern) {
+      WallpaperPattern.cyberAurora => const DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? brandColor : theme.colorScheme.outlineVariant.withOpacity(0.5),
-              width: isSelected ? 2.5 : 1.0,
+            gradient: LinearGradient(
+              colors: [Color(0xFF120C1F), Color(0xFF3B1E6C), Color(0xFF1E3B6C), Color(0xFF0C141F)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Stack(
-              children: [
-                Positioned.fill(child: backgroundPreview),
-                Container(
-                  color: isSelected ? Colors.transparent : Colors.black.withOpacity(0.05),
-                ),
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+        ),
+      WallpaperPattern.frostedGeometry => ColoredBox(
+          color: theme.colorScheme.surface,
+          child: CustomPaint(painter: GridPainter(color: theme.colorScheme.onSurface.withOpacity(0.15))),
+        ),
+      WallpaperPattern.minimalVelvet => const ColoredBox(color: Color(0xFF121214)),
+    };
+
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: isSelected,
+        label: label,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => appState.setWallpaper(pattern),
+          child: Container(
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected ? brandColor : theme.colorScheme.outlineVariant.withOpacity(0.5),
+                width: isSelected ? 3 : 1,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  Positioned.fill(child: preview),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(isSelected ? Icons.check_circle_rounded : icon,
+                            color: dark ? Colors.white : brandColor, size: 20),
+                        const SizedBox(height: 4),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: dark ? Colors.white : theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Name, e-mail, role and (for organizers and admins) the profile photo.
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader();
+
+  String _roleLabel(AppState appState, AppLocalizations l10n) {
+    if (!appState.usesBackend) {
+      return switch (appState.activeProfile.type) {
+        ProfileType.student => l10n.roleStudent,
+        ProfileType.universityOrganizer => l10n.roleOrganizer,
+        ProfileType.commercialPlanner => l10n.roleCommercial,
+      };
+    }
+    return switch (appState.dbRole) {
+      'organizer' => l10n.roleOrganizer,
+      'commercial_planner' => l10n.roleCommercial,
+      'tenant_admin' => l10n.roleTenantAdmin,
+      'platform_admin' => l10n.rolePlatformAdmin,
+      _ => l10n.roleStudent,
+    };
+  }
+
+  String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first[0].toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  Future<void> _photoMenu(BuildContext context, AppState appState, AppLocalizations l10n) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: Text(l10n.avatarChange),
+              onTap: () => Navigator.pop(ctx, 'change'),
+            ),
+            if (appState.avatarUrl != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                title: Text(l10n.avatarRemove),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted || choice == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (choice == 'remove') {
+        await appState.removeAvatar();
+        messenger.showSnackBar(SnackBar(content: Text(l10n.avatarRemoved)));
+        return;
+      }
+      final file = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 512, imageQuality: 85);
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      final type = sniffImageType(bytes);
+      if (type == null || bytes.length > 2 * 1024 * 1024) {
+        messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.avatarFailed)));
+        return;
+      }
+      await appState.uploadAvatar(bytes, type.mime, type.ext);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.avatarUpdated)));
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.avatarFailed)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final appState = context.watch<AppState>();
+    final theme = Theme.of(context);
+    final profile = appState.activeProfile;
+    final color = appState.getActiveTenantColor();
+    final photo = appState.avatarUrl;
+
+    final avatar = CircleAvatar(
+      radius: 36,
+      backgroundColor: color,
+      foregroundImage: photo == null ? null : NetworkImage(photo),
+      child: Text(_initials(profile.name),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+    );
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: color.withOpacity(0.08),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: color.withOpacity(0.2), width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Row(
+          children: [
+            if (appState.canHaveAvatar)
+              Tooltip(
+                message: l10n.avatarChange,
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _photoMenu(context, appState, l10n),
+                  child: Stack(
                     children: [
-                      Icon(
-                        icon,
-                        color: isSelected
-                            ? (pattern == WallpaperPattern.cyberAurora ? Colors.white : brandColor)
-                            : theme.colorScheme.secondary,
-                        size: 20,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? (pattern == WallpaperPattern.cyberAurora ? Colors.white : theme.colorScheme.onSurface)
-                              : theme.colorScheme.secondary,
+                      avatar,
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: CircleAvatar(
+                          radius: 12,
+                          backgroundColor: theme.colorScheme.surface,
+                          child: Icon(Icons.photo_camera_rounded, size: 14, color: color),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              )
+            else
+              avatar,
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(profile.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
+                  Text(profile.email,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(_roleLabel(appState, l10n),
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

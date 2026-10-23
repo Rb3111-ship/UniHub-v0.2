@@ -1447,6 +1447,756 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit'**
   String get dashboardEdit;
+
+  /// No description provided for @prefSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get prefSection;
+
+  /// No description provided for @accountSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountSectionTitle;
+
+  /// No description provided for @universityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'University'**
+  String get universityLabel;
+
+  /// No description provided for @universityFromEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Set automatically from your verified university email.'**
+  String get universityFromEmail;
+
+  /// No description provided for @universityNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No university - public account. Sign up with your university email to join one.'**
+  String get universityNone;
+
+  /// No description provided for @wallpaperHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown behind the student events feed.'**
+  String get wallpaperHint;
+
+  /// No description provided for @privacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & data'**
+  String get privacyTitle;
+
+  /// No description provided for @privacySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What we store, who can see it, and your copy'**
+  String get privacySubtitle;
+
+  /// No description provided for @privacyWhatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What UniHub stores about you'**
+  String get privacyWhatTitle;
+
+  /// No description provided for @privacyWhatBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your email address and name, your university (taken from your email domain), your language, the events you registered for with their tickets and check-ins, the reviews you wrote and any organizer requests. Organizers and admins can also add a profile photo.'**
+  String get privacyWhatBody;
+
+  /// No description provided for @privacyWhoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Who can see it'**
+  String get privacyWhoTitle;
+
+  /// No description provided for @privacyWhoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see your registrations and tickets. Organizers see the names of people registered for their own events and the feedback on them. Admins see the account list of their university. Verified reviews are public, without your email. Your password is never visible to anyone.'**
+  String get privacyWhoBody;
+
+  /// No description provided for @privacyLocalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On this device only'**
+  String get privacyLocalTitle;
+
+  /// No description provided for @privacyLocalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your theme and wallpaper choice are stored on this device, not in your account.'**
+  String get privacyLocalBody;
+
+  /// No description provided for @privacyExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy my data'**
+  String get privacyExport;
+
+  /// No description provided for @privacyExportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data was copied to the clipboard (JSON). Paste it into a note or email to keep it.'**
+  String get privacyExportDone;
+
+  /// No description provided for @privacyExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data could not be loaded. Please try again.'**
+  String get privacyExportFailed;
+
+  /// No description provided for @privacyDeleteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'To remove everything for good, use Delete account at the bottom of your profile.'**
+  String get privacyDeleteHint;
+
+  /// No description provided for @avatarChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change photo'**
+  String get avatarChange;
+
+  /// No description provided for @avatarRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove photo'**
+  String get avatarRemove;
+
+  /// No description provided for @avatarUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo updated.'**
+  String get avatarUpdated;
+
+  /// No description provided for @avatarRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo removed.'**
+  String get avatarRemoved;
+
+  /// No description provided for @avatarFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo could not be saved. Use a JPG, PNG or WebP image under 2 MB.'**
+  String get avatarFailed;
+
+  /// No description provided for @passwordCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get passwordCurrent;
+
+  /// No description provided for @passwordRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat new password'**
+  String get passwordRepeat;
+
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The new passwords do not match.'**
+  String get passwordMismatch;
+
+  /// No description provided for @passwordWrongCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current password is not correct.'**
+  String get passwordWrongCurrent;
+
+  /// No description provided for @passwordSameAsOld.
+  ///
+  /// In en, this message translates to:
+  /// **'The new password must be different from the current one.'**
+  String get passwordSameAsOld;
+
+  /// No description provided for @guestSignInButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in / Sign up'**
+  String get guestSignInButton;
+
+  /// No description provided for @guestOpenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to see this event'**
+  String get guestOpenTitle;
+
+  /// No description provided for @guestOpenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a free account or sign in to see event details and register.'**
+  String get guestOpenBody;
+
+  /// No description provided for @guestFeedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Public events'**
+  String get guestFeedTitle;
+
+  /// No description provided for @authBackToEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to events'**
+  String get authBackToEvents;
+
+  /// No description provided for @eventsEmptyCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'No events found in this category.'**
+  String get eventsEmptyCategory;
+
+  /// No description provided for @detailsDateTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Date & time'**
+  String get detailsDateTime;
+
+  /// No description provided for @detailsLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get detailsLocation;
+
+  /// No description provided for @detailsAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About this event'**
+  String get detailsAbout;
+
+  /// No description provided for @detailsHostedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Hosted by'**
+  String get detailsHostedBy;
+
+  /// No description provided for @detailsGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get detailsGallery;
+
+  /// No description provided for @badgeOfficial.
+  ///
+  /// In en, this message translates to:
+  /// **'{university} OFFICIAL'**
+  String badgeOfficial(String university);
+
+  /// No description provided for @badgePublic.
+  ///
+  /// In en, this message translates to:
+  /// **'PUBLIC EVENT'**
+  String get badgePublic;
+
+  /// No description provided for @detailsFree.
+  ///
+  /// In en, this message translates to:
+  /// **'FREE ADMISSION'**
+  String get detailsFree;
+
+  /// No description provided for @detailsQrRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code ticket required at the door'**
+  String get detailsQrRequired;
+
+  /// No description provided for @detailsOpenAdmission.
+  ///
+  /// In en, this message translates to:
+  /// **'Open admission - RSVP so the organizer can plan'**
+  String get detailsOpenAdmission;
+
+  /// No description provided for @detailsSeeTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'Your entry QR code is in My Tickets'**
+  String get detailsSeeTickets;
+
+  /// No description provided for @detailsTicketReserved.
+  ///
+  /// In en, this message translates to:
+  /// **'TICKET RESERVED'**
+  String get detailsTicketReserved;
+
+  /// No description provided for @detailsWaitlistedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WAITLISTED'**
+  String get detailsWaitlistedLabel;
+
+  /// No description provided for @detailsWaitlistBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You get a ticket automatically if a seat frees up'**
+  String get detailsWaitlistBody;
+
+  /// No description provided for @detailsCancelledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This event was cancelled by the organizer.'**
+  String get detailsCancelledBody;
+
+  /// No description provided for @detailsEndedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This event has already ended.'**
+  String get detailsEndedBody;
+
+  /// No description provided for @ctaRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get ctaRegister;
+
+  /// No description provided for @ctaRsvp.
+  ///
+  /// In en, this message translates to:
+  /// **'RSVP'**
+  String get ctaRsvp;
+
+  /// No description provided for @ctaRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered'**
+  String get ctaRegistered;
+
+  /// No description provided for @ctaUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get ctaUnavailable;
+
+  /// No description provided for @detailsCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} places'**
+  String detailsCapacity(int count);
+
+  /// No description provided for @detailsUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'No limit on places'**
+  String get detailsUnlimited;
+
+  /// No description provided for @ticketsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No tickets yet'**
+  String get ticketsEmptyTitle;
+
+  /// No description provided for @ticketsEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Register for an event on the Home tab and your entry QR code appears here.'**
+  String get ticketsEmptyBody;
+
+  /// No description provided for @ticketCheckedInBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECKED IN'**
+  String get ticketCheckedInBadge;
+
+  /// No description provided for @ticketConfirmedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRMED'**
+  String get ticketConfirmedBadge;
+
+  /// No description provided for @ticketEndedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'ENDED'**
+  String get ticketEndedBadge;
+
+  /// No description provided for @ticketLabelDate.
+  ///
+  /// In en, this message translates to:
+  /// **'DATE'**
+  String get ticketLabelDate;
+
+  /// No description provided for @ticketLabelLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'LOCATION'**
+  String get ticketLabelLocation;
+
+  /// No description provided for @ticketLabelEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'ENTRY'**
+  String get ticketLabelEntry;
+
+  /// No description provided for @ticketEntryQr.
+  ///
+  /// In en, this message translates to:
+  /// **'QR check-in'**
+  String get ticketEntryQr;
+
+  /// No description provided for @ticketEntryOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open entry'**
+  String get ticketEntryOpen;
+
+  /// No description provided for @ticketLabelId.
+  ///
+  /// In en, this message translates to:
+  /// **'TICKET'**
+  String get ticketLabelId;
+
+  /// No description provided for @ticketScannedOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket scanned - enjoy the event!'**
+  String get ticketScannedOk;
+
+  /// No description provided for @ticketShowAtEntrance.
+  ///
+  /// In en, this message translates to:
+  /// **'Show this QR code at the entrance'**
+  String get ticketShowAtEntrance;
+
+  /// No description provided for @scanChooseEventFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the event you are scanning for first.'**
+  String get scanChooseEventFirst;
+
+  /// No description provided for @scanNotUnihub.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a UniHub ticket.'**
+  String get scanNotUnihub;
+
+  /// No description provided for @scanGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome, {name}! Checked in.'**
+  String scanGranted(String name);
+
+  /// No description provided for @scanAlreadyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} was already checked in.'**
+  String scanAlreadyUsed(String name);
+
+  /// No description provided for @scanWrongEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'This ticket is for a different event.'**
+  String get scanWrongEvent;
+
+  /// No description provided for @scanCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'This ticket was cancelled.'**
+  String get scanCancelled;
+
+  /// No description provided for @scanInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid ticket.'**
+  String get scanInvalid;
+
+  /// No description provided for @scanNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not allowed to scan tickets for this event.'**
+  String get scanNotAllowed;
+
+  /// No description provided for @scanOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reach the server. Check your connection and scan again.'**
+  String get scanOffline;
+
+  /// No description provided for @scanGuestFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'guest'**
+  String get scanGuestFallback;
+
+  /// No description provided for @scanAccessGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Access granted'**
+  String get scanAccessGranted;
+
+  /// No description provided for @scanAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Access denied'**
+  String get scanAccessDenied;
+
+  /// No description provided for @scanClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get scanClose;
+
+  /// No description provided for @scanEnterCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter ticket code'**
+  String get scanEnterCode;
+
+  /// No description provided for @scanEnterCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the code from the ticket'**
+  String get scanEnterCodeHint;
+
+  /// No description provided for @scanCheckIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Check in'**
+  String get scanCheckIn;
+
+  /// No description provided for @scanNoEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no events to scan for. Create one to start checking in guests.'**
+  String get scanNoEvents;
+
+  /// No description provided for @scanEventsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your events could not be loaded.'**
+  String get scanEventsFailed;
+
+  /// No description provided for @scanPointCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at a ticket QR code'**
+  String get scanPointCamera;
+
+  /// No description provided for @scanPointCameraDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at a ticket QR code or tap \'Demo scan\''**
+  String get scanPointCameraDemo;
+
+  /// No description provided for @scanDemoButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo scan'**
+  String get scanDemoButton;
+
+  /// No description provided for @scanProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking ticket...'**
+  String get scanProcessing;
+
+  /// No description provided for @scanTorch.
+  ///
+  /// In en, this message translates to:
+  /// **'Flashlight'**
+  String get scanTorch;
+
+  /// No description provided for @scanManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter code manually'**
+  String get scanManual;
+
+  /// No description provided for @formHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Event details'**
+  String get formHeader;
+
+  /// No description provided for @formTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Spring Hackathon 2026'**
+  String get formTitleHint;
+
+  /// No description provided for @formTitleError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a title (3 to 140 characters).'**
+  String get formTitleError;
+
+  /// No description provided for @formCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories (up to 3)'**
+  String get formCategories;
+
+  /// No description provided for @formCategoriesMax.
+  ///
+  /// In en, this message translates to:
+  /// **'You can select up to 3 categories.'**
+  String get formCategoriesMax;
+
+  /// No description provided for @categoryAcademic.
+  ///
+  /// In en, this message translates to:
+  /// **'Academic'**
+  String get categoryAcademic;
+
+  /// No description provided for @categoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get categoryOther;
+
+  /// No description provided for @formLocationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Main Hall, Building B'**
+  String get formLocationHint;
+
+  /// No description provided for @formLocationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a location.'**
+  String get formLocationError;
+
+  /// No description provided for @formStarts.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts'**
+  String get formStarts;
+
+  /// No description provided for @formEnds.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends'**
+  String get formEnds;
+
+  /// No description provided for @formChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get formChange;
+
+  /// No description provided for @formEndBeforeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'The event must end after it starts.'**
+  String get formEndBeforeStart;
+
+  /// No description provided for @formStartInPast.
+  ///
+  /// In en, this message translates to:
+  /// **'The start time is in the past. Please pick a later time.'**
+  String get formStartInPast;
+
+  /// No description provided for @formNoLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'No attendee limit'**
+  String get formNoLimit;
+
+  /// No description provided for @formOfficialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Official university event'**
+  String get formOfficialTitle;
+
+  /// No description provided for @formOfficialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Only members of {university} can see it.'**
+  String formOfficialBody(String university);
+
+  /// No description provided for @formPublicTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Public event'**
+  String get formPublicTitle;
+
+  /// No description provided for @formPublicBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone can see it, also without an account.'**
+  String get formPublicBody;
+
+  /// No description provided for @formDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule, speakers, rules ...'**
+  String get formDescriptionHint;
+
+  /// No description provided for @eventPublished.
+  ///
+  /// In en, this message translates to:
+  /// **'Event published.'**
+  String get eventPublished;
+
+  /// No description provided for @previewTitlePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Your event title'**
+  String get previewTitlePlaceholder;
+
+  /// No description provided for @previewLocationPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get previewLocationPlaceholder;
+
+  /// No description provided for @previewDescPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Your description appears here.'**
+  String get previewDescPlaceholder;
+
+  /// No description provided for @previewReviewsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews on'**
+  String get previewReviewsOn;
+
+  /// No description provided for @reviewErrCommentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please write a comment.'**
+  String get reviewErrCommentRequired;
+
+  /// No description provided for @dashboardAttendanceByEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance by event'**
+  String get dashboardAttendanceByEvent;
+
+  /// No description provided for @dashboardRecentScans.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent scans'**
+  String get dashboardRecentScans;
+
+  /// No description provided for @dashboardActiveEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Active events'**
+  String get dashboardActiveEvents;
+
+  /// No description provided for @dashboardNoPublicRatings.
+  ///
+  /// In en, this message translates to:
+  /// **'No public ratings yet.'**
+  String get dashboardNoPublicRatings;
+
+  /// No description provided for @dashboardNoPrivateFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'No private feedback yet.'**
+  String get dashboardNoPrivateFeedback;
+
+  /// No description provided for @dashboardClaimedAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Says they attended'**
+  String get dashboardClaimedAttendance;
 }
 
 class _AppLocalizationsDelegate

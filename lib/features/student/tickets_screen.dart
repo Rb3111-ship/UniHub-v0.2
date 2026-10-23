@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -44,16 +45,16 @@ class StudentTicketsScreen extends StatelessWidget {
                   color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  "No Active Tickets",
-                  style: TextStyle(
+                Text(
+                  localizations.ticketsEmptyTitle,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Go to the Home tab and register for events to generate your entrance QR tickets automatically.",
+                  localizations.ticketsEmptyBody,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -114,7 +115,9 @@ class StudentTicketsScreen extends StatelessWidget {
     final qrPayload = appState.qrPayload(event.id);
 
 
-    final dateStr = "${event.date.day}.${event.date.month}.${event.date.year} @ ${event.date.hour.toString().padLeft(2, '0')}:${event.date.minute.toString().padLeft(2, '0')}";
+    final locale = Localizations.localeOf(context).toString();
+    final dateStr = '${DateFormat.yMMMd(locale).format(event.date)}, ${DateFormat.Hm(locale).format(event.date)}';
+    final ended = event.endDate.isBefore(DateTime.now());
 
     return Container(
       decoration: BoxDecoration(
@@ -154,7 +157,9 @@ class StudentTicketsScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          isScanned ? "CHECKED IN" : "CONFIRMED",
+                          isScanned
+                              ? localizations.ticketCheckedInBadge
+                              : (ended ? localizations.ticketEndedBadge : localizations.ticketConfirmedBadge),
                           style: TextStyle(
                             color: isScanned ? Colors.green : brandColor,
                             fontSize: 11,
@@ -179,20 +184,21 @@ class StudentTicketsScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _buildInfoCol(context, "DATE", dateStr),
+                      _buildInfoCol(context, localizations.ticketLabelDate, dateStr),
                       const SizedBox(width: 24),
-                      _buildInfoCol(context, "LOCATION", event.location),
+                      _buildInfoCol(context, localizations.ticketLabelLocation, event.location),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      _buildInfoCol(context, "ENTRY", event.requiresQrCode ? "QR check-in" : "Open entry"),
+                      _buildInfoCol(context, localizations.ticketLabelEntry,
+                          event.requiresQrCode ? localizations.ticketEntryQr : localizations.ticketEntryOpen),
                       const SizedBox(width: 24),
-                      _buildInfoCol(context, "TICKET ID", ticketId),
+                      _buildInfoCol(context, localizations.ticketLabelId, ticketId),
                     ],
                   ),
-                  if (!isScanned)
+                  if (!isScanned && !ended)
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
@@ -316,14 +322,14 @@ class StudentTicketsScreen extends StatelessWidget {
                               )
                             ],
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-                              SizedBox(width: 8),
+                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
                               Text(
-                                "CHECKED IN",
-                                style: TextStyle(
+                                localizations.ticketCheckedInBadge,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
@@ -337,7 +343,7 @@ class StudentTicketsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    isScanned ? "Ticket scanned successfully" : "Scan QR code at event entrance",
+                    isScanned ? localizations.ticketScannedOk : localizations.ticketShowAtEntrance,
                     style: TextStyle(
                       fontSize: 12,
                       color: isScanned ? Colors.green : Colors.grey,

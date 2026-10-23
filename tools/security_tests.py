@@ -564,6 +564,36 @@ def run(s: Sim, tag: str) -> None:
     check("other users were not affected", s.scalar("select count(*) from public.registrations where user_id = %s", [keeper]) == 1)
     check("their review no longer counts", s.scalar("select count(*) from public.reviews where event_id = %s", [ev_g]) == 0)
 
+    print("\n[18] Profile photos (organizers and admins only)")
+    def avatar_upload(uid, folder, name="avatar-1.png"):
+        s.user(uid)
+        return s.call("insert into storage.objects (bucket_id, name, owner) values ('avatars', %s, %s)",
+                      [f"{folder}/{name}", uid])
+    _, err = avatar_upload(org_haw, org_haw); check("a verified organizer can upload a photo into own folder", err is None, str(err))
+    _, err = avatar_upload(t_admin, t_admin); check("an admin can upload a photo", err is None, str(err))
+    _, err = avatar_upload(stu_tum2, stu_tum2); check("a student cannot upload a photo", err is not None, "student uploaded")
+    _, err = avatar_upload(org_unverified, org_unverified); check("an UNapproved organizer cannot upload a photo", err is not None, "uploaded")
+    _, err = avatar_upload(org_haw, org_tum, "avatar-2.png"); check("cannot upload a photo into someone else's folder", err is not None, "uploaded")
+    s.anon()
+    _, err = s.call("insert into storage.objects (bucket_id, name) values ('avatars', %s)", [f"{org_haw}/avatar-3.png"]); check("anonymous cannot upload a photo", err is not None)
+    s.user(org_tum)
+    s.affects_nothing("cannot delete another user's photo", "delete from storage.objects where bucket_id='avatars' and name = %s", [f"{org_haw}/avatar-1.png"])
+    s.user(org_haw)
+    _, err = s.call("update public.profiles set avatar_path = %s where id = %s", [f"{org_haw}/avatar-1.png", org_haw]); check("organizer can set own photo path", err is None, str(err))
+    for label, path in (("someone else's folder", f"{org_tum}/avatar-1.png"), ("not an avatar file name", f"{org_haw}/evil.svg"),
+                        ("path traversal", f"{org_haw}/../avatar-1.png"), ("an external URL", "https://evil.example/x.png")):
+        _, err = s.call("update public.profiles set avatar_path = %s where id = %s", [path, org_haw]); check(f"photo path rejected: {label}", err is not None, "accepted")
+    s.user(stu_tum2)
+    _, err = s.call("update public.profiles set avatar_path = %s where id = %s", [f"{stu_tum2}/avatar-1.png", stu_tum2])
+    check("a student cannot set a photo path", err is not None and "avatar_not_allowed" in err, str(err))
+    s.user(p_admin)
+    s.call("select public.admin_set_role(%s, 'student', false)", [org_haw])
+    s.postgres()
+    check("losing the organizer role removes the photo", s.scalar("select avatar_path from public.profiles where id = %s", [org_haw]) is None)
+    check("organizer_profiles shows the photo path column", "avatar_path" in {r[0] for r in s.rows("select column_name from information_schema.columns where table_name='organizer_profiles'")})
+    b = s.rows("select public, file_size_limit, allowed_mime_types from storage.buckets where id='avatars'")[0]
+    check("photo bucket: 2 MB limit, images only", b[1] is not None and b[1] <= 2_097_152 and set(b[2] or []) <= {"image/jpeg", "image/png", "image/webp"}, str(b))
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
@@ -571,7 +601,8 @@ def run(s: Sim, tag: str) -> None:
         "authenticated": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
                           "register_for_event", "cancel_registration", "check_in_ticket", "submit_review", "admin_set_role",
                           "is_verified_publisher", "user_tenant", "request_organizer_access",
-                          "review_organizer_request", "admin_list_users", "delete_my_account"},
+                          "review_organizer_request", "admin_list_users", "delete_my_account",
+                          "may_have_avatar", "can_have_avatar"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")

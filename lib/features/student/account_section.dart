@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
+import '../../core/services/account_repository.dart' show WrongPasswordException;
 
 /// Account tools shown on the profile page when signed in:
 /// edit name, change password, switch view, become an organizer.
@@ -73,7 +74,7 @@ class AccountSection extends StatelessWidget {
         ],
       ),
     );
-    controller.dispose();
+    // Controllers are left to the garbage collector: the dialog may still be animating closed.
     if (name == null) return;
     try {
       await appState.updateDisplayName(name);
@@ -85,45 +86,75 @@ class AccountSection extends StatelessWidget {
 
   Future<void> _changePassword(BuildContext context, AppState appState, AppLocalizations l10n) async {
     final messenger = ScaffoldMessenger.of(context);
-    final controller = TextEditingController();
+    final current = TextEditingController();
+    final next = TextEditingController();
+    final repeat = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    final password = await showDialog<String>(
+    final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.profileChangePassword),
         content: Form(
           key: formKey,
-          child: TextFormField(
-            controller: controller,
-            obscureText: true,
-            autofocus: true,
-            autofillHints: const [AutofillHints.newPassword],
-            decoration: InputDecoration(labelText: l10n.authNewPassword),
-            validator: (v) => (v ?? '').length < 8 ? l10n.authErrPasswordShort : null,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: current,
+                  obscureText: true,
+                  autofocus: true,
+                  autofillHints: const [AutofillHints.password],
+                  decoration: InputDecoration(labelText: l10n.passwordCurrent),
+                  validator: (v) => (v ?? '').isEmpty ? l10n.passwordWrongCurrent : null,
+                ),
+                TextFormField(
+                  controller: next,
+                  obscureText: true,
+                  autofillHints: const [AutofillHints.newPassword],
+                  decoration: InputDecoration(labelText: l10n.authNewPassword),
+                  validator: (v) {
+                    if ((v ?? '').length < 8) return l10n.authErrPasswordShort;
+                    if (v == current.text) return l10n.passwordSameAsOld;
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: repeat,
+                  obscureText: true,
+                  autofillHints: const [AutofillHints.newPassword],
+                  decoration: InputDecoration(labelText: l10n.passwordRepeat),
+                  validator: (v) => v == next.text ? null : l10n.passwordMismatch,
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.profileCancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
           FilledButton(
             onPressed: () {
-              if (formKey.currentState!.validate()) Navigator.pop(ctx, controller.text);
+              if (formKey.currentState!.validate()) Navigator.pop(ctx, true);
             },
             child: Text(l10n.profileSave),
           ),
         ],
       ),
     );
-    controller.dispose();
-    if (password == null) return;
+    final currentText = current.text;
+    final newText = next.text;
+    // Controllers are left to the garbage collector: the dialog may still be animating closed.
+    if (ok != true) return;
     try {
-      await appState.changePassword(password);
+      await appState.changePassword(currentText, newText);
       messenger.showSnackBar(SnackBar(content: Text(l10n.profilePasswordChanged)));
     } catch (e) {
-      final weak = e is AuthApiException && e.code == 'weak_password';
-      messenger.showSnackBar(SnackBar(
-        backgroundColor: Colors.red,
-        content: Text(weak ? l10n.authErrPasswordShort : l10n.authErrGeneric),
-      ));
+      final text = e is WrongPasswordException
+          ? l10n.passwordWrongCurrent
+          : (e is AuthApiException && e.code == 'weak_password')
+              ? l10n.authErrPasswordShort
+              : l10n.authErrGeneric;
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(text)));
     }
   }
 }
@@ -183,7 +214,9 @@ class _BecomeOrganizerCard extends StatelessWidget {
             Row(children: [
               Icon(Icons.campaign_rounded, color: theme.colorScheme.primary),
               const SizedBox(width: 12),
-              Text(l10n.organizerBecomeTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              Expanded(
+                child: Text(l10n.organizerBecomeTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              ),
             ]),
             const SizedBox(height: 10),
             body,
@@ -259,8 +292,7 @@ class _BecomeOrganizerCard extends StatelessWidget {
     );
     final orgName = org.text.trim();
     final message = msg.text.trim();
-    org.dispose();
-    msg.dispose();
+    // Controllers are left to the garbage collector: the dialog may still be animating closed.
     if (send != true) return;
     try {
       await appState.requestOrganizerAccess(role, orgName, message);
@@ -326,7 +358,7 @@ class DeleteAccountButton extends StatelessWidget {
         ),
       ),
     );
-    controller.dispose();
+    // Controllers are left to the garbage collector: the dialog may still be animating closed.
     if (confirmed != true) return;
     try {
       await appState.deleteAccount();

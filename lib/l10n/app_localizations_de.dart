@@ -760,4 +760,415 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dashboardEdit => 'Bearbeiten';
+
+  @override
+  String get prefSection => 'Einstellungen';
+
+  @override
+  String get accountSectionTitle => 'Konto';
+
+  @override
+  String get universityLabel => 'Hochschule';
+
+  @override
+  String get universityFromEmail =>
+      'Wird automatisch über deine bestätigte Hochschul-E-Mail festgelegt.';
+
+  @override
+  String get universityNone =>
+      'Keine Hochschule - öffentliches Konto. Registriere dich mit deiner Hochschul-E-Mail, um beizutreten.';
+
+  @override
+  String get wallpaperHint =>
+      'Wird hinter dem Event-Feed für Studierende angezeigt.';
+
+  @override
+  String get privacyTitle => 'Datenschutz & Daten';
+
+  @override
+  String get privacySubtitle =>
+      'Was wir speichern, wer es sieht, und deine Kopie';
+
+  @override
+  String get privacyWhatTitle => 'Was UniHub über dich speichert';
+
+  @override
+  String get privacyWhatBody =>
+      'Deine E-Mail-Adresse und deinen Namen, deine Hochschule (aus deiner E-Mail-Domain), deine Sprache, die Events, für die du dich angemeldet hast, mit Tickets und Check-ins, deine Bewertungen und Organisator-Anfragen. Organisatoren und Admins können zusätzlich ein Profilfoto hinzufügen.';
+
+  @override
+  String get privacyWhoTitle => 'Wer es sehen kann';
+
+  @override
+  String get privacyWhoBody =>
+      'Nur du siehst deine Anmeldungen und Tickets. Organisatoren sehen die Namen der Angemeldeten ihrer eigenen Events und das Feedback dazu. Admins sehen die Kontoliste ihrer Hochschule. Verifizierte Bewertungen sind öffentlich, ohne deine E-Mail. Dein Passwort sieht niemand.';
+
+  @override
+  String get privacyLocalTitle => 'Nur auf diesem Gerät';
+
+  @override
+  String get privacyLocalBody =>
+      'Design und Hintergrund werden auf diesem Gerät gespeichert, nicht in deinem Konto.';
+
+  @override
+  String get privacyExport => 'Meine Daten kopieren';
+
+  @override
+  String get privacyExportDone =>
+      'Deine Daten wurden in die Zwischenablage kopiert (JSON). Füge sie in eine Notiz oder E-Mail ein.';
+
+  @override
+  String get privacyExportFailed =>
+      'Deine Daten konnten nicht geladen werden. Bitte versuche es erneut.';
+
+  @override
+  String get privacyDeleteHint =>
+      'Um alles endgültig zu entfernen, nutze „Konto löschen“ unten in deinem Profil.';
+
+  @override
+  String get avatarChange => 'Foto ändern';
+
+  @override
+  String get avatarRemove => 'Foto entfernen';
+
+  @override
+  String get avatarUpdated => 'Foto aktualisiert.';
+
+  @override
+  String get avatarRemoved => 'Foto entfernt.';
+
+  @override
+  String get avatarFailed =>
+      'Das Foto konnte nicht gespeichert werden. Nutze ein JPG-, PNG- oder WebP-Bild unter 2 MB.';
+
+  @override
+  String get passwordCurrent => 'Aktuelles Passwort';
+
+  @override
+  String get passwordRepeat => 'Neues Passwort wiederholen';
+
+  @override
+  String get passwordMismatch => 'Die neuen Passwörter stimmen nicht überein.';
+
+  @override
+  String get passwordWrongCurrent =>
+      'Dein aktuelles Passwort ist nicht korrekt.';
+
+  @override
+  String get passwordSameAsOld =>
+      'Das neue Passwort muss sich vom aktuellen unterscheiden.';
+
+  @override
+  String get guestSignInButton => 'Anmelden / Registrieren';
+
+  @override
+  String get guestOpenTitle => 'Melde dich an, um dieses Event zu sehen';
+
+  @override
+  String get guestOpenBody =>
+      'Erstelle ein kostenloses Konto oder melde dich an, um Details zu sehen und dich anzumelden.';
+
+  @override
+  String get guestFeedTitle => 'Öffentliche Events';
+
+  @override
+  String get authBackToEvents => 'Zurück zu den Events';
+
+  @override
+  String get eventsEmptyCategory => 'Keine Events in dieser Kategorie.';
+
+  @override
+  String get detailsDateTime => 'Datum & Uhrzeit';
+
+  @override
+  String get detailsLocation => 'Ort';
+
+  @override
+  String get detailsAbout => 'Über dieses Event';
+
+  @override
+  String get detailsHostedBy => 'Veranstaltet von';
+
+  @override
+  String get detailsGallery => 'Galerie';
+
+  @override
+  String badgeOfficial(String university) {
+    return '$university OFFIZIELL';
+  }
+
+  @override
+  String get badgePublic => 'ÖFFENTLICHES EVENT';
+
+  @override
+  String get detailsFree => 'EINTRITT FREI';
+
+  @override
+  String get detailsQrRequired => 'QR-Code-Ticket am Einlass erforderlich';
+
+  @override
+  String get detailsOpenAdmission =>
+      'Freier Einlass - sag zu, damit der Veranstalter planen kann';
+
+  @override
+  String get detailsSeeTickets =>
+      'Dein Einlass-QR-Code ist unter „Meine Tickets“';
+
+  @override
+  String get detailsTicketReserved => 'TICKET RESERVIERT';
+
+  @override
+  String get detailsWaitlistedLabel => 'WARTELISTE';
+
+  @override
+  String get detailsWaitlistBody =>
+      'Du bekommst automatisch ein Ticket, wenn ein Platz frei wird';
+
+  @override
+  String get detailsCancelledBody =>
+      'Dieses Event wurde vom Veranstalter abgesagt.';
+
+  @override
+  String get detailsEndedBody => 'Dieses Event ist bereits vorbei.';
+
+  @override
+  String get ctaRegister => 'Anmelden';
+
+  @override
+  String get ctaRsvp => 'Zusagen';
+
+  @override
+  String get ctaRegistered => 'Angemeldet';
+
+  @override
+  String get ctaUnavailable => 'Nicht verfügbar';
+
+  @override
+  String detailsCapacity(int count) {
+    return '$count Plätze';
+  }
+
+  @override
+  String get detailsUnlimited => 'Keine Platzbegrenzung';
+
+  @override
+  String get ticketsEmptyTitle => 'Noch keine Tickets';
+
+  @override
+  String get ticketsEmptyBody =>
+      'Melde dich im Tab Start für ein Event an - dein Einlass-QR-Code erscheint dann hier.';
+
+  @override
+  String get ticketCheckedInBadge => 'EINGECHECKT';
+
+  @override
+  String get ticketConfirmedBadge => 'BESTÄTIGT';
+
+  @override
+  String get ticketEndedBadge => 'VORBEI';
+
+  @override
+  String get ticketLabelDate => 'DATUM';
+
+  @override
+  String get ticketLabelLocation => 'ORT';
+
+  @override
+  String get ticketLabelEntry => 'EINLASS';
+
+  @override
+  String get ticketEntryQr => 'QR-Check-in';
+
+  @override
+  String get ticketEntryOpen => 'Freier Einlass';
+
+  @override
+  String get ticketLabelId => 'TICKET';
+
+  @override
+  String get ticketScannedOk => 'Ticket gescannt - viel Spaß!';
+
+  @override
+  String get ticketShowAtEntrance => 'Zeig diesen QR-Code am Einlass';
+
+  @override
+  String get scanChooseEventFirst =>
+      'Wähle zuerst das Event, für das du scannst.';
+
+  @override
+  String get scanNotUnihub => 'Das ist kein UniHub-Ticket.';
+
+  @override
+  String scanGranted(String name) {
+    return 'Willkommen, $name! Eingecheckt.';
+  }
+
+  @override
+  String scanAlreadyUsed(String name) {
+    return '$name wurde bereits eingecheckt.';
+  }
+
+  @override
+  String get scanWrongEvent => 'Dieses Ticket gilt für ein anderes Event.';
+
+  @override
+  String get scanCancelled => 'Dieses Ticket wurde storniert.';
+
+  @override
+  String get scanInvalid => 'Ungültiges Ticket.';
+
+  @override
+  String get scanNotAllowed =>
+      'Du darfst für dieses Event keine Tickets scannen.';
+
+  @override
+  String get scanOffline =>
+      'Server nicht erreichbar. Prüfe deine Verbindung und scanne erneut.';
+
+  @override
+  String get scanGuestFallback => 'Gast';
+
+  @override
+  String get scanAccessGranted => 'Einlass gewährt';
+
+  @override
+  String get scanAccessDenied => 'Einlass verweigert';
+
+  @override
+  String get scanClose => 'Schließen';
+
+  @override
+  String get scanEnterCode => 'Ticket-Code eingeben';
+
+  @override
+  String get scanEnterCodeHint => 'Code vom Ticket einfügen';
+
+  @override
+  String get scanCheckIn => 'Einchecken';
+
+  @override
+  String get scanNoEvents =>
+      'Du hast keine Events zum Scannen. Erstelle eins, um Gäste einzuchecken.';
+
+  @override
+  String get scanEventsFailed => 'Deine Events konnten nicht geladen werden.';
+
+  @override
+  String get scanPointCamera =>
+      'Richte die Kamera auf den QR-Code eines Tickets';
+
+  @override
+  String get scanPointCameraDemo =>
+      'Richte die Kamera auf einen QR-Code oder tippe auf „Demo-Scan“';
+
+  @override
+  String get scanDemoButton => 'Demo-Scan';
+
+  @override
+  String get scanProcessing => 'Ticket wird geprüft...';
+
+  @override
+  String get scanTorch => 'Taschenlampe';
+
+  @override
+  String get scanManual => 'Code manuell eingeben';
+
+  @override
+  String get formHeader => 'Event-Details';
+
+  @override
+  String get formTitleHint => 'z. B. Frühlings-Hackathon 2026';
+
+  @override
+  String get formTitleError => 'Bitte gib einen Titel ein (3 bis 140 Zeichen).';
+
+  @override
+  String get formCategories => 'Kategorien (bis zu 3)';
+
+  @override
+  String get formCategoriesMax => 'Du kannst bis zu 3 Kategorien wählen.';
+
+  @override
+  String get categoryAcademic => 'Akademisch';
+
+  @override
+  String get categoryOther => 'Sonstiges';
+
+  @override
+  String get formLocationHint => 'z. B. Audimax, Gebäude B';
+
+  @override
+  String get formLocationError => 'Bitte gib einen Ort ein.';
+
+  @override
+  String get formStarts => 'Beginn';
+
+  @override
+  String get formEnds => 'Ende';
+
+  @override
+  String get formChange => 'Ändern';
+
+  @override
+  String get formEndBeforeStart => 'Das Event muss nach dem Beginn enden.';
+
+  @override
+  String get formStartInPast =>
+      'Der Beginn liegt in der Vergangenheit. Bitte wähle eine spätere Zeit.';
+
+  @override
+  String get formNoLimit => 'Keine Teilnehmerbegrenzung';
+
+  @override
+  String get formOfficialTitle => 'Offizielles Hochschul-Event';
+
+  @override
+  String formOfficialBody(String university) {
+    return 'Nur Mitglieder von $university können es sehen.';
+  }
+
+  @override
+  String get formPublicTitle => 'Öffentliches Event';
+
+  @override
+  String get formPublicBody => 'Alle können es sehen, auch ohne Konto.';
+
+  @override
+  String get formDescriptionHint => 'Ablauf, Speaker, Regeln ...';
+
+  @override
+  String get eventPublished => 'Event veröffentlicht.';
+
+  @override
+  String get previewTitlePlaceholder => 'Dein Event-Titel';
+
+  @override
+  String get previewLocationPlaceholder => 'Ort';
+
+  @override
+  String get previewDescPlaceholder => 'Deine Beschreibung erscheint hier.';
+
+  @override
+  String get previewReviewsOn => 'Bewertungen an';
+
+  @override
+  String get reviewErrCommentRequired => 'Bitte schreib einen Kommentar.';
+
+  @override
+  String get dashboardAttendanceByEvent => 'Teilnahme nach Event';
+
+  @override
+  String get dashboardRecentScans => 'Letzte Scans';
+
+  @override
+  String get dashboardActiveEvents => 'Aktive Events';
+
+  @override
+  String get dashboardNoPublicRatings => 'Noch keine öffentlichen Bewertungen.';
+
+  @override
+  String get dashboardNoPrivateFeedback => 'Noch kein privates Feedback.';
+
+  @override
+  String get dashboardClaimedAttendance => 'Gibt Teilnahme an';
 }

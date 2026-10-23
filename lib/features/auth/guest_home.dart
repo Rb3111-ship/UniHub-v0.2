@@ -4,8 +4,8 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
 import '../student/home_screen.dart';
 
-/// Read-only event browsing for visitors who are not signed in (public events only).
-/// Registering asks them to sign in first.
+/// What signed-out visitors see: the public events feed (read-only) and a way to
+/// sign in. Opening or registering for an event asks them to sign in first.
 class GuestHome extends StatelessWidget {
   const GuestHome({super.key});
 
@@ -28,23 +28,22 @@ class GuestHome extends StatelessWidget {
                   children: [
                     Icon(Icons.school_rounded, color: theme.colorScheme.primary),
                     const SizedBox(width: 8),
-                    Text(l10n.appTitle, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        l10n.guestBanner,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: theme.colorScheme.secondary, fontSize: 12),
-                      ),
+                      child: Text(l10n.appTitle,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
                     ),
                     IconButton(
                       tooltip: l10n.languageLabel,
                       icon: const Icon(Icons.language_rounded),
                       onPressed: appState.toggleLocale,
                     ),
-                    FilledButton(
-                      onPressed: appState.leaveGuestMode,
-                      child: Text(l10n.authSignIn),
+                    Flexible(
+                      flex: 2,
+                      child: FilledButton(
+                        onPressed: appState.leaveGuestMode,
+                        child: Text(l10n.guestSignInButton, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
                     ),
                   ],
                 ),

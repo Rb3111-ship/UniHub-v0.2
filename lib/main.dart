@@ -53,6 +53,8 @@ class _BootstrapState extends State<_Bootstrap> {
         child: const UniEventsApp(),
       );
     }
+    // Shown before translations are loaded, so pick the language from the phone.
+    final german = WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'de';
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
@@ -69,7 +71,10 @@ class _BootstrapState extends State<_Bootstrap> {
                 if (_error == null)
                   const CircularProgressIndicator(color: Colors.white)
                 else ...[
-                  const Text('UniHub could not start. Check your internet connection and try again.',
+                  Text(
+                      german
+                          ? 'UniHub konnte nicht starten. Prüfe deine Internetverbindung und versuche es erneut.'
+                          : 'UniHub could not start. Check your internet connection and try again.',
                       textAlign: TextAlign.center, style: TextStyle(color: Colors.white)),
                   const SizedBox(height: 12),
                   Text('$_error',
@@ -81,7 +86,7 @@ class _BootstrapState extends State<_Bootstrap> {
                   FilledButton(
                     style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF1E40AF)),
                     onPressed: _start,
-                    child: const Text('Try again'),
+                    child: Text(german ? 'Erneut versuchen' : 'Try again'),
                   ),
                 ],
               ],

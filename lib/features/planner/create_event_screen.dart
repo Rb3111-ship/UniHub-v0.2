@@ -1,11 +1,13 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
+import '../../../core/utils/image_type.dart';
 
 class PlannerCreateEventScreen extends StatefulWidget {
   /// When [editing] is set the screen edits that event instead of creating a new one.
@@ -25,8 +27,15 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
 
   final List<String> _selectedCategories = ['Sports'];
   double _capacity = 100;
-  DateTime _selectedDate = DateTime.now().add(const Duration(days: 7));
-  
+  DateTime _selectedDate = _defaultStart();
+  DateTime _endDate = _defaultStart().add(const Duration(hours: 2));
+
+  /// Next week at 18:00 - a sensible default for a new event.
+  static DateTime _defaultStart() {
+    final d = DateTime.now().add(const Duration(days: 7));
+    return DateTime(d.year, d.month, d.day, 18);
+  }
+
   bool _requiresQr = true;
   bool _allowReviews = true;
   bool _unlimited = false;
@@ -51,6 +60,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         ..clear()
         ..addAll(e.categories);
       _selectedDate = e.date;
+      _endDate = e.endDate;
       _requiresQr = e.requiresQrCode;
       _allowReviews = e.allowReviews;
       _unlimited = e.capacity == null;
@@ -72,27 +82,12 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     super.dispose();
   }
 
-  /// Works out the image type from the file's first bytes (never trusts the file name).
-  ({String mime, String ext})? _sniffImage(Uint8List b) {
-    if (b.length > 12 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47) {
-      return (mime: 'image/png', ext: 'png');
-    }
-    if (b.length > 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF) {
-      return (mime: 'image/jpeg', ext: 'jpg');
-    }
-    if (b.length > 12 && String.fromCharCodes(b.sublist(0, 4)) == 'RIFF' &&
-        String.fromCharCodes(b.sublist(8, 12)) == 'WEBP') {
-      return (mime: 'image/webp', ext: 'webp');
-    }
-    return null;
-  }
-
   Future<void> _pickImage(AppLocalizations l10n) async {
     final messenger = ScaffoldMessenger.of(context);
     final file = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
     if (file == null) return;
     final bytes = await file.readAsBytes();
-    final type = _sniffImage(bytes);
+    final type = sniffImageType(bytes);
     if (type == null) {
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.eventImageBadType)));
       return;
@@ -107,6 +102,68 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
       _pickedMime = type.mime;
       _pickedExt = type.ext;
     });
+  }
+
+  Future<DateTime?> _pickDateTime(DateTime initial) async {
+    final now = DateTime.now();
+    final first = initial.isBefore(now) ? initial : now;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(first.year, first.month, first.day),
+      lastDate: now.add(const Duration(days: 730)),
+    );
+    if (date == null || !mounted) return null;
+    final time = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
+    if (time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  /// Checks the times; shows a message and returns false if they are not valid.
+  bool _timesValid(AppLocalizations l10n, {required bool isNew}) {
+    String? problem;
+    if (!_endDate.isAfter(_selectedDate)) {
+      problem = l10n.formEndBeforeStart;
+    } else if (isNew && _selectedDate.isBefore(DateTime.now())) {
+      problem = l10n.formStartInPast;
+    }
+    if (problem == null) return true;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(problem)));
+    return false;
+  }
+
+  Widget _dateTimeField(String label, DateTime value, Color color, AppLocalizations l10n, VoidCallback onTap) {
+    final locale = Localizations.localeOf(context).toString();
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: _busy ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_rounded, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  Text(
+                    '${DateFormat.yMMMEd(locale).format(value)}, ${DateFormat.Hm(locale).format(value)}',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            Text(l10n.formChange, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Uploads the picked image. Returns its storage path, or null if nothing was picked
@@ -127,7 +184,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
   }
 
   Future<void> _saveEdit(AppState appState, AppLocalizations l10n) async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || !_timesValid(l10n, isNew: false)) return;
     final original = widget.editing!;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -143,7 +200,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         title: _titleController.text.trim(),
         description: _descController.text.trim(),
         date: _selectedDate,
-        endDate: _selectedDate.add(original.endDate.difference(original.date)),
+        endDate: _endDate,
         location: _locationController.text.trim(),
         universityDomain: original.universityDomain,
         isUniversityOfficial: original.isUniversityOfficial,
@@ -246,9 +303,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
               _selectedCategories.add(key);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("You can select up to 3 categories only."),
-                  duration: Duration(seconds: 2),
+                SnackBar(
+                  content: Text(AppLocalizations.of(context)!.formCategoriesMax),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             }
@@ -273,7 +330,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     final theme = Theme.of(context);
     final appState = context.watch<AppState>();
     final isOfficial = appState.currentPlannerType == PlannerType.universityAdmin;
-    
+
     // Check screen width for side-by-side responsive split
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth >= 900;
@@ -287,29 +344,32 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Event Parameters",
+                localizations.formHeader,
                 style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 16),
-              
+
               // Event Title
               _buildSectionHeader(localizations.formFieldTitle),
               const SizedBox(height: 6),
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  hintText: "e.g. TUM Hackathon 2026",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                  prefixIcon: Icon(Icons.title_rounded),
+                maxLength: 140,
+                decoration: InputDecoration(
+                  hintText: localizations.formTitleHint,
+                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  prefixIcon: const Icon(Icons.title_rounded),
                 ),
-                validator: (val) => val == null || val.trim().length < 3 ? "Please enter a title (at least 3 characters)" : null,
+                validator: (val) => val == null || val.trim().length < 3 || val.trim().length > 140
+                    ? localizations.formTitleError
+                    : null,
               ),
               const SizedBox(height: 16),
               _buildImagePicker(localizations, theme, appState.getActiveTenantColor()),
               const SizedBox(height: 16),
 
               // Category Selector (Chips list)
-              _buildSectionHeader("Event Categories (Select up to 3)"),
+              _buildSectionHeader(localizations.formCategories),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8.0,
@@ -319,8 +379,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   _buildCategoryChip("Tech", localizations.categoryTech, localizations),
                   _buildCategoryChip("Sports", localizations.categorySports, localizations),
                   _buildCategoryChip("Arts", localizations.categoryArts, localizations),
-                  _buildCategoryChip("Academic", "Academic", localizations),
-                  _buildCategoryChip("Other", "Other", localizations),
+                  _buildCategoryChip("Academic", localizations.categoryAcademic, localizations),
+                  _buildCategoryChip("Other", localizations.categoryOther, localizations),
                 ],
               ),
               const SizedBox(height: 16),
@@ -330,64 +390,32 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _locationController,
-                decoration: const InputDecoration(
-                  hintText: "e.g. Main Hall, Building B",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                  prefixIcon: Icon(Icons.location_on_rounded),
+                maxLength: 200,
+                decoration: InputDecoration(
+                  hintText: localizations.formLocationHint,
+                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  prefixIcon: const Icon(Icons.location_on_rounded),
                 ),
-                validator: (val) => val == null || val.trim().length < 2 ? "Please enter a location" : null,
+                validator: (val) => val == null || val.trim().length < 2 ? localizations.formLocationError : null,
               ),
               const SizedBox(height: 16),
 
-              // Date Selector
-              _buildSectionHeader("Date & Time"),
-              const SizedBox(height: 6),
-              InkWell(
-                onTap: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate,
-                    firstDate: _selectedDate.isBefore(DateTime.now()) ? _selectedDate : DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (date != null && context.mounted) {
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: TimeOfDay.fromDateTime(_selectedDate),
-                    );
-                    if (time != null) {
-                      setState(() {
-                        _selectedDate = DateTime(
-                          date.year,
-                          date.month,
-                          date.day,
-                          time.hour,
-                          time.minute,
-                        );
-                      });
-                    }
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade400),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.calendar_today_rounded, color: appState.getActiveTenantColor()),
-                      const SizedBox(width: 12),
-                      Text(
-                        "${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}  -  ${_selectedDate.hour.toString().padLeft(2, '0')}:${_selectedDate.minute.toString().padLeft(2, '0')}",
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                      const Spacer(),
-                      const Text("Change Date/Time", style: TextStyle(fontSize: 11, color: Colors.grey)),
-                    ],
-                  ),
-                ),
-              ),
+              // Start and end
+              _dateTimeField(localizations.formStarts, _selectedDate, appState.getActiveTenantColor(), localizations, () async {
+                final picked = await _pickDateTime(_selectedDate);
+                if (picked == null) return;
+                setState(() {
+                  // Moving the start keeps the event's length.
+                  final length = _endDate.difference(_selectedDate);
+                  _selectedDate = picked;
+                  _endDate = picked.add(length.isNegative ? const Duration(hours: 2) : length);
+                });
+              }),
+              const SizedBox(height: 8),
+              _dateTimeField(localizations.formEnds, _endDate, appState.getActiveTenantColor(), localizations, () async {
+                final picked = await _pickDateTime(_endDate);
+                if (picked != null) setState(() => _endDate = picked);
+              }),
               const SizedBox(height: 16),
 
               // Sliders & Toggles section
@@ -407,7 +435,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
               ),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text("No attendee limit", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                title: Text(localizations.formNoLimit, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 value: _unlimited,
                 onChanged: (val) => setState(() => _unlimited = val),
               ),
@@ -426,12 +454,12 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: isOfficial 
+                  color: isOfficial
                       ? appState.getActiveTenantColor().withOpacity(0.12)
                       : theme.colorScheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isOfficial 
+                    color: isOfficial
                         ? appState.getActiveTenantColor().withOpacity(0.3)
                         : theme.colorScheme.outlineVariant.withOpacity(0.5),
                   ),
@@ -449,7 +477,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isOfficial ? "University Event Organizer Event" : "Commercial Planner Event",
+                            isOfficial ? localizations.formOfficialTitle : localizations.formPublicTitle,
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -458,9 +486,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            isOfficial 
-                                ? "Automatically inferred as official event under ${appState.getTenantDomain()}"
-                                : "Inferred as public / commercial event",
+                            isOfficial
+                                ? localizations.formOfficialBody(appState.getTenantDisplayName())
+                                : localizations.formPublicBody,
                             style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary),
                           ),
                         ],
@@ -469,7 +497,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   ],
                 ),
               ),
-              
+
               // Switch for requiresQrCode
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
@@ -500,10 +528,12 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _descController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: "Enter event schedules, speakers, rules, etc.",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                maxLines: 5,
+                minLines: 3,
+                maxLength: 5000,
+                decoration: InputDecoration(
+                  hintText: localizations.formDescriptionHint,
+                  border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                 ),
               ),
               const SizedBox(height: 24),
@@ -515,28 +545,28 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                     await _saveEdit(appState, localizations);
                     return;
                   }
-                  if (_formKey.currentState!.validate()) {
+                  if (_formKey.currentState!.validate() && _timesValid(localizations, isNew: true)) {
+                    setState(() => _busy = true);
                     final imagePath = await _uploadPickedImage(appState, localizations);
+                    if (mounted) setState(() => _busy = false);
                     if (!context.mounted) return;
                     if (_pickedBytes != null && imagePath == null) return; // upload failed, message shown
                     final newEvent = Event(
                       id: 'evt-${DateTime.now().millisecondsSinceEpoch}',
-                      title: _titleController.text,
-                      description: _descController.text.isNotEmpty 
-                          ? _descController.text 
-                          : "No description provided.",
+                      title: _titleController.text.trim(),
+                      description: _descController.text.trim(),
                       date: _selectedDate,
-                      location: _locationController.text,
+                      location: _locationController.text.trim(),
                       universityDomain: isOfficial ? appState.getTenantDomain() : '',
                       isUniversityOfficial: isOfficial,
                       requiresQrCode: _requiresQr,
                       allowReviews: _allowReviews,
                       categories: List.from(_selectedCategories),
                       capacity: _unlimited ? null : _capacity.round(),
-                      endDate: _selectedDate.add(const Duration(hours: 2)),
+                      endDate: _endDate,
                       imagePath: imagePath,
                     );
-                    
+
                     try {
                       await appState.addEvent(newEvent);
                     } catch (e) {
@@ -557,10 +587,10 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         backgroundColor: Colors.green,
-                        content: Text("Event published successfully to '${isOfficial ? localizations.tabCampusHub : localizations.tabPublicEvents}'!"),
+                        content: Text(localizations.eventPublished),
                       ),
                     );
-                    
+
                     // Reset Form
                     _formKey.currentState!.reset();
                     _titleController.clear();
@@ -574,7 +604,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       _capacity = 100;
                       _unlimited = false;
                       _pickedBytes = null;
-                      _selectedDate = DateTime.now().add(const Duration(days: 7));
+                      _selectedDate = _defaultStart();
+                      _endDate = _selectedDate.add(const Duration(hours: 2));
                     });
                   }
                 },
@@ -672,12 +703,14 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     final theme = Theme.of(context);
     final universityColor = appState.getActiveTenantColor();
     final isOfficial = appState.currentPlannerType == PlannerType.universityAdmin;
-    
+
     // Determine dynamic title / category icon / labels
-    final previewTitle = _titleController.text.isNotEmpty ? _titleController.text : "Upcoming Event Title";
-    final previewLocation = _locationController.text.isNotEmpty ? _locationController.text : "Campus Location / Room";
-    final previewDesc = _descController.text.isNotEmpty ? _descController.text : "Type in the description input field to see details rendered instantly on this card preview.";
-    
+    final previewTitle = _titleController.text.isNotEmpty ? _titleController.text : localizations.previewTitlePlaceholder;
+    final previewLocation =
+        _locationController.text.isNotEmpty ? _locationController.text : localizations.previewLocationPlaceholder;
+    final previewDesc = _descController.text.isNotEmpty ? _descController.text : localizations.previewDescPlaceholder;
+    final locale = Localizations.localeOf(context).toString();
+
     final firstCat = _selectedCategories.isNotEmpty ? _selectedCategories.first : 'Other';
     IconData categoryIcon = Icons.event_rounded;
     if (firstCat == 'Music') categoryIcon = Icons.music_note_rounded;
@@ -690,8 +723,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         color: theme.cardTheme.color ?? Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isOfficial 
-              ? universityColor 
+          color: isOfficial
+              ? universityColor
               : theme.colorScheme.outlineVariant.withOpacity(0.5),
           width: isOfficial ? 2.0 : 1.0,
         ),
@@ -785,7 +818,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                                         Icon(Icons.qr_code_2_rounded, size: 10, color: theme.colorScheme.tertiary),
                                         const SizedBox(width: 2),
                                         Text(
-                                          "QR IN",
+                                          "QR",
                                           style: TextStyle(
                                             fontSize: 9,
                                             fontWeight: FontWeight.bold,
@@ -809,7 +842,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       Icon(Icons.calendar_today_rounded, size: 14, color: theme.colorScheme.secondary),
                       const SizedBox(width: 6),
                       Text(
-                        "${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year} @ ${_selectedDate.hour.toString().padLeft(2, '0')}:${_selectedDate.minute.toString().padLeft(2, '0')}",
+                        '${DateFormat.yMMMd(locale).format(_selectedDate)}, ${DateFormat.Hm(locale).format(_selectedDate)}',
                         style: TextStyle(fontSize: 13, color: theme.colorScheme.secondary, fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -849,25 +882,20 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                               children: [
                                 Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade700),
                                 const SizedBox(width: 4),
-                                const Text("Reviews Enabled", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                Text(localizations.previewReviewsOn, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                               ],
                             ),
                         ],
                       ),
                       Row(
                         children: [
-                          OutlinedButton(
-                            onPressed: () {},
-                            child: const Text("Details"),
-                          ),
-                          const SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: () {},
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isOfficial ? universityColor : theme.colorScheme.primary,
                               foregroundColor: Colors.white,
                             ),
-                            child: const Text("Register"),
+                            child: Text(_requiresQr ? localizations.ctaRegister : localizations.ctaRsvp),
                           ),
                         ],
                       ),

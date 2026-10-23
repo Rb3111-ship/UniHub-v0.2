@@ -1,9 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
-import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../../../core/widgets/event_image.dart';
 import 'register_action.dart';
 
 class EventDetailsScreen extends StatelessWidget {
@@ -21,33 +23,29 @@ class EventDetailsScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final brandColor = appState.getUniversityColor(event.universityDomain);
+    final locale = Localizations.localeOf(context).toString();
 
     // Only verified reviews count towards the rating shown to students.
     final rating = appState.ratingFor(event.id);
     final averageRating = rating?.average ?? 0.0;
 
-    final gallery = _getGalleryImages(event);
-    final dateStr = "${event.date.day}.${event.date.month}.${event.date.year} @ ${event.date.hour.toString().padLeft(2, '0')}:${event.date.minute.toString().padLeft(2, '0')}";
+    final gallery = event.galleryImages ?? const <String>[];
+    final dateStr = '${DateFormat.yMMMEd(locale).format(event.date)}, '
+        '${DateFormat.Hm(locale).format(event.date)} - ${DateFormat.Hm(locale).format(event.endDate)}';
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Background layout theme (e.g. Cyber Aurora or grid) if active
           if (appState.currentRole == UserRole.student)
-            Positioned.fill(
-              child: _buildBackgroundOverlay(context, appState),
-            ),
-          // Content
+            Positioned.fill(child: _buildBackgroundOverlay(context, appState)),
           Column(
             children: [
               Expanded(
                 child: CustomScrollView(
                   slivers: [
-                    // Visual banner Header with Hero
                     SliverAppBar(
                       expandedHeight: 280.0,
-                      floating: false,
                       pinned: true,
                       backgroundColor: isDark ? const Color(0xFF1E1E22) : brandColor,
                       iconTheme: const IconThemeData(color: Colors.white),
@@ -57,12 +55,8 @@ class EventDetailsScreen extends StatelessWidget {
                           children: [
                             Hero(
                               tag: 'event-image-${event.id}',
-                              child: Image.network(
-                                event.imageUrl ?? 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800',
-                                fit: BoxFit.cover,
-                              ),
+                              child: EventImage(url: event.imageUrl, color: brandColor, iconSize: 72),
                             ),
-                            // Shading Gradient
                             Positioned.fill(
                               child: DecoratedBox(
                                 decoration: BoxDecoration(
@@ -78,17 +72,19 @@ class EventDetailsScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            // Overlaid title over the bottom of the image banner
                             Positioned(
                               bottom: 16,
                               left: 16,
                               right: 16,
                               child: Text(
                                 event.title,
-                                style: const TextStyle(
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
+                                  decoration: event.isCancelled ? TextDecoration.lineThrough : null,
                                 ),
                               ),
                             ),
@@ -100,7 +96,6 @@ class EventDetailsScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16.0),
                       sliver: SliverList(
                         delegate: SliverChildListDelegate([
-                          // University and Categories Badge Section
                           Row(
                             children: [
                               Container(
@@ -113,8 +108,8 @@ class EventDetailsScreen extends StatelessWidget {
                                 ),
                                 child: Text(
                                   event.isUniversityOfficial
-                                      ? "${event.universityDomain.toUpperCase()} OFFICIAL"
-                                      : "PUBLIC EVENT",
+                                      ? l10n.badgeOfficial(event.universityDomain.toUpperCase())
+                                      : l10n.badgePublic,
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,
@@ -123,39 +118,54 @@ class EventDetailsScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              // Multi-category tag chips list
                               Expanded(
                                 child: SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Row(
-                                    children: event.categories.map((c) => Container(
-                                      margin: const EdgeInsets.only(right: 6),
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.surfaceContainer,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        c,
-                                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary),
-                                      ),
-                                    )).toList(),
+                                    children: event.categories
+                                        .map((c) => Container(
+                                              margin: const EdgeInsets.only(right: 6),
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: theme.colorScheme.surfaceContainer,
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
+                                              ),
+                                              child: Text(
+                                                c,
+                                                style: TextStyle(
+                                                    fontSize: 9, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary),
+                                              ),
+                                            ))
+                                        .toList(),
                                   ),
                                 ),
                               ),
                             ],
                           ),
+                          if (event.isCancelled) ...[
+                            const SizedBox(height: 12),
+                            _notice(context, Icons.event_busy_rounded, l10n.detailsCancelledBody, Colors.red),
+                          ] else if (event.endDate.isBefore(DateTime.now())) ...[
+                            const SizedBox(height: 12),
+                            _notice(context, Icons.history_rounded, l10n.detailsEndedBody, Colors.grey),
+                          ],
                           const SizedBox(height: 20),
-
-                          // Seating / Organizer Rating & Basic metrics details
                           _buildGlassmorphicCard(
                             context,
                             child: Column(
                               children: [
-                                _buildDetailRow(context, Icons.calendar_month_rounded, "Date & Time", dateStr),
+                                _buildDetailRow(context, Icons.calendar_month_rounded, l10n.detailsDateTime, dateStr),
                                 const Divider(height: 20, thickness: 0.5),
-                                _buildDetailRow(context, Icons.location_on_rounded, "Location", event.location),
+                                _buildDetailRow(context, Icons.location_on_rounded, l10n.detailsLocation, event.location),
+                                const Divider(height: 20, thickness: 0.5),
+                                _buildDetailRow(
+                                  context,
+                                  Icons.groups_rounded,
+                                  '',
+                                  event.capacity == null ? l10n.detailsUnlimited : l10n.detailsCapacity(event.capacity!),
+                                  hideLabel: true,
+                                ),
                                 const Divider(height: 20, thickness: 0.5),
                                 _buildDetailRow(
                                   context,
@@ -178,49 +188,33 @@ class EventDetailsScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+                          if (event.organizerId != null) _HostCard(organizerId: event.organizerId!),
                           const SizedBox(height: 24),
-
-                          // Full Detailed Description
-                          Text(
-                            "About Event",
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            event.description,
-                            style: theme.textTheme.bodyLarge?.copyWith(height: 1.6),
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Horizontal Carousel Gallery (2-3 additional images)
-                          Text(
-                            "Event Gallery",
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            height: 130,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: gallery.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 12),
-                              itemBuilder: (context, idx) {
-                                return ClipRRect(
+                          if (event.description.trim().isNotEmpty) ...[
+                            Text(l10n.detailsAbout,
+                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            Text(event.description, style: theme.textTheme.bodyLarge?.copyWith(height: 1.6)),
+                            const SizedBox(height: 24),
+                          ],
+                          // Only real pictures of this event; no stock photos.
+                          if (gallery.isNotEmpty) ...[
+                            Text(l10n.detailsGallery,
+                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 130,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: gallery.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                                itemBuilder: (context, idx) => ClipRRect(
                                   borderRadius: BorderRadius.circular(16),
-                                  child: Image.network(
-                                    gallery[idx],
-                                    width: 180,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      width: 180,
-                                      color: brandColor.withOpacity(0.1),
-                                      child: Icon(Icons.image_not_supported_rounded, color: brandColor),
-                                    ),
-                                  ),
-                                );
-                              },
+                                  child: SizedBox(width: 180, child: EventImage(url: gallery[idx], color: brandColor)),
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                           const SizedBox(height: 40),
                         ]),
                       ),
@@ -228,13 +222,27 @@ class EventDetailsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Sticky Bottom Registration Bar
-              _buildStickyBottomBar(context, appState, brandColor),
+              _buildStickyBottomBar(context, appState, brandColor, l10n),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _notice(BuildContext context, IconData icon, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w600))),
+      ]),
     );
   }
 
@@ -279,7 +287,7 @@ class EventDetailsScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: theme.cardTheme.color?.withOpacity(isDark ? 0.65 : 0.85) ??
-                   (isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.85)),
+                (isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.85)),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.08)),
           ),
@@ -295,6 +303,7 @@ class EventDetailsScreen extends StatelessWidget {
     String label,
     String value, {
     Widget? customTrailing,
+    bool hideLabel = false,
   }) {
     final theme = Theme.of(context);
     return Row(
@@ -306,19 +315,18 @@ class EventDetailsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.secondary.withOpacity(0.8),
+              if (!hideLabel) ...[
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.secondary.withOpacity(0.8),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
+                const SizedBox(height: 2),
+              ],
+              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -327,13 +335,30 @@ class EventDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStickyBottomBar(BuildContext context, AppState appState, Color brandColor) {
+  Widget _buildStickyBottomBar(BuildContext context, AppState appState, Color brandColor, AppLocalizations l10n) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isRegistered = appState.isRegistered(event.id);
-    final ctaText = isRegistered
-        ? (appState.isWaitlisted(event.id) ? "You are on the waitlist" : "You are Registered")
-        : (event.requiresQrCode ? "Confirm Registration" : "RSVP to Event");
+    final waitlisted = appState.isWaitlisted(event.id);
+    final closed = event.isCancelled || event.endDate.isBefore(DateTime.now());
+    final locale = Localizations.localeOf(context).toString();
+
+    final String headline;
+    final String subline;
+    if (isRegistered) {
+      headline = waitlisted ? l10n.detailsWaitlistedLabel : l10n.detailsTicketReserved;
+      subline = waitlisted ? l10n.detailsWaitlistBody : l10n.detailsSeeTickets;
+    } else {
+      headline = event.priceCents > 0
+          ? NumberFormat.simpleCurrency(locale: locale, name: 'EUR').format(event.priceCents / 100)
+          : l10n.detailsFree;
+      subline = event.requiresQrCode ? l10n.detailsQrRequired : l10n.detailsOpenAdmission;
+    }
+    final ctaText = closed && !isRegistered
+        ? l10n.ctaUnavailable
+        : isRegistered
+            ? (waitlisted ? l10n.ctaWaitlisted : l10n.ctaRegistered)
+            : (event.requiresQrCode ? l10n.ctaRegister : l10n.ctaRsvp);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -341,11 +366,7 @@ class EventDetailsScreen extends StatelessWidget {
         color: isDark ? const Color(0xFF1E1E22) : Colors.white,
         border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.3))),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          )
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4)),
         ],
       ),
       child: SafeArea(
@@ -358,7 +379,7 @@ class EventDetailsScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    isRegistered ? (appState.isWaitlisted(event.id) ? "WAITLISTED" : "TICKET RESERVED") : "FREE ADMISSION",
+                    headline,
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w900,
@@ -367,73 +388,70 @@ class EventDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    isRegistered 
-                        ? "Check 'My Tickets' for entrance QR code" 
-                        : (event.requiresQrCode ? "QR Code Ticket Required" : "Open admission, RSVP below"),
-                    style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary),
-                  ),
+                  Text(subline, style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary)),
                 ],
               ),
             ),
             const SizedBox(width: 16),
             ElevatedButton(
-              onPressed: isRegistered
-                  ? null
-                  : () => registerWithFeedback(context, appState, event),
+              onPressed: isRegistered || closed ? null : () => registerWithFeedback(context, appState, event),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isRegistered ? theme.colorScheme.surfaceContainer : brandColor,
-                foregroundColor: isRegistered ? theme.colorScheme.onSurfaceVariant : Colors.white,
+                backgroundColor: isRegistered || closed ? theme.colorScheme.surfaceContainer : brandColor,
+                foregroundColor: isRegistered || closed ? theme.colorScheme.onSurfaceVariant : Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: Text(
-                ctaText,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              ),
+              child: Text(ctaText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  List<String> _getGalleryImages(Event event) {
-    if (event.galleryImages != null && event.galleryImages!.isNotEmpty) {
-      return event.galleryImages!;
-    }
-    // Categories-based high-res gallery images
-    final firstCat = event.category.toLowerCase();
-    if (firstCat.contains('tech')) {
-      return [
-        'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600',
-        'https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=600',
-        'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600',
-      ];
-    } else if (firstCat.contains('music')) {
-      return [
-        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600',
-        'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600',
-        'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600',
-      ];
-    } else if (firstCat.contains('arts')) {
-      return [
-        'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600',
-        'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600',
-        'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600',
-      ];
-    } else if (firstCat.contains('sports')) {
-      return [
-        'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600',
-        'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600',
-        'https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?w=600',
-      ];
-    }
-    return [
-      'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=600',
-      'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=600',
-      'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600',
-    ];
+/// "Hosted by" with the organizer's name and photo.
+class _HostCard extends StatelessWidget {
+  const _HostCard({required this.organizerId});
+
+  final String organizerId;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return FutureBuilder<({String name, String? photoUrl})?>(
+      future: context.read<AppState>().organizerFor(organizerId),
+      builder: (context, snap) {
+        final host = snap.data;
+        if (host == null || host.name.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: theme.colorScheme.primary,
+                foregroundImage: host.photoUrl == null ? null : NetworkImage(host.photoUrl!),
+                child: Text(host.name.characters.first.toUpperCase(),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.detailsHostedBy,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary)),
+                    Text(host.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 

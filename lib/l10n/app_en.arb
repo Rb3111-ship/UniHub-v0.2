@@ -337,5 +337,165 @@
   "eventImageUploadFailed": "The image could not be uploaded. Please try again.",
   "eventStatusCancelled": "CANCELLED",
   "ticketEventCancelled": "This event was cancelled. Your ticket is no longer valid.",
-  "dashboardEdit": "Edit"
+  "dashboardEdit": "Edit",
+  "prefSection": "Preferences",
+  "accountSectionTitle": "Account",
+  "universityLabel": "University",
+  "universityFromEmail": "Set automatically from your verified university email.",
+  "universityNone": "No university - public account. Sign up with your university email to join one.",
+  "wallpaperHint": "Shown behind the student events feed.",
+  "privacyTitle": "Privacy & data",
+  "privacySubtitle": "What we store, who can see it, and your copy",
+  "privacyWhatTitle": "What UniHub stores about you",
+  "privacyWhatBody": "Your email address and name, your university (taken from your email domain), your language, the events you registered for with their tickets and check-ins, the reviews you wrote and any organizer requests. Organizers and admins can also add a profile photo.",
+  "privacyWhoTitle": "Who can see it",
+  "privacyWhoBody": "Only you can see your registrations and tickets. Organizers see the names of people registered for their own events and the feedback on them. Admins see the account list of their university. Verified reviews are public, without your email. Your password is never visible to anyone.",
+  "privacyLocalTitle": "On this device only",
+  "privacyLocalBody": "Your theme and wallpaper choice are stored on this device, not in your account.",
+  "privacyExport": "Copy my data",
+  "privacyExportDone": "Your data was copied to the clipboard (JSON). Paste it into a note or email to keep it.",
+  "privacyExportFailed": "Your data could not be loaded. Please try again.",
+  "privacyDeleteHint": "To remove everything for good, use Delete account at the bottom of your profile.",
+  "avatarChange": "Change photo",
+  "avatarRemove": "Remove photo",
+  "avatarUpdated": "Photo updated.",
+  "avatarRemoved": "Photo removed.",
+  "avatarFailed": "The photo could not be saved. Use a JPG, PNG or WebP image under 2 MB.",
+  "passwordCurrent": "Current password",
+  "passwordRepeat": "Repeat new password",
+  "passwordMismatch": "The new passwords do not match.",
+  "passwordWrongCurrent": "Your current password is not correct.",
+  "passwordSameAsOld": "The new password must be different from the current one.",
+  "guestSignInButton": "Sign in / Sign up",
+  "guestOpenTitle": "Sign in to see this event",
+  "guestOpenBody": "Create a free account or sign in to see event details and register.",
+  "guestFeedTitle": "Public events",
+  "authBackToEvents": "Back to events",
+  "eventsEmptyCategory": "No events found in this category.",
+  "detailsDateTime": "Date & time",
+  "detailsLocation": "Location",
+  "detailsAbout": "About this event",
+  "detailsHostedBy": "Hosted by",
+  "detailsGallery": "Gallery",
+  "badgeOfficial": "{university} OFFICIAL",
+  "@badgeOfficial": {
+    "placeholders": {
+      "university": {
+        "type": "String"
+      }
+    }
+  },
+  "badgePublic": "PUBLIC EVENT",
+  "detailsFree": "FREE ADMISSION",
+  "detailsQrRequired": "QR code ticket required at the door",
+  "detailsOpenAdmission": "Open admission - RSVP so the organizer can plan",
+  "detailsSeeTickets": "Your entry QR code is in My Tickets",
+  "detailsTicketReserved": "TICKET RESERVED",
+  "detailsWaitlistedLabel": "WAITLISTED",
+  "detailsWaitlistBody": "You get a ticket automatically if a seat frees up",
+  "detailsCancelledBody": "This event was cancelled by the organizer.",
+  "detailsEndedBody": "This event has already ended.",
+  "ctaRegister": "Register",
+  "ctaRsvp": "RSVP",
+  "ctaRegistered": "Registered",
+  "ctaUnavailable": "Not available",
+  "detailsCapacity": "{count} places",
+  "@detailsCapacity": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "detailsUnlimited": "No limit on places",
+  "ticketsEmptyTitle": "No tickets yet",
+  "ticketsEmptyBody": "Register for an event on the Home tab and your entry QR code appears here.",
+  "ticketCheckedInBadge": "CHECKED IN",
+  "ticketConfirmedBadge": "CONFIRMED",
+  "ticketEndedBadge": "ENDED",
+  "ticketLabelDate": "DATE",
+  "ticketLabelLocation": "LOCATION",
+  "ticketLabelEntry": "ENTRY",
+  "ticketEntryQr": "QR check-in",
+  "ticketEntryOpen": "Open entry",
+  "ticketLabelId": "TICKET",
+  "ticketScannedOk": "Ticket scanned - enjoy the event!",
+  "ticketShowAtEntrance": "Show this QR code at the entrance",
+  "scanChooseEventFirst": "Choose the event you are scanning for first.",
+  "scanNotUnihub": "This is not a UniHub ticket.",
+  "scanGranted": "Welcome, {name}! Checked in.",
+  "@scanGranted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanAlreadyUsed": "{name} was already checked in.",
+  "@scanAlreadyUsed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "scanWrongEvent": "This ticket is for a different event.",
+  "scanCancelled": "This ticket was cancelled.",
+  "scanInvalid": "Invalid ticket.",
+  "scanNotAllowed": "You are not allowed to scan tickets for this event.",
+  "scanOffline": "Could not reach the server. Check your connection and scan again.",
+  "scanGuestFallback": "guest",
+  "scanAccessGranted": "Access granted",
+  "scanAccessDenied": "Access denied",
+  "scanClose": "Close",
+  "scanEnterCode": "Enter ticket code",
+  "scanEnterCodeHint": "Paste the code from the ticket",
+  "scanCheckIn": "Check in",
+  "scanNoEvents": "You have no events to scan for. Create one to start checking in guests.",
+  "scanEventsFailed": "Your events could not be loaded.",
+  "scanPointCamera": "Point the camera at a ticket QR code",
+  "scanPointCameraDemo": "Point the camera at a ticket QR code or tap 'Demo scan'",
+  "scanDemoButton": "Demo scan",
+  "scanProcessing": "Checking ticket...",
+  "scanTorch": "Flashlight",
+  "scanManual": "Enter code manually",
+  "formHeader": "Event details",
+  "formTitleHint": "e.g. Spring Hackathon 2026",
+  "formTitleError": "Please enter a title (3 to 140 characters).",
+  "formCategories": "Categories (up to 3)",
+  "formCategoriesMax": "You can select up to 3 categories.",
+  "categoryAcademic": "Academic",
+  "categoryOther": "Other",
+  "formLocationHint": "e.g. Main Hall, Building B",
+  "formLocationError": "Please enter a location.",
+  "formStarts": "Starts",
+  "formEnds": "Ends",
+  "formChange": "Change",
+  "formEndBeforeStart": "The event must end after it starts.",
+  "formStartInPast": "The start time is in the past. Please pick a later time.",
+  "formNoLimit": "No attendee limit",
+  "formOfficialTitle": "Official university event",
+  "formOfficialBody": "Only members of {university} can see it.",
+  "@formOfficialBody": {
+    "placeholders": {
+      "university": {
+        "type": "String"
+      }
+    }
+  },
+  "formPublicTitle": "Public event",
+  "formPublicBody": "Everyone can see it, also without an account.",
+  "formDescriptionHint": "Schedule, speakers, rules ...",
+  "eventPublished": "Event published.",
+  "previewTitlePlaceholder": "Your event title",
+  "previewLocationPlaceholder": "Location",
+  "previewDescPlaceholder": "Your description appears here.",
+  "previewReviewsOn": "Reviews on",
+  "reviewErrCommentRequired": "Please write a comment.",
+  "dashboardAttendanceByEvent": "Attendance by event",
+  "dashboardRecentScans": "Recent scans",
+  "dashboardActiveEvents": "Active events",
+  "dashboardNoPublicRatings": "No public ratings yet.",
+  "dashboardNoPrivateFeedback": "No private feedback yet.",
+  "dashboardClaimedAttendance": "Says they attended"
 }

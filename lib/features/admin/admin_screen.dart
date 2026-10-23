@@ -20,9 +20,13 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   void initState() {
     super.initState();
-    final appState = context.read<AppState>();
-    appState.refreshRequests();
-    appState.refreshUsers('');
+    // Load after the first frame: notifying listeners while the tree builds is not allowed.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final appState = context.read<AppState>();
+      appState.refreshRequests();
+      appState.refreshUsers('');
+    });
   }
 
   @override
@@ -64,7 +68,7 @@ class _AdminScreenState extends State<AdminScreen> {
       ),
     );
     final text = note.text.trim();
-    note.dispose();
+    // Controllers are left to the garbage collector: the dialog may still be animating closed.
     if (ok != true) return;
     try {
       await appState.reviewRequest(r.id, approve, text.isEmpty ? null : text);

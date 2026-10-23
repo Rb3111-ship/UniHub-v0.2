@@ -119,7 +119,7 @@ class PlannerDashboardScreen extends StatelessWidget {
     return [
       _buildQuickStats(context, appState, l10n),
       const SizedBox(height: 24),
-      _buildSectionTitle(context, "Attendance By Event"),
+      _buildSectionTitle(context, l10n.dashboardAttendanceByEvent),
       const SizedBox(height: 12),
       if (d.stats.isEmpty)
         _buildEmptyFeedback(theme, l10n.dashboardNoEventsYet)
@@ -129,7 +129,7 @@ class PlannerDashboardScreen extends StatelessWidget {
           const SizedBox(height: 12),
         ],
       const SizedBox(height: 12),
-      _buildSectionTitle(context, "Recent Scanner Logs"),
+      _buildSectionTitle(context, l10n.dashboardRecentScans),
       const SizedBox(height: 12),
       if (d.scans.isEmpty)
         _buildEmptyFeedback(theme, l10n.scanLogEmpty)
@@ -258,7 +258,7 @@ class PlannerDashboardScreen extends StatelessWidget {
             _buildStatCard(context, localizations.dashboardTotalRsvps, rsvps.toString(), Icons.confirmation_number_rounded, const Color(0xFF636AE8)),
             _buildStatCard(context, localizations.dashboardTotalCheckins, checkIns.toString(), Icons.qr_code_scanner_rounded, const Color(0xFFF15A24)),
             _buildStatCard(context, localizations.dashboardAttendanceRate, attendanceRateStr, Icons.trending_up_rounded, const Color(0xFF03DAC5)),
-            _buildStatCard(context, "Active Events", activeEvents.toString(), Icons.event_available_rounded, Colors.purple),
+            _buildStatCard(context, localizations.dashboardActiveEvents, activeEvents.toString(), Icons.event_available_rounded, Colors.purple),
           ],
         );
       },
@@ -284,7 +284,7 @@ class PlannerDashboardScreen extends StatelessWidget {
         _buildSectionTitle(context, localizations.dashboardPublicRatings),
         const SizedBox(height: 12),
         if (publicReviews.isEmpty)
-          _buildEmptyFeedback(theme, "No public ratings yet.")
+          _buildEmptyFeedback(theme, localizations.dashboardNoPublicRatings)
         else
           ListView.separated(
             shrinkWrap: true,
@@ -326,7 +326,7 @@ class PlannerDashboardScreen extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         if (privateReviews.isEmpty)
-          _buildEmptyFeedback(theme, "No private feedback yet.")
+          _buildEmptyFeedback(theme, localizations.dashboardNoPrivateFeedback)
         else
           ListView.separated(
             shrinkWrap: true,
@@ -493,11 +493,11 @@ class PlannerDashboardScreen extends StatelessWidget {
                 ),
                 const Spacer(),
                 if (review.claimedAttendance)
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.check_circle_outline_rounded, size: 12, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text("Claimed Attendance", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                      const Icon(Icons.check_circle_outline_rounded, size: 12, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(localizations.dashboardClaimedAttendance, style: const TextStyle(fontSize: 10, color: Colors.grey)),
                     ],
                   ),
               ],
@@ -524,25 +524,34 @@ class PlannerDashboardScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.secondary,
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.secondary,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 4),
                 Icon(icon, color: color.withOpacity(0.8), size: 20),
               ],
             ),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: theme.colorScheme.onSurface,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
             ),
           ],

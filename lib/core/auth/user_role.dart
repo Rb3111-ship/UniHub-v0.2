@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
@@ -52,7 +53,15 @@ class AppState extends ChangeNotifier {
       _reviews.clear();
       _session = c.auth.currentSession;
       _authSub = c.auth.onAuthStateChange.listen(_onAuthChange);
+      // A sign-in restored at app start may be reported as a token refresh (or not
+      // at all), so load the profile here instead of waiting for an auth event.
+      if (_session != null) {
+        loadProfile();
+      } else {
+        refreshEvents(); // signed-out visitors see the public feed
+      }
     }
+    _loadLookPreferences();
   }
 
   final SupabaseClient? _client;
@@ -91,8 +100,9 @@ class AppState extends ChangeNotifier {
   /// Id of the signed-in user (null in demo mode or when signed out).
   String? get currentUserId => _client?.auth.currentUser?.id;
 
-  // Visitors may browse public events without an account (web/app "guest mode").
-  bool _guest = false;
+  // Signed-out visitors see the public events feed (guest mode) until they choose
+  // to sign in; the sign-in screen can send them back to the feed.
+  bool _guest = true;
   bool get isGuest => usesBackend && _session == null && _guest;
 
   void enterGuestMode() {
@@ -102,6 +112,7 @@ class AppState extends ChangeNotifier {
     refreshEvents();
   }
 
+  /// Shows the sign-in / sign-up screen.
   void leaveGuestMode() {
     _guest = false;
     notifyListeners();
@@ -116,13 +127,19 @@ class AppState extends ChangeNotifier {
     super.dispose();
   }
 
+  String? _profileUserId;
+  Future<void>? _profileLoad;
+
   void _onAuthChange(AuthState data) {
     _session = data.session;
     final user = data.session?.user;
     if (user == null) {
+      _profileUserId = null;
       _remoteProfile = null;
       _profileFailed = false;
-      _guest = false;
+      _guest = true; // back to the public feed
+      _avatarPath = null;
+      _organizerVerified = false;
       _currentRole = UserRole.student;
       _currentTenant = '';
       _tenantId = null;
@@ -136,22 +153,30 @@ class AppState extends ChangeNotifier {
       _myReviewedEventIds = {};
       _dashboard = const DashboardData();
       _feedback = [];
+      _managedEvents = [];
       notifyListeners();
-    } else if (data.event != AuthChangeEvent.tokenRefreshed) {
+      refreshEvents();
+    } else if (_remoteProfile == null || _profileUserId != user.id || data.event == AuthChangeEvent.userUpdated) {
+      // New sign-in, restored session or a different account. Plain token
+      // refreshes for the same user need no reload.
       loadProfile();
     }
   }
 
   /// Loads the signed-in user's profile + university from the database.
-  Future<void> loadProfile() async {
+  /// Concurrent calls share one request.
+  Future<void> loadProfile() => _profileLoad ??= _loadProfile().whenComplete(() => _profileLoad = null);
+
+  Future<void> _loadProfile() async {
     final c = _client;
     final user = c?.auth.currentUser;
     if (c == null || user == null) return;
+    if (_profileUserId != user.id) _remoteProfile = null; // never show the previous account
     _profileFailed = false;
     try {
       final row = await c
           .from('profiles')
-          .select('display_name, role, tenant_id, locale, tenants(slug)')
+          .select('display_name, role, tenant_id, locale, avatar_path, organizer_verified, tenants(slug)')
           .eq('id', user.id)
           .single();
       final slug = ((row['tenants'] as Map?)?['slug'] as String?)?.toUpperCase();
@@ -159,6 +184,8 @@ class AppState extends ChangeNotifier {
       final role = row['role'] as String;
       _dbRole = role;
       _tenantId = row['tenant_id'] as String?;
+      _avatarPath = row['avatar_path'] as String?;
+      _organizerVerified = row['organizer_verified'] as bool? ?? false;
       final savedLocale = row['locale'] as String?;
       if (firstLoad && (savedLocale == 'en' || savedLocale == 'de')) {
         _currentLocale = Locale(savedLocale!);
@@ -180,6 +207,7 @@ class AppState extends ChangeNotifier {
             : PlannerType.universityAdmin;
       }
       _currentTenant = (slug != null && tenantDetails.containsKey(slug)) ? slug : '';
+      _profileUserId = user.id;
       _remoteProfile = MockProfile(
         name: (row['display_name'] as String?)?.trim().isNotEmpty == true
             ? row['display_name'] as String
@@ -253,7 +281,69 @@ class AppState extends ChangeNotifier {
     await loadProfile();
   }
 
-  Future<void> changePassword(String newPassword) => _accountRepository!.changePassword(newPassword);
+  /// Throws WrongPasswordException if [currentPassword] is wrong.
+  Future<void> changePassword(String currentPassword, String newPassword) =>
+      _accountRepository!.changePassword(currentPassword, newPassword);
+
+  // Profile photo: organizers (once approved) and admins only; the database enforces it too.
+  String? _avatarPath;
+  bool _organizerVerified = false;
+
+  bool get canHaveAvatar =>
+      usesBackend &&
+      (isAdmin || ((_dbRole == 'organizer' || _dbRole == 'commercial_planner') && _organizerVerified));
+
+  String? get avatarUrl {
+    final path = _avatarPath;
+    final repo = _accountRepository;
+    if (path == null || repo == null || !canHaveAvatar) return null;
+    return repo.avatarUrl(path);
+  }
+
+  Future<void> uploadAvatar(Uint8List bytes, String contentType, String extension) async {
+    _avatarPath = await _accountRepository!.uploadAvatar(bytes, contentType, extension, _avatarPath);
+    _organizers.remove(currentUserId); // event pages show the new photo
+    notifyListeners();
+  }
+
+  Future<void> removeAvatar() async {
+    final path = _avatarPath;
+    if (path == null) return;
+    await _accountRepository!.removeAvatar(path);
+    _avatarPath = null;
+    _organizers.remove(currentUserId);
+    notifyListeners();
+  }
+
+  // Organizer name + photo shown on event pages (cached per organizer).
+  final Map<String, Future<({String name, String? photoUrl})?>> _organizers = {};
+
+  Future<({String name, String? photoUrl})?> organizerFor(String organizerId) {
+    final c = _client;
+    if (c == null) return Future.value(null);
+    return _organizers[organizerId] ??= () async {
+      try {
+        final row = await c
+            .from('organizer_profiles')
+            .select('display_name, avatar_path')
+            .eq('id', organizerId)
+            .maybeSingle()
+            .timeout(_requestTimeout);
+        if (row == null) return null;
+        final path = row['avatar_path'] as String?;
+        return (
+          name: (row['display_name'] as String?) ?? '',
+          photoUrl: path == null ? null : c.storage.from('avatars').getPublicUrl(path),
+        );
+      } catch (_) {
+        _organizers.remove(organizerId); // try again next time
+        return null;
+      }
+    }();
+  }
+
+  /// A JSON copy of everything stored about the signed-in user.
+  Future<String> exportMyData() => _accountRepository!.exportMyData();
 
   /// Deletes the account and all its data, then signs out.
   Future<void> deleteAccount() async {
@@ -306,13 +396,17 @@ class AppState extends ChangeNotifier {
     _adminError = false;
     notifyListeners();
     try {
-      _requests = await repo.fetchRequests();
+      _requests = await repo.fetchRequests().timeout(_requestTimeout);
     } catch (_) {
       _adminError = true;
+    } finally {
+      _adminLoading = false;
+      notifyListeners();
     }
-    _adminLoading = false;
-    notifyListeners();
   }
+
+  /// Network calls give up after this long so a dropped connection never leaves a spinner forever.
+  static const _requestTimeout = Duration(seconds: 20);
 
   Future<void> reviewRequest(String id, bool approve, String? note) async {
     await _accountRepository!.reviewRequest(id, approve, note);
@@ -420,19 +514,32 @@ class AppState extends ChangeNotifier {
 
   /// Reloads the feed from the backend (pull-to-refresh, after sign-in).
   Future<void> refreshEvents() async {
-    if (_eventsLoading) return;
+    if (_eventsLoading) {
+      _eventsReloadPending = true; // e.g. signed out while a reload was running
+      return;
+    }
     _eventsLoading = true;
     _eventsError = false;
     notifyListeners();
+    final account = _session?.user.id;
     try {
-      _events = await _eventRepository.fetchUpcoming();
+      final events = await _eventRepository.fetchUpcoming().timeout(_requestTimeout);
+      // Never show one account's feed (with its university events) to the next one.
+      if (account == _session?.user.id) _events = events;
     } catch (_) {
       _eventsError = true;
+    } finally {
+      _eventsLoading = false;
+      notifyListeners();
     }
-    _eventsLoading = false;
-    notifyListeners();
+    if (_eventsReloadPending || account != _session?.user.id) {
+      _eventsReloadPending = false;
+      return refreshEvents();
+    }
     refreshRatings();
   }
+
+  bool _eventsReloadPending = false;
   String get selectedCategory => _selectedCategory;
   List<String> get registeredEventIds => usesBackend
       ? _registrations.map((r) => r.event.id).toList()
@@ -781,7 +888,7 @@ class AppState extends ChangeNotifier {
         repo.fetchRecentScans(),
         repo.fetchFeedback(),
         _registrationRepository?.fetchManagedEvents() ?? Future.value(<Event>[]),
-      ]);
+      ]).timeout(_requestTimeout);
       final stats = results[0] as List<EventStat>;
       final managedIds = stats.map((s) => s.eventId).toSet();
       _dashboard = DashboardData(stats: stats, scans: results[1] as List<ScanEntry>);
@@ -792,9 +899,10 @@ class AppState extends ChangeNotifier {
           .toList();
     } catch (_) {
       _dashboardError = true;
+    } finally {
+      _dashboardLoading = false;
+      notifyListeners();
     }
-    _dashboardLoading = false;
-    notifyListeners();
   }
 
   List<Review> getReviewsForEvent(String eventId) {
@@ -823,16 +931,52 @@ class AppState extends ChangeNotifier {
     if (_themeMode != mode) {
       _themeMode = mode;
       notifyListeners();
+      _saveLookPreference('theme', mode.name);
     }
   }
 
-  WallpaperPattern get selectedWallpaper =>
-      _currentRole == UserRole.planner ? WallpaperPattern.minimalVelvet : _selectedWallpaper;
+  /// Background of the student events feed.
+  WallpaperPattern get selectedWallpaper => _selectedWallpaper;
 
   void setWallpaper(WallpaperPattern pattern) {
     if (_selectedWallpaper != pattern) {
       _selectedWallpaper = pattern;
       notifyListeners();
+      _saveLookPreference('wallpaper', pattern.name);
+    }
+  }
+
+  // Theme and wallpaper are per device (stored locally), not part of the account.
+  Future<void> _loadLookPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final theme = prefs.getString('look.theme');
+      final wallpaper = prefs.getString('look.wallpaper');
+      var changed = false;
+      for (final m in ThemeMode.values) {
+        if (m.name == theme && m != _themeMode) {
+          _themeMode = m;
+          changed = true;
+        }
+      }
+      for (final w in WallpaperPattern.values) {
+        if (w.name == wallpaper && w != _selectedWallpaper) {
+          _selectedWallpaper = w;
+          changed = true;
+        }
+      }
+      if (changed) notifyListeners();
+    } catch (_) {
+      // No local storage available (tests): keep the defaults.
+    }
+  }
+
+  Future<void> _saveLookPreference(String key, String value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('look.$key', value);
+    } catch (_) {
+      // Not saved; the choice still applies until the app closes.
     }
   }
 

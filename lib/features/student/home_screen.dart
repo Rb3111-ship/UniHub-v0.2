@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
+import '../../../core/widgets/event_image.dart';
 import 'details_screen.dart';
 import 'register_action.dart';
 
@@ -23,6 +24,8 @@ class StudentHomeScreen extends StatelessWidget {
       {'key': 'Tech', 'label': localizations.categoryTech, 'icon': Icons.code_rounded},
       {'key': 'Sports', 'label': localizations.categorySports, 'icon': Icons.sports_soccer_rounded},
       {'key': 'Arts', 'label': localizations.categoryArts, 'icon': Icons.palette_rounded},
+      {'key': 'Academic', 'label': localizations.categoryAcademic, 'icon': Icons.menu_book_rounded},
+      {'key': 'Other', 'label': localizations.categoryOther, 'icon': Icons.more_horiz_rounded},
     ];
 
     // Filter events by selected category (checking if it matches any of the categories array)
@@ -35,6 +38,8 @@ class StudentHomeScreen extends StatelessWidget {
     // Split events by official status
     final campusEvents = filteredEvents.where((e) => e.isUniversityOfficial).toList();
     final publicEvents = filteredEvents.where((e) => !e.isUniversityOfficial).toList();
+    // Signed-out visitors only ever get public events, so they see a single feed.
+    final guest = appState.isGuest;
 
     return DefaultTabController(
       length: 2,
@@ -43,15 +48,16 @@ class StudentHomeScreen extends StatelessWidget {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (!guest)
+                Text(
+                  appState.getTenantDisplayName(),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: appState.getActiveTenantColor(),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
               Text(
-                appState.getTenantDisplayName(),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: appState.getActiveTenantColor(),
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              Text(
-                localizations.studentHomeTitle,
+                guest ? localizations.guestFeedTitle : localizations.studentHomeTitle,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -59,7 +65,7 @@ class StudentHomeScreen extends StatelessWidget {
             ],
           ),
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(108),
+            preferredSize: Size.fromHeight(guest ? 52 : 108),
             child: Column(
               children: [
                 // Category Selector Row
@@ -92,8 +98,8 @@ class StudentHomeScreen extends StatelessWidget {
                         selected: isSelected,
                         selectedColor: activeColor,
                         labelStyle: TextStyle(
-                          color: isSelected 
-                              ? Colors.white 
+                          color: isSelected
+                              ? Colors.white
                               : theme.colorScheme.onSurface.withOpacity(0.85),
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -109,7 +115,7 @@ class StudentHomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 // Main Feeds TabBar
-                TabBar(
+                if (!guest) TabBar(
                   indicatorColor: appState.getActiveTenantColor(),
                   labelColor: appState.getActiveTenantColor(),
                   unselectedLabelColor: Colors.grey,
@@ -121,7 +127,7 @@ class StudentHomeScreen extends StatelessWidget {
                         children: [
                           const Icon(Icons.school_rounded, size: 18),
                           const SizedBox(width: 8),
-                          Text(localizations.tabCampusHub),
+                          Flexible(child: Text(localizations.tabCampusHub, overflow: TextOverflow.ellipsis)),
                         ],
                       ),
                     ),
@@ -131,7 +137,7 @@ class StudentHomeScreen extends StatelessWidget {
                         children: [
                           const Icon(Icons.public_rounded, size: 18),
                           const SizedBox(width: 8),
-                          Text(localizations.tabPublicEvents),
+                          Flexible(child: Text(localizations.tabPublicEvents, overflow: TextOverflow.ellipsis)),
                         ],
                       ),
                     ),
@@ -150,14 +156,16 @@ class StudentHomeScreen extends StatelessWidget {
               ),
             // The responsive grid of rich-media cards
             Positioned.fill(
-              child: TabBarView(
-                children: [
-                  // Feed 1: Campus Hub (University Official)
-                  _buildEventGrid(context, campusEvents, true, appState),
-                  // Feed 2: Public Events (Commercial/Public)
-                  _buildEventGrid(context, publicEvents, false, appState),
-                ],
-              ),
+              child: guest
+                  ? _buildEventGrid(context, publicEvents, false, appState)
+                  : TabBarView(
+                      children: [
+                        // Feed 1: Campus Hub (University Official)
+                        _buildEventGrid(context, campusEvents, true, appState),
+                        // Feed 2: Public Events (Commercial/Public)
+                        _buildEventGrid(context, publicEvents, false, appState),
+                      ],
+                    ),
             ),
           ],
         ),
@@ -235,9 +243,9 @@ class StudentHomeScreen extends StatelessWidget {
                 children: [
                   Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey.shade400),
                   const SizedBox(height: 12),
-                  const Text(
-                    "No events found in this category.",
-                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.eventsEmptyCategory,
+                    style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -278,7 +286,7 @@ class StudentHomeScreen extends StatelessWidget {
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     // Dynamic brand color
     final universityColor = appState.getUniversityColor(event.universityDomain);
     final isMatchingDomain = event.universityDomain == appState.getTenantDomain();
@@ -288,7 +296,7 @@ class StudentHomeScreen extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.cardTheme.color?.withOpacity(isDark ? 0.65 : 0.85) ?? 
+        color: theme.cardTheme.color?.withOpacity(isDark ? 0.65 : 0.85) ??
                (isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.85)),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
@@ -313,6 +321,11 @@ class StudentHomeScreen extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
+                if (appState.isGuest) {
+                  final l10n = AppLocalizations.of(context)!;
+                  askGuestToSignIn(context, appState, l10n.guestOpenTitle, l10n.guestOpenBody);
+                  return;
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => EventDetailsScreen(event: event)),
@@ -333,16 +346,7 @@ class StudentHomeScreen extends StatelessWidget {
                               topLeft: Radius.circular(24),
                               topRight: Radius.circular(24),
                             ),
-                            child: Image.network(
-                              event.imageUrl ?? 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, _, __) {
-                                return Container(
-                                  color: universityColor.withOpacity(0.1),
-                                  child: Icon(Icons.image_not_supported_rounded, color: universityColor),
-                                );
-                              },
-                            ),
+                            child: EventImage(url: event.imageUrl, color: universityColor),
                           ),
                         ),
                         // Shadow overlay for banner details
@@ -416,15 +420,15 @@ class StudentHomeScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: isOfficialFeed 
-                                    ? universityColor.withOpacity(0.12) 
+                                color: isOfficialFeed
+                                    ? universityColor.withOpacity(0.12)
                                     : theme.colorScheme.secondaryContainer,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                isOfficialFeed 
-                                    ? event.universityDomain.toUpperCase() 
-                                    : "PUBLIC",
+                                isOfficialFeed
+                                    ? event.universityDomain.toUpperCase()
+                                    : AppLocalizations.of(context)!.badgePublic,
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w800,
@@ -450,8 +454,8 @@ class StudentHomeScreen extends StatelessWidget {
                                       child: Text(
                                         cat,
                                         style: TextStyle(
-                                          fontSize: 8, 
-                                          fontWeight: FontWeight.bold, 
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.bold,
                                           color: theme.colorScheme.onSurfaceVariant,
                                         ),
                                       ),
@@ -501,9 +505,10 @@ class StudentHomeScreen extends StatelessWidget {
     AppState appState,
   ) {
     final isRegistered = appState.isRegistered(event.id);
-    final ctaText = isRegistered 
-        ? (appState.isWaitlisted(event.id) ? AppLocalizations.of(context)!.ctaWaitlisted : "Registered") 
-        : (event.requiresQrCode ? "Register" : "RSVP");
+    final l10n = AppLocalizations.of(context)!;
+    final ctaText = isRegistered
+        ? (appState.isWaitlisted(event.id) ? l10n.ctaWaitlisted : l10n.ctaRegistered)
+        : (event.requiresQrCode ? l10n.ctaRegister : l10n.ctaRsvp);
 
     return ElevatedButton(
       onPressed: isRegistered
@@ -519,7 +524,7 @@ class StudentHomeScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: Text(
-        ctaText, 
+        ctaText,
         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );

@@ -86,8 +86,9 @@ class _ShellScreenState extends State<ShellScreen> {
                       letterSpacing: 0.5,
                     ),
                   ),
+                  const SizedBox(width: 12),
                   const Spacer(),
-                  _buildProfileSwitcher(context, appState),
+                  Flexible(flex: 3, child: _buildProfileSwitcher(context, appState)),
                 ],
               ),
             ),
@@ -174,9 +175,11 @@ class _ShellScreenState extends State<ShellScreen> {
               child: Row(children: [
                 const Icon(Icons.swap_horiz_rounded, size: 18),
                 const SizedBox(width: 12),
-                Text(appState.currentRole == UserRole.student
-                    ? AppLocalizations.of(context)!.profileSwitchToOrganizer
-                    : AppLocalizations.of(context)!.profileSwitchToStudent),
+                Flexible(
+                  child: Text(appState.currentRole == UserRole.student
+                      ? AppLocalizations.of(context)!.profileSwitchToOrganizer
+                      : AppLocalizations.of(context)!.profileSwitchToStudent),
+                ),
               ]),
             ),
           PopupMenuItem<String>(
@@ -201,10 +204,16 @@ class _ShellScreenState extends State<ShellScreen> {
               CircleAvatar(
                 radius: 12,
                 backgroundColor: appState.getActiveTenantColor(),
+                foregroundImage: appState.avatarUrl == null ? null : NetworkImage(appState.avatarUrl!),
                 child: const Icon(Icons.person_rounded, size: 12, color: Colors.white),
               ),
               const SizedBox(width: 8),
-              Text(active.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              Flexible(
+                child: Text(active.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
               const SizedBox(width: 4),
               const Icon(Icons.arrow_drop_down_rounded, size: 18),
             ],

@@ -5,6 +5,27 @@ import '../../core/auth/user_role.dart';
 import '../../core/models/event_model.dart';
 import '../../core/models/registration_model.dart';
 
+/// Tells a signed-out visitor that they need an account and offers the sign-in screen.
+Future<void> askGuestToSignIn(BuildContext context, AppState appState, String title, String body) async {
+  final l10n = AppLocalizations.of(context)!;
+  final signIn = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(body),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.guestNotNow)),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.guestSignInButton)),
+      ],
+    ),
+  );
+  if (signIn == true && context.mounted) {
+    // Close any open page, then show the sign-in screen.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    appState.leaveGuestMode();
+  }
+}
+
 /// Registers the user for [event] and tells them what happened
 /// (registered, waitlisted, or why it failed).
 Future<void> registerWithFeedback(BuildContext context, AppState appState, Event event) async {
@@ -12,22 +33,7 @@ Future<void> registerWithFeedback(BuildContext context, AppState appState, Event
   final l10n = AppLocalizations.of(context)!;
 
   if (appState.isGuest) {
-    final signIn = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.guestSignInTitle),
-        content: Text(l10n.guestSignInBody),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.guestNotNow)),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.authSignIn)),
-        ],
-      ),
-    );
-    if (signIn == true && context.mounted) {
-      // Close any open event page, then show the sign-in screen.
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      appState.leaveGuestMode();
-    }
+    await askGuestToSignIn(context, appState, l10n.guestSignInTitle, l10n.guestSignInBody);
     return;
   }
   try {

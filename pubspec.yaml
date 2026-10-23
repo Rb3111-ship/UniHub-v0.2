@@ -16,6 +16,7 @@ dependencies:
   mobile_scanner: ^5.1.1
   supabase_flutter: ^2.18.3
   image_picker: ^1.2.4
+  shared_preferences: ^2.5.3
 
   # Firebase core & auth (placeholder setup)
   # firebase_core: ^3.0.0
