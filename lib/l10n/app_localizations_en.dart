@@ -522,4 +522,225 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guestNotNow => 'Not now';
+
+  @override
+  String get profileEditName => 'Edit name';
+
+  @override
+  String get profileNameLabel => 'Your name';
+
+  @override
+  String get profileSave => 'Save';
+
+  @override
+  String get profileCancel => 'Cancel';
+
+  @override
+  String get profileSaved => 'Saved.';
+
+  @override
+  String get profileChangePassword => 'Change password';
+
+  @override
+  String get profilePasswordChanged => 'Password changed.';
+
+  @override
+  String get profileDeleteAccount => 'Delete account';
+
+  @override
+  String get profileDeleteTitle => 'Delete your account?';
+
+  @override
+  String get profileDeleteBody =>
+      'This permanently deletes your account, registrations, tickets and reviews. It cannot be undone.';
+
+  @override
+  String get profileDeleteTypeHint => 'Type DELETE to confirm';
+
+  @override
+  String get profileDeleteConfirm => 'Delete forever';
+
+  @override
+  String get profileDeleteHasEvents =>
+      'You still own events. Please ask an admin for help before deleting your account.';
+
+  @override
+  String get profileDeleteLastAdmin =>
+      'You are the only platform admin. Make someone else an admin first.';
+
+  @override
+  String get profileDeleteFailed =>
+      'The account could not be deleted. Please try again.';
+
+  @override
+  String get profileSwitchToStudent => 'Switch to student view';
+
+  @override
+  String get profileSwitchToOrganizer => 'Switch to organizer view';
+
+  @override
+  String get organizerBecomeTitle => 'Become an organizer';
+
+  @override
+  String get organizerBecomeBody =>
+      'Publish events for your university or as a business. An admin reviews every request.';
+
+  @override
+  String get organizerRoleUniversity => 'University organizer';
+
+  @override
+  String get organizerRoleCommercial => 'Commercial / public events';
+
+  @override
+  String get organizerOrgName => 'Organization or club name';
+
+  @override
+  String get organizerMessage => 'Why do you need access? (optional)';
+
+  @override
+  String get organizerSubmit => 'Send request';
+
+  @override
+  String get organizerRequestSent => 'Request sent. An admin will review it.';
+
+  @override
+  String get organizerStatusPending => 'Your request is waiting for review.';
+
+  @override
+  String get organizerStatusApproved =>
+      'Your request was approved. Tap \'Check status\' to unlock organizer tools.';
+
+  @override
+  String get organizerStatusRejected => 'Your last request was not approved.';
+
+  @override
+  String get organizerCheckStatus => 'Check status';
+
+  @override
+  String get organizerErrNoUniversity =>
+      'You need a university email address to become a university organizer.';
+
+  @override
+  String get organizerErrPending => 'You already have a request waiting.';
+
+  @override
+  String get organizerErrGeneric =>
+      'The request could not be sent. Please check the name and try again.';
+
+  @override
+  String get tabAdmin => 'Admin';
+
+  @override
+  String get adminRequests => 'Requests';
+
+  @override
+  String get adminUsers => 'Users';
+
+  @override
+  String get adminNoRequests => 'No requests.';
+
+  @override
+  String get adminApprove => 'Approve';
+
+  @override
+  String get adminReject => 'Reject';
+
+  @override
+  String get adminNoteHint => 'Note for the applicant (optional)';
+
+  @override
+  String get adminRequestApproved => 'Approved.';
+
+  @override
+  String get adminRequestRejected => 'Rejected.';
+
+  @override
+  String get adminActionFailed => 'That action is not allowed or failed.';
+
+  @override
+  String get adminSearchHint => 'Search name or email';
+
+  @override
+  String get adminChangeRole => 'Change role';
+
+  @override
+  String get adminLoadFailed => 'Could not load the admin data.';
+
+  @override
+  String get roleStudent => 'Student';
+
+  @override
+  String get roleOrganizer => 'University organizer';
+
+  @override
+  String get roleCommercial => 'Commercial planner';
+
+  @override
+  String get roleTenantAdmin => 'University admin';
+
+  @override
+  String get rolePlatformAdmin => 'Platform admin';
+
+  @override
+  String get statusPending => 'Pending';
+
+  @override
+  String get statusApproved => 'Approved';
+
+  @override
+  String get statusRejected => 'Rejected';
+
+  @override
+  String get eventEditTitle => 'Edit event';
+
+  @override
+  String get eventSaveChanges => 'Save changes';
+
+  @override
+  String get eventSaved => 'Event updated.';
+
+  @override
+  String get eventCancelEvent => 'Cancel event';
+
+  @override
+  String get eventCancelConfirmTitle => 'Cancel this event?';
+
+  @override
+  String get eventCancelConfirmBody =>
+      'Everyone with a ticket will see it as cancelled. This cannot be undone.';
+
+  @override
+  String get eventCancelYes => 'Yes, cancel event';
+
+  @override
+  String get eventCancelledMsg => 'Event cancelled.';
+
+  @override
+  String get eventCancelFailed => 'The event could not be cancelled.';
+
+  @override
+  String get eventAddImage => 'Add poster image';
+
+  @override
+  String get eventChangeImage => 'Change image';
+
+  @override
+  String get eventImageTooBig => 'The image is too large (maximum 5 MB).';
+
+  @override
+  String get eventImageBadType => 'Please use a JPG, PNG or WebP image.';
+
+  @override
+  String get eventImageUploadFailed =>
+      'The image could not be uploaded. Please try again.';
+
+  @override
+  String get eventStatusCancelled => 'CANCELLED';
+
+  @override
+  String get ticketEventCancelled =>
+      'This event was cancelled. Your ticket is no longer valid.';
+
+  @override
+  String get dashboardEdit => 'Edit';
 }

@@ -534,4 +534,230 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get guestNotNow => 'Jetzt nicht';
+
+  @override
+  String get profileEditName => 'Namen ändern';
+
+  @override
+  String get profileNameLabel => 'Dein Name';
+
+  @override
+  String get profileSave => 'Speichern';
+
+  @override
+  String get profileCancel => 'Abbrechen';
+
+  @override
+  String get profileSaved => 'Gespeichert.';
+
+  @override
+  String get profileChangePassword => 'Passwort ändern';
+
+  @override
+  String get profilePasswordChanged => 'Passwort geändert.';
+
+  @override
+  String get profileDeleteAccount => 'Konto löschen';
+
+  @override
+  String get profileDeleteTitle => 'Dein Konto löschen?';
+
+  @override
+  String get profileDeleteBody =>
+      'Dadurch werden dein Konto, deine Anmeldungen, Tickets und Bewertungen endgültig gelöscht. Das kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get profileDeleteTypeHint => 'Tippe DELETE zur Bestätigung';
+
+  @override
+  String get profileDeleteConfirm => 'Endgültig löschen';
+
+  @override
+  String get profileDeleteHasEvents =>
+      'Du besitzt noch Events. Bitte bitte einen Admin um Hilfe, bevor du dein Konto löschst.';
+
+  @override
+  String get profileDeleteLastAdmin =>
+      'Du bist der einzige Plattform-Admin. Ernenne zuerst jemand anderen zum Admin.';
+
+  @override
+  String get profileDeleteFailed =>
+      'Das Konto konnte nicht gelöscht werden. Bitte versuche es erneut.';
+
+  @override
+  String get profileSwitchToStudent => 'Zur Studierendenansicht wechseln';
+
+  @override
+  String get profileSwitchToOrganizer => 'Zur Organisatoransicht wechseln';
+
+  @override
+  String get organizerBecomeTitle => 'Organisator werden';
+
+  @override
+  String get organizerBecomeBody =>
+      'Veröffentliche Events für deine Hochschule oder als Unternehmen. Jede Anfrage wird von einem Admin geprüft.';
+
+  @override
+  String get organizerRoleUniversity => 'Hochschul-Organisator';
+
+  @override
+  String get organizerRoleCommercial => 'Kommerzielle / öffentliche Events';
+
+  @override
+  String get organizerOrgName => 'Name der Organisation oder des Clubs';
+
+  @override
+  String get organizerMessage => 'Wofür brauchst du den Zugang? (optional)';
+
+  @override
+  String get organizerSubmit => 'Anfrage senden';
+
+  @override
+  String get organizerRequestSent =>
+      'Anfrage gesendet. Ein Admin wird sie prüfen.';
+
+  @override
+  String get organizerStatusPending => 'Deine Anfrage wartet auf Prüfung.';
+
+  @override
+  String get organizerStatusApproved =>
+      'Deine Anfrage wurde genehmigt. Tippe auf \'Status prüfen\', um die Organisator-Werkzeuge freizuschalten.';
+
+  @override
+  String get organizerStatusRejected =>
+      'Deine letzte Anfrage wurde nicht genehmigt.';
+
+  @override
+  String get organizerCheckStatus => 'Status prüfen';
+
+  @override
+  String get organizerErrNoUniversity =>
+      'Du brauchst eine Hochschul-E-Mail-Adresse, um Hochschul-Organisator zu werden.';
+
+  @override
+  String get organizerErrPending => 'Du hast bereits eine offene Anfrage.';
+
+  @override
+  String get organizerErrGeneric =>
+      'Die Anfrage konnte nicht gesendet werden. Bitte prüfe den Namen und versuche es erneut.';
+
+  @override
+  String get tabAdmin => 'Admin';
+
+  @override
+  String get adminRequests => 'Anfragen';
+
+  @override
+  String get adminUsers => 'Nutzer';
+
+  @override
+  String get adminNoRequests => 'Keine Anfragen.';
+
+  @override
+  String get adminApprove => 'Genehmigen';
+
+  @override
+  String get adminReject => 'Ablehnen';
+
+  @override
+  String get adminNoteHint =>
+      'Hinweis für die antragstellende Person (optional)';
+
+  @override
+  String get adminRequestApproved => 'Genehmigt.';
+
+  @override
+  String get adminRequestRejected => 'Abgelehnt.';
+
+  @override
+  String get adminActionFailed =>
+      'Diese Aktion ist nicht erlaubt oder fehlgeschlagen.';
+
+  @override
+  String get adminSearchHint => 'Name oder E-Mail suchen';
+
+  @override
+  String get adminChangeRole => 'Rolle ändern';
+
+  @override
+  String get adminLoadFailed => 'Die Admin-Daten konnten nicht geladen werden.';
+
+  @override
+  String get roleStudent => 'Studierende';
+
+  @override
+  String get roleOrganizer => 'Hochschul-Organisator';
+
+  @override
+  String get roleCommercial => 'Kommerzieller Planer';
+
+  @override
+  String get roleTenantAdmin => 'Hochschul-Admin';
+
+  @override
+  String get rolePlatformAdmin => 'Plattform-Admin';
+
+  @override
+  String get statusPending => 'Offen';
+
+  @override
+  String get statusApproved => 'Genehmigt';
+
+  @override
+  String get statusRejected => 'Abgelehnt';
+
+  @override
+  String get eventEditTitle => 'Event bearbeiten';
+
+  @override
+  String get eventSaveChanges => 'Änderungen speichern';
+
+  @override
+  String get eventSaved => 'Event aktualisiert.';
+
+  @override
+  String get eventCancelEvent => 'Event absagen';
+
+  @override
+  String get eventCancelConfirmTitle => 'Dieses Event absagen?';
+
+  @override
+  String get eventCancelConfirmBody =>
+      'Alle mit einem Ticket sehen es als abgesagt. Das kann nicht rückgängig gemacht werden.';
+
+  @override
+  String get eventCancelYes => 'Ja, Event absagen';
+
+  @override
+  String get eventCancelledMsg => 'Event abgesagt.';
+
+  @override
+  String get eventCancelFailed => 'Das Event konnte nicht abgesagt werden.';
+
+  @override
+  String get eventAddImage => 'Posterbild hinzufügen';
+
+  @override
+  String get eventChangeImage => 'Bild ändern';
+
+  @override
+  String get eventImageTooBig => 'Das Bild ist zu groß (maximal 5 MB).';
+
+  @override
+  String get eventImageBadType =>
+      'Bitte verwende ein JPG-, PNG- oder WebP-Bild.';
+
+  @override
+  String get eventImageUploadFailed =>
+      'Das Bild konnte nicht hochgeladen werden. Bitte versuche es erneut.';
+
+  @override
+  String get eventStatusCancelled => 'ABGESAGT';
+
+  @override
+  String get ticketEventCancelled =>
+      'Dieses Event wurde abgesagt. Dein Ticket ist nicht mehr gültig.';
+
+  @override
+  String get dashboardEdit => 'Bearbeiten';
 }

@@ -103,6 +103,7 @@ class StudentTicketsScreen extends StatelessWidget {
   ) {
     final localizations = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    if (event.isCancelled) return _buildCancelledCard(context, event);
     if (appState.registrationFor(event.id)?.status == RegistrationStatus.waitlisted) {
       return _buildWaitlistCard(context, event, appState);
     }
@@ -391,6 +392,33 @@ class StudentTicketsScreen extends StatelessWidget {
                 ],
               ),
             )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCancelledCard(BuildContext context, Event event) {
+    final localizations = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: Colors.red.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+              child: Text(localizations.eventStatusCancelled,
+                  style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 12),
+            Text(event.title,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, decoration: TextDecoration.lineThrough)),
+            const SizedBox(height: 6),
+            Text(localizations.ticketEventCancelled, style: TextStyle(color: theme.colorScheme.secondary)),
           ],
         ),
       ),

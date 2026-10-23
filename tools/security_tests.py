@@ -228,6 +228,9 @@ def run(s: Sim, tag: str) -> None:
     s.fails("student cannot re-point profile id", "update public.profiles set id = %s where id = %s", [uuid.uuid4(), stu_pub], contains="permission denied")
     _, err = s.call("update public.profiles set display_name = 'New name' where id = %s", [stu_pub])
     check("student CAN rename self", err is None, str(err))
+    _, err = s.call("update public.profiles set locale = 'de' where id = %s", [stu_pub]); check("student CAN save their language", err is None, str(err))
+    s.fails("an unsupported language is rejected", "update public.profiles set locale = 'xx' where id = %s", [stu_pub])
+    s.fails("a 81-character name is rejected", "update public.profiles set display_name = %s where id = %s", ["n" * 81, stu_pub])
     s.affects_nothing("student cannot rename someone else", "update public.profiles set display_name='hacked' where id = %s", [stu_tum])
     check("student reads only own profile", s.scalar("select count(*) from public.profiles") == 1)
     s.fails("student cannot publish events", "insert into public.events (organizer_id,tenant_id,title,location,starts_at,ends_at) "

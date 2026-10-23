@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -6,7 +8,10 @@ import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
 
 class PlannerCreateEventScreen extends StatefulWidget {
-  const PlannerCreateEventScreen({super.key});
+  /// When [editing] is set the screen edits that event instead of creating a new one.
+  const PlannerCreateEventScreen({super.key, this.editing});
+
+  final Event? editing;
 
   @override
   State<PlannerCreateEventScreen> createState() => _PlannerCreateEventScreenState();
@@ -14,9 +19,9 @@ class PlannerCreateEventScreen extends StatefulWidget {
 
 class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController(text: "TUM Chess Championship 2026");
-  final _descController = TextEditingController(text: "Join the annual campus chess tournament! Open to all skill levels. Food and drinks provided.");
-  final _locationController = TextEditingController(text: "TUM Garching, Hall 2");
+  final _titleController = TextEditingController();
+  final _descController = TextEditingController();
+  final _locationController = TextEditingController();
 
   final List<String> _selectedCategories = ['Sports'];
   double _capacity = 100;
@@ -24,10 +29,35 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
   
   bool _requiresQr = true;
   bool _allowReviews = true;
+  bool _unlimited = false;
+  bool _busy = false;
+
+  // Poster image: a freshly picked file (uploaded on save) or the one already stored.
+  Uint8List? _pickedBytes;
+  String? _pickedMime;
+  String? _pickedExt;
+  String? _imagePath;
+  String? _existingImageUrl;
 
   @override
   void initState() {
     super.initState();
+    final e = widget.editing;
+    if (e != null) {
+      _titleController.text = e.title;
+      _descController.text = e.description;
+      _locationController.text = e.location;
+      _selectedCategories
+        ..clear()
+        ..addAll(e.categories);
+      _selectedDate = e.date;
+      _requiresQr = e.requiresQrCode;
+      _allowReviews = e.allowReviews;
+      _unlimited = e.capacity == null;
+      _capacity = (e.capacity ?? 100).clamp(1, 1000).toDouble();
+      _imagePath = e.imagePath;
+      _existingImageUrl = e.imageUrl;
+    }
     // Add text controllers listeners to trigger rebuilds for the live preview card
     _titleController.addListener(() => setState(() {}));
     _descController.addListener(() => setState(() {}));
@@ -40,6 +70,165 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     _descController.dispose();
     _locationController.dispose();
     super.dispose();
+  }
+
+  /// Works out the image type from the file's first bytes (never trusts the file name).
+  ({String mime, String ext})? _sniffImage(Uint8List b) {
+    if (b.length > 12 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47) {
+      return (mime: 'image/png', ext: 'png');
+    }
+    if (b.length > 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF) {
+      return (mime: 'image/jpeg', ext: 'jpg');
+    }
+    if (b.length > 12 && String.fromCharCodes(b.sublist(0, 4)) == 'RIFF' &&
+        String.fromCharCodes(b.sublist(8, 12)) == 'WEBP') {
+      return (mime: 'image/webp', ext: 'webp');
+    }
+    return null;
+  }
+
+  Future<void> _pickImage(AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final file = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    final type = _sniffImage(bytes);
+    if (type == null) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.eventImageBadType)));
+      return;
+    }
+    if (bytes.length > 5 * 1024 * 1024) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.eventImageTooBig)));
+      return;
+    }
+    if (!mounted) return;
+    setState(() {
+      _pickedBytes = bytes;
+      _pickedMime = type.mime;
+      _pickedExt = type.ext;
+    });
+  }
+
+  /// Uploads the picked image. Returns its storage path, or null if nothing was picked
+  /// or the upload failed (a message is shown in that case).
+  Future<String?> _uploadPickedImage(AppState appState, AppLocalizations l10n) async {
+    final bytes = _pickedBytes;
+    if (bytes == null) return null;
+    try {
+      return await appState.uploadEventImage(bytes, _pickedMime!, _pickedExt!);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.red, content: Text(l10n.eventImageUploadFailed)),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _saveEdit(AppState appState, AppLocalizations l10n) async {
+    if (!_formKey.currentState!.validate()) return;
+    final original = widget.editing!;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    setState(() => _busy = true);
+    try {
+      var imagePath = _imagePath;
+      if (_pickedBytes != null) {
+        imagePath = await _uploadPickedImage(appState, l10n);
+        if (imagePath == null) return; // upload failed, message already shown
+      }
+      final updated = Event(
+        id: original.id,
+        title: _titleController.text.trim(),
+        description: _descController.text.trim(),
+        date: _selectedDate,
+        endDate: _selectedDate.add(original.endDate.difference(original.date)),
+        location: _locationController.text.trim(),
+        universityDomain: original.universityDomain,
+        isUniversityOfficial: original.isUniversityOfficial,
+        requiresQrCode: _requiresQr,
+        allowReviews: _allowReviews,
+        categories: List.from(_selectedCategories),
+        capacity: _unlimited ? null : _capacity.round(),
+        priceCents: original.priceCents,
+        status: original.status,
+        imageUrl: original.imageUrl,
+        imagePath: imagePath,
+      );
+      await appState.updateEvent(updated);
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text(l10n.eventSaved)));
+      navigator.pop();
+    } catch (e) {
+      final denied = e is PostgrestException && e.code == '42501';
+      messenger.showSnackBar(SnackBar(
+        backgroundColor: Colors.red,
+        content: Text(denied ? l10n.eventPublishNotAllowed : l10n.eventPublishFailed),
+      ));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _cancelEvent(AppState appState, AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.eventCancelConfirmTitle),
+        content: Text(l10n.eventCancelConfirmBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.ticketCancelNo)),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.eventCancelYes),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await appState.cancelEvent(widget.editing!.id);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.eventCancelledMsg)));
+      navigator.pop();
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.eventCancelFailed)));
+    }
+  }
+
+  Widget _buildImagePicker(AppLocalizations l10n, ThemeData theme, Color color) {
+    final hasImage = _pickedBytes != null || _existingImageUrl != null;
+    return Container(
+      height: 170,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: theme.colorScheme.surfaceContainer,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (_pickedBytes != null)
+            Image.memory(_pickedBytes!, fit: BoxFit.cover)
+          else if (_existingImageUrl != null)
+            Image.network(_existingImageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox())
+          else
+            Center(child: Icon(Icons.image_outlined, size: 48, color: theme.colorScheme.outline)),
+          Positioned(
+            right: 8,
+            bottom: 8,
+            child: FilledButton.tonalIcon(
+              onPressed: _busy ? null : () => _pickImage(l10n),
+              icon: const Icon(Icons.add_photo_alternate_rounded, size: 18),
+              label: Text(hasImage ? l10n.eventChangeImage : l10n.eventAddImage),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildCategoryChip(String key, String label, AppLocalizations localizations) {
@@ -116,6 +305,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                 validator: (val) => val == null || val.trim().length < 3 ? "Please enter a title (at least 3 characters)" : null,
               ),
               const SizedBox(height: 16),
+              _buildImagePicker(localizations, theme, appState.getActiveTenantColor()),
+              const SizedBox(height: 16),
 
               // Category Selector (Chips list)
               _buildSectionHeader("Event Categories (Select up to 3)"),
@@ -156,7 +347,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   final date = await showDatePicker(
                     context: context,
                     initialDate: _selectedDate,
-                    firstDate: DateTime.now(),
+                    firstDate: _selectedDate.isBefore(DateTime.now()) ? _selectedDate : DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (date != null && context.mounted) {
@@ -205,7 +396,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                 children: [
                   _buildSectionHeader(localizations.formFieldCapacity),
                   Text(
-                    _capacity.round().toString(),
+                    _unlimited ? '\u221e' : _capacity.round().toString(),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -214,14 +405,19 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   ),
                 ],
               ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("No attendee limit", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                value: _unlimited,
+                onChanged: (val) => setState(() => _unlimited = val),
+              ),
               Slider(
                 value: _capacity,
-                min: 10,
+                min: 1,
                 max: 1000,
-                divisions: 99,
                 label: _capacity.round().toString(),
                 activeColor: appState.getActiveTenantColor(),
-                onChanged: (val) => setState(() => _capacity = val),
+                onChanged: _unlimited ? null : (val) => setState(() => _capacity = val),
               ),
               const SizedBox(height: 8),
 
@@ -314,8 +510,15 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
 
               // Publish Button
               ElevatedButton(
-                onPressed: () async {
+                onPressed: _busy ? null : () async {
+                  if (widget.editing != null) {
+                    await _saveEdit(appState, localizations);
+                    return;
+                  }
                   if (_formKey.currentState!.validate()) {
+                    final imagePath = await _uploadPickedImage(appState, localizations);
+                    if (!context.mounted) return;
+                    if (_pickedBytes != null && imagePath == null) return; // upload failed, message shown
                     final newEvent = Event(
                       id: 'evt-${DateTime.now().millisecondsSinceEpoch}',
                       title: _titleController.text,
@@ -329,8 +532,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       requiresQrCode: _requiresQr,
                       allowReviews: _allowReviews,
                       categories: List.from(_selectedCategories),
-                      capacity: _capacity.round(),
+                      capacity: _unlimited ? null : _capacity.round(),
                       endDate: _selectedDate.add(const Duration(hours: 2)),
+                      imagePath: imagePath,
                     );
                     
                     try {
@@ -368,6 +572,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       _selectedCategories.clear();
                       _selectedCategories.add('Sports');
                       _capacity = 100;
+                      _unlimited = false;
+                      _pickedBytes = null;
                       _selectedDate = DateTime.now().add(const Duration(days: 7));
                     });
                   }
@@ -379,10 +585,22 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(
-                  localizations.buttonPublish,
+                  widget.editing != null ? localizations.eventSaveChanges : localizations.buttonPublish,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
+              if (widget.editing != null && !widget.editing!.isCancelled) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _busy ? null : () => _cancelEvent(appState, localizations),
+                  icon: const Icon(Icons.event_busy_rounded),
+                  label: Text(localizations.eventCancelEvent),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -412,6 +630,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     );
 
     return Scaffold(
+      appBar: widget.editing != null ? AppBar(title: Text(localizations.eventEditTitle)) : null,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: isWide

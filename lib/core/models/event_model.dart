@@ -14,6 +14,8 @@ class Event {
   final List<String>? galleryImages;
   final int? capacity; // null = unlimited
   final int priceCents;
+  final String status; // draft | published | cancelled
+  final String? imagePath; // path inside the event-images storage bucket
 
   const Event({
     required this.id,
@@ -31,7 +33,11 @@ class Event {
     DateTime? endDate,
     this.capacity,
     this.priceCents = 0,
+    this.status = 'published',
+    this.imagePath,
   }) : _endDate = endDate;
+
+  bool get isCancelled => status == 'cancelled';
 
   /// End of the event; defaults to two hours after the start.
   DateTime get endDate => _endDate ?? date.add(const Duration(hours: 2));
@@ -57,6 +63,8 @@ class Event {
       imageUrl: imageUrl,
       capacity: row['capacity'] as int?,
       priceCents: (row['price_cents'] as int?) ?? 0,
+      status: (row['status'] as String?) ?? 'published',
+      imagePath: row['image_path'] as String?,
     );
   }
 
@@ -78,6 +86,8 @@ class Event {
     DateTime? endDate,
     int? capacity,
     int? priceCents,
+    String? status,
+    String? imagePath,
   }) {
     return Event(
       id: id ?? this.id,
@@ -95,6 +105,8 @@ class Event {
       endDate: endDate ?? _endDate,
       capacity: capacity ?? this.capacity,
       priceCents: priceCents ?? this.priceCents,
+      status: status ?? this.status,
+      imagePath: imagePath ?? this.imagePath,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/review_model.dart';
 import '../../../core/models/dashboard_model.dart';
+import 'create_event_screen.dart';
 
 class PlannerDashboardScreen extends StatelessWidget {
   const PlannerDashboardScreen({super.key});
@@ -182,6 +183,20 @@ class PlannerDashboardScreen extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                 ),
+                if (stat.status != 'cancelled' && context.read<AppState>().managedEventById(stat.eventId) != null)
+                  IconButton(
+                    tooltip: l10n.dashboardEdit,
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.edit_rounded, size: 18),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PlannerCreateEventScreen(
+                          editing: context.read<AppState>().managedEventById(stat.eventId),
+                        ),
+                      ),
+                    ),
+                  ),
                 if (stat.status != 'published')
                   Container(
                     margin: const EdgeInsets.only(left: 8),

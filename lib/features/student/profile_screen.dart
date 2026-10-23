@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
+import 'account_section.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
@@ -22,6 +23,10 @@ class StudentProfileScreen extends StatelessWidget {
           // User profile card
           _buildUserProfileCard(context),
           const SizedBox(height: 24),
+          if (appState.usesBackend) ...[
+            const AccountSection(),
+            const SizedBox(height: 12),
+          ],
 
           _buildSectionTitle(context, "Preferences"),
           const SizedBox(height: 8),
@@ -195,6 +200,10 @@ class StudentProfileScreen extends StatelessWidget {
               elevation: 0,
             ),
           ),
+          if (appState.usesBackend) ...[
+            const SizedBox(height: 12),
+            const DeleteAccountButton(),
+          ],
           const SizedBox(height: 40),
         ],
       ),

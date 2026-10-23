@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
+import '../models/admin_model.dart';
 import '../models/dashboard_model.dart';
 import '../models/registration_model.dart';
+import '../services/account_repository.dart';
 import '../services/event_repository.dart';
 import '../services/insights_repository.dart';
 import '../services/registration_repository.dart';
@@ -41,6 +44,7 @@ class AppState extends ChangeNotifier {
       _eventRepository = SupabaseEventRepository(c, _domainForSlug);
       _registrationRepository = RegistrationRepository(c, _domainForSlug);
       _insightsRepository = InsightsRepository(c);
+      _accountRepository = AccountRepository(c);
       // Real accounts start empty; registrations/tickets/reviews move to the
       // database in a later step.
       _registeredEventIds.clear();
@@ -55,11 +59,19 @@ class AppState extends ChangeNotifier {
   late final EventRepository _eventRepository;
   RegistrationRepository? _registrationRepository;
   InsightsRepository? _insightsRepository;
+  AccountRepository? _accountRepository;
+  String _dbRole = 'student';
+  OrganizerRequest? _myRequest;
+  List<OrganizerRequest> _requests = [];
+  List<AdminUser> _adminUsers = [];
+  bool _adminLoading = false;
+  bool _adminError = false;
   Map<String, EventRating> _ratings = {};
   Set<String> _myReviewedEventIds = {};
   final Set<String> _locallyReviewed = {}; // mock mode only
   DashboardData _dashboard = const DashboardData();
   List<({Review review, String eventTitle})> _feedback = [];
+  List<Event> _managedEvents = [];
   bool _dashboardLoading = false;
   bool _dashboardError = false;
   List<Registration> _registrations = [];
@@ -75,6 +87,9 @@ class AppState extends ChangeNotifier {
   bool _profileFailed = false;
 
   bool get usesBackend => _client != null;
+
+  /// Id of the signed-in user (null in demo mode or when signed out).
+  String? get currentUserId => _client?.auth.currentUser?.id;
 
   // Visitors may browse public events without an account (web/app "guest mode").
   bool _guest = false;
@@ -111,6 +126,10 @@ class AppState extends ChangeNotifier {
       _currentRole = UserRole.student;
       _currentTenant = '';
       _tenantId = null;
+      _dbRole = 'student';
+      _myRequest = null;
+      _requests = [];
+      _adminUsers = [];
       _events = [];
       _registrations = [];
       _ratings = {};
@@ -132,18 +151,29 @@ class AppState extends ChangeNotifier {
     try {
       final row = await c
           .from('profiles')
-          .select('display_name, role, tenant_id, tenants(slug)')
+          .select('display_name, role, tenant_id, locale, tenants(slug)')
           .eq('id', user.id)
           .single();
       final slug = ((row['tenants'] as Map?)?['slug'] as String?)?.toUpperCase();
+      final firstLoad = _remoteProfile == null;
       final role = row['role'] as String;
+      _dbRole = role;
       _tenantId = row['tenant_id'] as String?;
+      final savedLocale = row['locale'] as String?;
+      if (firstLoad && (savedLocale == 'en' || savedLocale == 'de')) {
+        _currentLocale = Locale(savedLocale!);
+      }
       final type = switch (role) {
         'student' => ProfileType.student,
         'commercial_planner' => ProfileType.commercialPlanner,
         _ => ProfileType.universityOrganizer, // organizer, tenant_admin, platform_admin
       };
-      _currentRole = type == ProfileType.student ? UserRole.student : UserRole.planner;
+      // Organizers start in organizer view but may switch to student view; keep their choice on reloads.
+      if (type == ProfileType.student) {
+        _currentRole = UserRole.student;
+      } else if (firstLoad) {
+        _currentRole = UserRole.planner;
+      }
       if (type != ProfileType.student) {
         _currentPlannerType = type == ProfileType.commercialPlanner
             ? PlannerType.commercialPlanner
@@ -159,15 +189,17 @@ class AppState extends ChangeNotifier {
         type: type,
       );
     } catch (_) {
-      _remoteProfile = null;
-      _profileFailed = true;
+      // A failed reload must not kick a signed-in user back to the loading screen.
+      if (_remoteProfile == null) _profileFailed = true;
     }
     notifyListeners();
     if (_remoteProfile != null) {
       refreshEvents();
       refreshRegistrations();
       refreshMyReviews();
-      if (_currentRole == UserRole.planner) refreshDashboard();
+      if (_dbRole != 'student') refreshDashboard();
+      if (_dbRole == 'student') refreshMyRequest();
+      if (isAdmin) refreshRequests();
     }
   }
 
@@ -204,6 +236,105 @@ class AppState extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _client?.auth.signOut();
+  }
+
+  // ---- account & profile ---------------------------------------------------
+
+  /// Raw role from the database: student, organizer, commercial_planner, tenant_admin, platform_admin.
+  String get dbRole => _dbRole;
+  bool get isAdmin => _dbRole == 'tenant_admin' || _dbRole == 'platform_admin';
+  bool get isPlatformAdmin => _dbRole == 'platform_admin';
+
+  /// Organizers/admins can also look at the app as a student.
+  bool get canSwitchView => usesBackend && _dbRole != 'student';
+
+  Future<void> updateDisplayName(String name) async {
+    await _accountRepository!.updateDisplayName(name);
+    await loadProfile();
+  }
+
+  Future<void> changePassword(String newPassword) => _accountRepository!.changePassword(newPassword);
+
+  /// Deletes the account and all its data, then signs out.
+  Future<void> deleteAccount() async {
+    await _accountRepository!.deleteMyAccount();
+    try {
+      await signOut();
+    } catch (_) {
+      // The login is already gone on the server; the local session is cleared by the next event.
+    }
+  }
+
+  void _persistLocale() {
+    final repo = _accountRepository;
+    if (repo == null || _session == null) return;
+    repo.saveLocale(_currentLocale.languageCode).catchError((_) {});
+  }
+
+  // ---- organizer requests --------------------------------------------------
+
+  OrganizerRequest? get myRequest => _myRequest;
+
+  Future<void> refreshMyRequest() async {
+    final repo = _accountRepository;
+    if (repo == null) return;
+    try {
+      _myRequest = await repo.fetchMyLatestRequest();
+      notifyListeners();
+    } catch (_) {
+      // Shown again on the next refresh.
+    }
+  }
+
+  Future<void> requestOrganizerAccess(String role, String organization, String message) async {
+    await _accountRepository!.requestOrganizerAccess(role, organization, message);
+    await refreshMyRequest();
+  }
+
+  // ---- admin ---------------------------------------------------------------
+
+  List<OrganizerRequest> get organizerRequests => List.unmodifiable(_requests);
+  List<AdminUser> get adminUsers => List.unmodifiable(_adminUsers);
+  int get pendingRequestCount => _requests.where((r) => r.isPending).length;
+  bool get adminLoading => _adminLoading;
+  bool get adminError => _adminError;
+
+  Future<void> refreshRequests() async {
+    final repo = _accountRepository;
+    if (repo == null || !isAdmin) return;
+    _adminLoading = true;
+    _adminError = false;
+    notifyListeners();
+    try {
+      _requests = await repo.fetchRequests();
+    } catch (_) {
+      _adminError = true;
+    }
+    _adminLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> reviewRequest(String id, bool approve, String? note) async {
+    await _accountRepository!.reviewRequest(id, approve, note);
+    await refreshRequests();
+    refreshUsers('');
+  }
+
+  Future<void> refreshUsers(String search) async {
+    final repo = _accountRepository;
+    if (repo == null || !isAdmin) return;
+    try {
+      _adminUsers = await repo.listUsers(search);
+      notifyListeners();
+    } catch (_) {
+      _adminError = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> setUserRole(String userId, String role, bool verified, String search) async {
+    await _accountRepository!.setRole(userId, role, verified);
+    await refreshUsers(search);
   }
 
   /// Email domain -> university display name, for the live hint on the sign-up form.
@@ -385,6 +516,7 @@ class AppState extends ChangeNotifier {
   }
 
   void setRole(UserRole role) {
+    if (usesBackend && role == UserRole.planner && _dbRole == 'student') return;
     if (_currentRole != role) {
       _currentRole = role;
       notifyListeners();
@@ -394,12 +526,14 @@ class AppState extends ChangeNotifier {
   void toggleLocale() {
     _currentLocale = _currentLocale.languageCode == 'en' ? const Locale('de') : const Locale('en');
     notifyListeners();
+    _persistLocale();
   }
 
   void setLocale(Locale locale) {
     if (_currentLocale != locale) {
       _currentLocale = locale;
       notifyListeners();
+      _persistLocale();
     }
   }
 
@@ -601,6 +735,36 @@ class AppState extends ChangeNotifier {
   // ---- planner dashboard ---------------------------------------------------
 
   DashboardData get dashboard => _dashboard;
+
+  /// Events the signed-in organizer owns (any status), for editing and cancelling.
+  List<Event> get managedEvents => usesBackend ? List.unmodifiable(_managedEvents) : events;
+
+  Event? managedEventById(String id) {
+    for (final e in managedEvents) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
+
+  Future<String> uploadEventImage(Uint8List bytes, String contentType, String extension) =>
+      _eventRepository.uploadImage(bytes, contentType, extension);
+
+  /// Saves edits. Throws PostgrestException if not allowed.
+  Future<void> updateEvent(Event event) async {
+    final saved = await _eventRepository.update(event);
+    _events = [for (final e in _events) e.id == saved.id ? saved : e]
+      ..sort((a, b) => a.date.compareTo(b.date));
+    notifyListeners();
+    refreshDashboard();
+  }
+
+  /// Cancels an event for good. Ticket holders keep seeing it as cancelled.
+  Future<void> cancelEvent(String eventId) async {
+    await _eventRepository.cancel(eventId);
+    _events = _events.where((e) => e.id != eventId).toList();
+    notifyListeners();
+    refreshDashboard();
+  }
   List<({Review review, String eventTitle})> get feedback => _feedback;
   bool get dashboardLoading => _dashboardLoading;
   bool get dashboardError => _dashboardError;
@@ -616,10 +780,12 @@ class AppState extends ChangeNotifier {
         repo.fetchStats(),
         repo.fetchRecentScans(),
         repo.fetchFeedback(),
+        _registrationRepository?.fetchManagedEvents() ?? Future.value(<Event>[]),
       ]);
       final stats = results[0] as List<EventStat>;
       final managedIds = stats.map((s) => s.eventId).toSet();
       _dashboard = DashboardData(stats: stats, scans: results[1] as List<ScanEntry>);
+      _managedEvents = results[3] as List<Event>;
       // Reviews of events the planner does not manage are not feedback for them.
       _feedback = (results[2] as List<({Review review, String eventTitle})>)
           .where((f) => managedIds.contains(f.review.eventId))

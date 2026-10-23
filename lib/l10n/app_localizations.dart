@@ -1027,6 +1027,426 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not now'**
   String get guestNotNow;
+
+  /// No description provided for @profileEditName.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit name'**
+  String get profileEditName;
+
+  /// No description provided for @profileNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name'**
+  String get profileNameLabel;
+
+  /// No description provided for @profileSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get profileSave;
+
+  /// No description provided for @profileCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get profileCancel;
+
+  /// No description provided for @profileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved.'**
+  String get profileSaved;
+
+  /// No description provided for @profileChangePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get profileChangePassword;
+
+  /// No description provided for @profilePasswordChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed.'**
+  String get profilePasswordChanged;
+
+  /// No description provided for @profileDeleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get profileDeleteAccount;
+
+  /// No description provided for @profileDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get profileDeleteTitle;
+
+  /// No description provided for @profileDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes your account, registrations, tickets and reviews. It cannot be undone.'**
+  String get profileDeleteBody;
+
+  /// No description provided for @profileDeleteTypeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type DELETE to confirm'**
+  String get profileDeleteTypeHint;
+
+  /// No description provided for @profileDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete forever'**
+  String get profileDeleteConfirm;
+
+  /// No description provided for @profileDeleteHasEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'You still own events. Please ask an admin for help before deleting your account.'**
+  String get profileDeleteHasEvents;
+
+  /// No description provided for @profileDeleteLastAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'You are the only platform admin. Make someone else an admin first.'**
+  String get profileDeleteLastAdmin;
+
+  /// No description provided for @profileDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The account could not be deleted. Please try again.'**
+  String get profileDeleteFailed;
+
+  /// No description provided for @profileSwitchToStudent.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to student view'**
+  String get profileSwitchToStudent;
+
+  /// No description provided for @profileSwitchToOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to organizer view'**
+  String get profileSwitchToOrganizer;
+
+  /// No description provided for @organizerBecomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Become an organizer'**
+  String get organizerBecomeTitle;
+
+  /// No description provided for @organizerBecomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish events for your university or as a business. An admin reviews every request.'**
+  String get organizerBecomeBody;
+
+  /// No description provided for @organizerRoleUniversity.
+  ///
+  /// In en, this message translates to:
+  /// **'University organizer'**
+  String get organizerRoleUniversity;
+
+  /// No description provided for @organizerRoleCommercial.
+  ///
+  /// In en, this message translates to:
+  /// **'Commercial / public events'**
+  String get organizerRoleCommercial;
+
+  /// No description provided for @organizerOrgName.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization or club name'**
+  String get organizerOrgName;
+
+  /// No description provided for @organizerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Why do you need access? (optional)'**
+  String get organizerMessage;
+
+  /// No description provided for @organizerSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Send request'**
+  String get organizerSubmit;
+
+  /// No description provided for @organizerRequestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Request sent. An admin will review it.'**
+  String get organizerRequestSent;
+
+  /// No description provided for @organizerStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request is waiting for review.'**
+  String get organizerStatusPending;
+
+  /// No description provided for @organizerStatusApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request was approved. Tap \'Check status\' to unlock organizer tools.'**
+  String get organizerStatusApproved;
+
+  /// No description provided for @organizerStatusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Your last request was not approved.'**
+  String get organizerStatusRejected;
+
+  /// No description provided for @organizerCheckStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Check status'**
+  String get organizerCheckStatus;
+
+  /// No description provided for @organizerErrNoUniversity.
+  ///
+  /// In en, this message translates to:
+  /// **'You need a university email address to become a university organizer.'**
+  String get organizerErrNoUniversity;
+
+  /// No description provided for @organizerErrPending.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have a request waiting.'**
+  String get organizerErrPending;
+
+  /// No description provided for @organizerErrGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'The request could not be sent. Please check the name and try again.'**
+  String get organizerErrGeneric;
+
+  /// No description provided for @tabAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get tabAdmin;
+
+  /// No description provided for @adminRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Requests'**
+  String get adminRequests;
+
+  /// No description provided for @adminUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'Users'**
+  String get adminUsers;
+
+  /// No description provided for @adminNoRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'No requests.'**
+  String get adminNoRequests;
+
+  /// No description provided for @adminApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get adminApprove;
+
+  /// No description provided for @adminReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get adminReject;
+
+  /// No description provided for @adminNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Note for the applicant (optional)'**
+  String get adminNoteHint;
+
+  /// No description provided for @adminRequestApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved.'**
+  String get adminRequestApproved;
+
+  /// No description provided for @adminRequestRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected.'**
+  String get adminRequestRejected;
+
+  /// No description provided for @adminActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'That action is not allowed or failed.'**
+  String get adminActionFailed;
+
+  /// No description provided for @adminSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search name or email'**
+  String get adminSearchHint;
+
+  /// No description provided for @adminChangeRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Change role'**
+  String get adminChangeRole;
+
+  /// No description provided for @adminLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the admin data.'**
+  String get adminLoadFailed;
+
+  /// No description provided for @roleStudent.
+  ///
+  /// In en, this message translates to:
+  /// **'Student'**
+  String get roleStudent;
+
+  /// No description provided for @roleOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'University organizer'**
+  String get roleOrganizer;
+
+  /// No description provided for @roleCommercial.
+  ///
+  /// In en, this message translates to:
+  /// **'Commercial planner'**
+  String get roleCommercial;
+
+  /// No description provided for @roleTenantAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'University admin'**
+  String get roleTenantAdmin;
+
+  /// No description provided for @rolePlatformAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform admin'**
+  String get rolePlatformAdmin;
+
+  /// No description provided for @statusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get statusPending;
+
+  /// No description provided for @statusApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get statusApproved;
+
+  /// No description provided for @statusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get statusRejected;
+
+  /// No description provided for @eventEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit event'**
+  String get eventEditTitle;
+
+  /// No description provided for @eventSaveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes'**
+  String get eventSaveChanges;
+
+  /// No description provided for @eventSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Event updated.'**
+  String get eventSaved;
+
+  /// No description provided for @eventCancelEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel event'**
+  String get eventCancelEvent;
+
+  /// No description provided for @eventCancelConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this event?'**
+  String get eventCancelConfirmTitle;
+
+  /// No description provided for @eventCancelConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone with a ticket will see it as cancelled. This cannot be undone.'**
+  String get eventCancelConfirmBody;
+
+  /// No description provided for @eventCancelYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, cancel event'**
+  String get eventCancelYes;
+
+  /// No description provided for @eventCancelledMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Event cancelled.'**
+  String get eventCancelledMsg;
+
+  /// No description provided for @eventCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The event could not be cancelled.'**
+  String get eventCancelFailed;
+
+  /// No description provided for @eventAddImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Add poster image'**
+  String get eventAddImage;
+
+  /// No description provided for @eventChangeImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Change image'**
+  String get eventChangeImage;
+
+  /// No description provided for @eventImageTooBig.
+  ///
+  /// In en, this message translates to:
+  /// **'The image is too large (maximum 5 MB).'**
+  String get eventImageTooBig;
+
+  /// No description provided for @eventImageBadType.
+  ///
+  /// In en, this message translates to:
+  /// **'Please use a JPG, PNG or WebP image.'**
+  String get eventImageBadType;
+
+  /// No description provided for @eventImageUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The image could not be uploaded. Please try again.'**
+  String get eventImageUploadFailed;
+
+  /// No description provided for @eventStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'CANCELLED'**
+  String get eventStatusCancelled;
+
+  /// No description provided for @ticketEventCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'This event was cancelled. Your ticket is no longer valid.'**
+  String get ticketEventCancelled;
+
+  /// No description provided for @dashboardEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get dashboardEdit;
 }
 
 class _AppLocalizationsDelegate

@@ -8,6 +8,7 @@ import '../../student/profile_screen.dart';
 import '../../planner/dashboard_screen.dart';
 import '../../planner/create_event_screen.dart';
 import '../../planner/qr_scanner_screen.dart';
+import '../../admin/admin_screen.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
@@ -27,11 +28,15 @@ class _ShellScreenState extends State<ShellScreen> {
     StudentProfileScreen(),
   ];
 
-  final List<Widget> _plannerScreens = const [
-    PlannerDashboardScreen(),
-    PlannerCreateEventScreen(),
-    PlannerScannerScreen(),
-  ];
+  /// Organizer tabs. The scanner is only built while its tab is open, so the camera
+  /// is never running in the background. Admins get one more tab.
+  List<Widget> _plannerScreens(int activeIndex, bool isAdmin) => [
+        const PlannerDashboardScreen(),
+        const PlannerCreateEventScreen(),
+        activeIndex == 2 ? const PlannerScannerScreen() : const SizedBox.shrink(),
+        const StudentProfileScreen(),
+        if (isAdmin) const AdminScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -41,11 +46,13 @@ class _ShellScreenState extends State<ShellScreen> {
     final isDesktop = mediaQuery.size.width >= 600;
 
     final isStudent = appState.currentRole == UserRole.student;
-    final activeIndex = isStudent ? _studentIndex : _plannerIndex;
-    final activeScreens = isStudent ? _studentScreens : _plannerScreens;
+    final isAdmin = appState.usesBackend && appState.isAdmin;
+    final plannerTabCount = isAdmin ? 5 : 4;
+    final activeIndex = isStudent ? _studentIndex : _plannerIndex.clamp(0, plannerTabCount - 1);
+    final activeScreens = isStudent ? _studentScreens : _plannerScreens(activeIndex, isAdmin);
 
     // Create Navigation destination lists based on active role
-    final destinations = _getNavDestinations(localizations, isStudent);
+    final destinations = _getNavDestinations(localizations, isStudent, isAdmin);
 
     return Scaffold(
       appBar: PreferredSize(
@@ -153,8 +160,25 @@ class _ShellScreenState extends State<ShellScreen> {
 
     if (appState.usesBackend) {
       return PopupMenuButton<String>(
-        onSelected: (_) => appState.signOut(),
+        onSelected: (choice) {
+          if (choice == 'switch') {
+            appState.setRole(appState.currentRole == UserRole.student ? UserRole.planner : UserRole.student);
+          } else {
+            appState.signOut();
+          }
+        },
         itemBuilder: (context) => [
+          if (appState.canSwitchView)
+            PopupMenuItem<String>(
+              value: 'switch',
+              child: Row(children: [
+                const Icon(Icons.swap_horiz_rounded, size: 18),
+                const SizedBox(width: 12),
+                Text(appState.currentRole == UserRole.student
+                    ? AppLocalizations.of(context)!.profileSwitchToOrganizer
+                    : AppLocalizations.of(context)!.profileSwitchToStudent),
+              ]),
+            ),
           PopupMenuItem<String>(
             value: 'signout',
             child: Row(children: [
@@ -292,6 +316,7 @@ class _ShellScreenState extends State<ShellScreen> {
   List<_NavigationDestinationItem> _getNavDestinations(
     AppLocalizations localizations,
     bool isStudent,
+    bool isAdmin,
   ) {
     if (isStudent) {
       return [
@@ -328,6 +353,17 @@ class _ShellScreenState extends State<ShellScreen> {
           selectedIcon: Icons.qr_code_scanner_rounded,
           label: localizations.tabScanner,
         ),
+        _NavigationDestinationItem(
+          icon: Icons.person_outline_rounded,
+          selectedIcon: Icons.person_rounded,
+          label: localizations.tabProfile,
+        ),
+        if (isAdmin)
+          _NavigationDestinationItem(
+            icon: Icons.admin_panel_settings_outlined,
+            selectedIcon: Icons.admin_panel_settings_rounded,
+            label: localizations.tabAdmin,
+          ),
       ];
     }
   }

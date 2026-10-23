@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event_model.dart';
 
@@ -10,6 +12,15 @@ abstract class EventRepository {
 
   /// Publishes [event]. [tenantId] is null for public (commercial) events.
   Future<Event> create(Event event, {required String? tenantId});
+
+  /// Saves changes to an event the user organizes.
+  Future<Event> update(Event event);
+
+  /// Cancels an event (final; ticket holders can still see it).
+  Future<void> cancel(String eventId);
+
+  /// Uploads a poster and returns its storage path (store it in Event.imagePath).
+  Future<String> uploadImage(Uint8List bytes, String contentType, String extension);
 }
 
 class SupabaseEventRepository implements EventRepository {
@@ -66,11 +77,59 @@ class SupabaseEventRepository implements EventRepository {
           'requires_qr': event.requiresQrCode,
           'allow_reviews': event.allowReviews,
           'categories': event.categories,
+          'image_path': event.imagePath,
           'status': 'published',
         })
         .select(_select)
         .single();
     return _fromRow(row);
+  }
+
+  @override
+  Future<Event> update(Event event) async {
+    final row = await _client
+        .from('events')
+        .update({
+          'title': event.title.trim(),
+          'description': event.description.trim(),
+          'location': event.location.trim(),
+          'starts_at': event.date.toUtc().toIso8601String(),
+          'ends_at': event.endDate.toUtc().toIso8601String(),
+          'capacity': event.capacity,
+          'requires_qr': event.requiresQrCode,
+          'allow_reviews': event.allowReviews,
+          'categories': event.categories,
+          'image_path': event.imagePath,
+        })
+        .eq('id', event.id)
+        .select(_select)
+        .single(); // throws if the row is not yours (RLS hides it)
+    return _fromRow(row);
+  }
+
+  @override
+  Future<void> cancel(String eventId) async {
+    final rows = await _client
+        .from('events')
+        .update({'status': 'cancelled'})
+        .eq('id', eventId)
+        .select('id');
+    if (rows.isEmpty) {
+      throw const PostgrestException(message: 'not_allowed', code: '42501');
+    }
+  }
+
+  @override
+  Future<String> uploadImage(Uint8List bytes, String contentType, String extension) async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) throw const AuthException('Not signed in');
+    final random = Random.secure();
+    final name = List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    final path = '$uid/$name.$extension';
+    await _client.storage
+        .from('event-images')
+        .uploadBinary(path, bytes, fileOptions: FileOptions(contentType: contentType));
+    return path;
   }
 }
 
@@ -157,4 +216,20 @@ class MockEventRepository implements EventRepository {
     _events.add(event);
     return event;
   }
+
+  @override
+  Future<Event> update(Event event) async {
+    final i = _events.indexWhere((e) => e.id == event.id);
+    if (i >= 0) _events[i] = event;
+    return event;
+  }
+
+  @override
+  Future<void> cancel(String eventId) async {
+    _events.removeWhere((e) => e.id == eventId);
+  }
+
+  @override
+  Future<String> uploadImage(Uint8List bytes, String contentType, String extension) async =>
+      'mock/image.$extension';
 }
