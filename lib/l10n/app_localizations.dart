@@ -997,6 +997,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{n} d ago'**
   String agoDays(int n);
+
+  /// No description provided for @authBrowseAsGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse events without an account'**
+  String get authBrowseAsGuest;
+
+  /// No description provided for @guestBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Browsing as a guest'**
+  String get guestBanner;
+
+  /// No description provided for @guestSignInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get guestSignInTitle;
+
+  /// No description provided for @guestSignInBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a free account or sign in to register for events.'**
+  String get guestSignInBody;
+
+  /// No description provided for @guestNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get guestNotNow;
 }
 
 class _AppLocalizationsDelegate

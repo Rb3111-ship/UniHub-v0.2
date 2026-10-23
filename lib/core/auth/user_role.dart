@@ -75,6 +75,22 @@ class AppState extends ChangeNotifier {
   bool _profileFailed = false;
 
   bool get usesBackend => _client != null;
+
+  // Visitors may browse public events without an account (web/app "guest mode").
+  bool _guest = false;
+  bool get isGuest => usesBackend && _session == null && _guest;
+
+  void enterGuestMode() {
+    if (!usesBackend) return;
+    _guest = true;
+    notifyListeners();
+    refreshEvents();
+  }
+
+  void leaveGuestMode() {
+    _guest = false;
+    notifyListeners();
+  }
   bool get isSignedIn => !usesBackend || _session != null;
   bool get profileReady => !usesBackend || _remoteProfile != null;
   bool get profileFailed => _profileFailed;
@@ -91,6 +107,7 @@ class AppState extends ChangeNotifier {
     if (user == null) {
       _remoteProfile = null;
       _profileFailed = false;
+      _guest = false;
       _currentRole = UserRole.student;
       _currentTenant = '';
       _tenantId = null;

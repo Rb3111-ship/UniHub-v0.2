@@ -262,5 +262,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "authBrowseAsGuest": "Browse events without an account",
+  "guestBanner": "Browsing as a guest",
+  "guestSignInTitle": "Sign in to continue",
+  "guestSignInBody": "Create a free account or sign in to register for events.",
+  "guestNotNow": "Not now"
 }

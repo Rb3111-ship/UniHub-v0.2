@@ -198,6 +198,7 @@ class _AuthScreenState extends State<AuthScreen> {
         return [
           link(l10n.authForgotPassword, () => _go(_Mode.forgot)),
           link(l10n.authNoAccount, () => _go(_Mode.signUp)),
+          link(l10n.authBrowseAsGuest, appState.enterGuestMode),
         ];
       case _Mode.signUp:
         return [link(l10n.authHaveAccount, () => _go(_Mode.signIn))];

@@ -148,5 +148,10 @@
   "agoJustNow": "gerade eben",
   "agoMinutes": "vor {n} Min.",
   "agoHours": "vor {n} Std.",
-  "agoDays": "vor {n} T."
+  "agoDays": "vor {n} T.",
+  "authBrowseAsGuest": "Events ohne Konto ansehen",
+  "guestBanner": "Du stöberst als Gast",
+  "guestSignInTitle": "Melde dich an, um fortzufahren",
+  "guestSignInBody": "Erstelle ein kostenloses Konto oder melde dich an, um dich für Events anzumelden.",
+  "guestNotNow": "Jetzt nicht"
 }

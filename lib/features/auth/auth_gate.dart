@@ -4,6 +4,7 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
 import '../shell/presentation/shell_screen.dart';
 import 'auth_screen.dart';
+import 'guest_home.dart';
 
 /// Chooses between sign-in, profile loading and the main app.
 class AuthGate extends StatelessWidget {
@@ -12,7 +13,7 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
-    if (!appState.isSignedIn) return const AuthScreen();
+    if (!appState.isSignedIn) return appState.isGuest ? const GuestHome() : const AuthScreen();
     if (!appState.profileReady) return const _ProfileLoading();
     return const ShellScreen();
   }

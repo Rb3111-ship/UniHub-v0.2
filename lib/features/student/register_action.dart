@@ -10,6 +10,26 @@ import '../../core/models/registration_model.dart';
 Future<void> registerWithFeedback(BuildContext context, AppState appState, Event event) async {
   final messenger = ScaffoldMessenger.of(context);
   final l10n = AppLocalizations.of(context)!;
+
+  if (appState.isGuest) {
+    final signIn = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.guestSignInTitle),
+        content: Text(l10n.guestSignInBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.guestNotNow)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.authSignIn)),
+        ],
+      ),
+    );
+    if (signIn == true && context.mounted) {
+      // Close any open event page, then show the sign-in screen.
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      appState.leaveGuestMode();
+    }
+    return;
+  }
   try {
     final status = await appState.registerForEvent(event.id);
     messenger.showSnackBar(SnackBar(

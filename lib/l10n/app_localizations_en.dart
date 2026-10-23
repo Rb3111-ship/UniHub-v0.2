@@ -506,4 +506,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String agoDays(int n) {
     return '$n d ago';
   }
+
+  @override
+  String get authBrowseAsGuest => 'Browse events without an account';
+
+  @override
+  String get guestBanner => 'Browsing as a guest';
+
+  @override
+  String get guestSignInTitle => 'Sign in to continue';
+
+  @override
+  String get guestSignInBody =>
+      'Create a free account or sign in to register for events.';
+
+  @override
+  String get guestNotNow => 'Not now';
 }
