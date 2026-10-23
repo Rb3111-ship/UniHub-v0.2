@@ -594,15 +594,27 @@ def run(s: Sim, tag: str) -> None:
     b = s.rows("select public, file_size_limit, allowed_mime_types from storage.buckets where id='avatars'")[0]
     check("photo bucket: 2 MB limit, images only", b[1] is not None and b[1] <= 2_097_152 and set(b[2] or []) <= {"image/jpeg", "image/png", "image/webp"}, str(b))
 
+    print("\n[19] Custom categories (typed by organizers)")
+    s.user(org_tum)
+    _, err = s.call("update public.events set categories = %s where id = %s", [["Yoga", "Tech"], ev_tum]); check("organizer can save a custom category", err is None, str(err))
+    _, err = s.call("update public.events set categories = %s where id = %s", [["Café & Kultur"], ev_tum]); check("custom category with accents and & is allowed", err is None, str(err))
+    for label, cats in (("31 characters", ["x" * 31]), ("1 character", ["x"]), ("empty", [""]),
+                        ("leading space", [" Yoga"]), ("double space", ["Yo  ga"]), ("HTML", ["<script>"]),
+                        ("newline", ["Yo\nga"]), ("duplicate (case-insensitive)", ["Yoga", "yoga"]),
+                        ("4 categories", ["Yoga", "Tech", "Music", "Arts"]), ("no category", [])):
+        _, err = s.call("update public.events set categories = %s::text[] where id = %s", [cats, ev_tum])
+        check(f"category rejected: {label}", err is not None, "accepted")
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
-        "anon": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count"},
+        "anon": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
+                 "categories_ok"},
         "authenticated": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
                           "register_for_event", "cancel_registration", "check_in_ticket", "submit_review", "admin_set_role",
                           "is_verified_publisher", "user_tenant", "request_organizer_access",
                           "review_organizer_request", "admin_list_users", "delete_my_account",
-                          "may_have_avatar", "can_have_avatar"},
+                          "may_have_avatar", "can_have_avatar", "categories_ok"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")

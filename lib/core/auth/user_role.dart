@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
 import '../models/admin_model.dart';
@@ -15,7 +16,9 @@ import '../services/registration_repository.dart';
 
 enum UserRole { student, planner }
 enum PlannerType { universityAdmin, commercialPlanner }
-enum WallpaperPattern { cyberAurora, frostedGeometry, minimalVelvet }
+/// Saved by name on the device, so existing names must not be renamed.
+/// cyberAurora = "Sunset", frostedGeometry = "Grid", minimalVelvet = "None".
+enum WallpaperPattern { cyberAurora, frostedGeometry, minimalVelvet, dots, waves, aurora, ocean, bubbles }
 enum ProfileType { student, universityOrganizer, commercialPlanner }
 
 class MockProfile {
@@ -187,7 +190,7 @@ class AppState extends ChangeNotifier {
       _avatarPath = row['avatar_path'] as String?;
       _organizerVerified = row['organizer_verified'] as bool? ?? false;
       final savedLocale = row['locale'] as String?;
-      if (firstLoad && (savedLocale == 'en' || savedLocale == 'de')) {
+      if (firstLoad && AppLocalizations.supportedLocales.any((l) => l.languageCode == savedLocale)) {
         _currentLocale = Locale(savedLocale!);
       }
       final type = switch (role) {
@@ -450,7 +453,7 @@ class AppState extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   WallpaperPattern _selectedWallpaper = WallpaperPattern.minimalVelvet;
   int _activeProfileIndex = 0;
-  
+
   final List<MockProfile> mockProfiles = const [
     MockProfile(
       name: "Alex Smith",
@@ -471,12 +474,12 @@ class AppState extends ChangeNotifier {
       type: ProfileType.commercialPlanner,
     ),
   ];
-  
+
   String _selectedCategory = 'All';
 
   // Ticket tracking state (mocked backend database)
   final List<String> _registeredEventIds = ['evt-3', 'evt-1'];
-  
+
   // Reviews state (mocked database)
   final List<Review> _reviews = [
     Review(
@@ -507,7 +510,7 @@ class AppState extends ChangeNotifier {
   Locale get currentLocale => _currentLocale;
   String get currentTenant => _currentTenant;
   PlannerType get currentPlannerType => _currentPlannerType;
-  
+
   List<Event> get events => List.unmodifiable(_events);
   bool get eventsLoading => _eventsLoading;
   bool get eventsError => _eventsError;
@@ -630,12 +633,6 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void toggleLocale() {
-    _currentLocale = _currentLocale.languageCode == 'en' ? const Locale('de') : const Locale('en');
-    notifyListeners();
-    _persistLocale();
-  }
-
   void setLocale(Locale locale) {
     if (_currentLocale != locale) {
       _currentLocale = locale;
@@ -653,7 +650,8 @@ class AppState extends ChangeNotifier {
 
   String getTenantDisplayName() {
     final language = _currentLocale.languageCode;
-    return tenantDetails[_currentTenant]?[language] ?? _currentTenant;
+    final names = tenantDetails[_currentTenant];
+    return names?[language] ?? names?['en'] ?? _currentTenant;
   }
 
   String getTenantDomain() {
@@ -935,7 +933,7 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  /// Background of the student events feed.
+  /// Background behind the main screens (student and organizer view).
   WallpaperPattern get selectedWallpaper => _selectedWallpaper;
 
   void setWallpaper(WallpaperPattern pattern) {
@@ -987,7 +985,7 @@ class AppState extends ChangeNotifier {
     if (index >= 0 && index < mockProfiles.length && _activeProfileIndex != index) {
       _activeProfileIndex = index;
       final profile = mockProfiles[index];
-      
+
       // Synchronize traditional role fields
       if (profile.type == ProfileType.student) {
         _currentRole = UserRole.student;
@@ -997,7 +995,7 @@ class AppState extends ChangeNotifier {
             ? PlannerType.universityAdmin
             : PlannerType.commercialPlanner;
       }
-      
+
       // Auto-set tenant if university domain matches
       if (profile.universityDomain != 'public' && profile.universityDomain.isNotEmpty) {
         if (profile.universityDomain.contains('tum')) {
@@ -1008,7 +1006,7 @@ class AppState extends ChangeNotifier {
           _currentTenant = 'UHH';
         }
       }
-      
+
       notifyListeners();
     }
   }

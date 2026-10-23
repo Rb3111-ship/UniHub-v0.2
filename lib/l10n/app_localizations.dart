@@ -1481,7 +1481,7 @@ abstract class AppLocalizations {
   /// No description provided for @wallpaperHint.
   ///
   /// In en, this message translates to:
-  /// **'Shown behind the student events feed.'**
+  /// **'Shown behind the main screens in both views. Saved on this device.'**
   String get wallpaperHint;
 
   /// No description provided for @privacyTitle.
@@ -2197,6 +2197,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Says they attended'**
   String get dashboardClaimedAttendance;
+
+  /// No description provided for @wallpaperDots.
+  ///
+  /// In en, this message translates to:
+  /// **'Dots'**
+  String get wallpaperDots;
+
+  /// No description provided for @wallpaperWaves.
+  ///
+  /// In en, this message translates to:
+  /// **'Waves'**
+  String get wallpaperWaves;
+
+  /// No description provided for @wallpaperAurora.
+  ///
+  /// In en, this message translates to:
+  /// **'Aurora'**
+  String get wallpaperAurora;
+
+  /// No description provided for @wallpaperOcean.
+  ///
+  /// In en, this message translates to:
+  /// **'Ocean'**
+  String get wallpaperOcean;
+
+  /// No description provided for @wallpaperBubbles.
+  ///
+  /// In en, this message translates to:
+  /// **'Bubbles'**
+  String get wallpaperBubbles;
+
+  /// No description provided for @formCustomCategoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own category (optional)'**
+  String get formCustomCategoryLabel;
+
+  /// No description provided for @formCustomCategoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Yoga, Gaming, Careers'**
+  String get formCustomCategoryHint;
+
+  /// No description provided for @formCustomCategoryError.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 2 to 30 letters or numbers.'**
+  String get formCustomCategoryError;
 }
 
 class _AppLocalizationsDelegate

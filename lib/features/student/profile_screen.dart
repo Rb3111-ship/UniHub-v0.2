@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/utils/image_type.dart';
+import '../../../core/widgets/language_picker.dart';
+import '../../../core/widgets/wallpaper.dart';
 import 'account_section.dart';
 import 'privacy_screen.dart';
 
@@ -34,11 +36,9 @@ class StudentProfileScreen extends StatelessWidget {
             context,
             icon: Icons.language_rounded,
             title: l10n.languageLabel,
-            subtitle: appState.currentLocale.languageCode == 'en' ? l10n.languageEnglish : l10n.languageGerman,
-            trailing: Switch(
-              value: appState.currentLocale.languageCode == 'de',
-              onChanged: (isGerman) => appState.setLocale(isGerman ? const Locale('de') : const Locale('en')),
-            ),
+            subtitle: languageName(appState.currentLocale),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => showLanguagePicker(context, appState),
           ),
           const SizedBox(height: 12),
           _universityCard(context, appState, l10n),
@@ -85,13 +85,15 @@ class StudentProfileScreen extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, top: 2, bottom: 8),
             child: Text(l10n.wallpaperHint, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
           ),
-          Row(
+          GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 0.78,
             children: [
-              _wallpaperCard(context, appState, WallpaperPattern.minimalVelvet, l10n.wallpaperNone, Icons.lens_blur_rounded),
-              const SizedBox(width: 12),
-              _wallpaperCard(context, appState, WallpaperPattern.frostedGeometry, l10n.wallpaperGrid, Icons.grid_on_rounded),
-              const SizedBox(width: 12),
-              _wallpaperCard(context, appState, WallpaperPattern.cyberAurora, l10n.wallpaperSunset, Icons.waves_rounded),
+              for (final pattern in wallpaperChoices) _wallpaperCard(context, appState, pattern, wallpaperName(l10n, pattern)),
             ],
           ),
           const SizedBox(height: 24),
@@ -184,11 +186,15 @@ class StudentProfileScreen extends StatelessWidget {
     required String title,
     required String subtitle,
     required Widget trailing,
+    VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
     return Card(
       margin: EdgeInsets.zero,
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
@@ -209,82 +215,58 @@ class StudentProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
-  Widget _wallpaperCard(
-    BuildContext context,
-    AppState appState,
-    WallpaperPattern pattern,
-    String label,
-    IconData icon,
-  ) {
+  Widget _wallpaperCard(BuildContext context, AppState appState, WallpaperPattern pattern, String label) {
     final isSelected = appState.selectedWallpaper == pattern;
     final theme = Theme.of(context);
     final brandColor = appState.getActiveTenantColor();
-    final dark = pattern == WallpaperPattern.cyberAurora || pattern == WallpaperPattern.minimalVelvet;
 
-    final Widget preview = switch (pattern) {
-      WallpaperPattern.cyberAurora => const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF120C1F), Color(0xFF3B1E6C), Color(0xFF1E3B6C), Color(0xFF0C141F)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      WallpaperPattern.frostedGeometry => ColoredBox(
-          color: theme.colorScheme.surface,
-          child: CustomPaint(painter: GridPainter(color: theme.colorScheme.onSurface.withOpacity(0.15))),
-        ),
-      WallpaperPattern.minimalVelvet => const ColoredBox(color: Color(0xFF121214)),
-    };
-
-    return Expanded(
-      child: Semantics(
-        button: true,
-        selected: isSelected,
-        label: label,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => appState.setWallpaper(pattern),
-          child: Container(
-            height: 80,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected ? brandColor : theme.colorScheme.outlineVariant.withOpacity(0.5),
-                width: isSelected ? 3 : 1,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Stack(
-                children: [
-                  Positioned.fill(child: preview),
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(isSelected ? Icons.check_circle_rounded : icon,
-                            color: dark ? Colors.white : brandColor, size: 20),
-                        const SizedBox(height: 4),
-                        Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: dark ? Colors.white : theme.colorScheme.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => appState.setWallpaper(pattern),
+        child: Column(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected ? brandColor : theme.colorScheme.outlineVariant.withOpacity(0.6),
+                    width: isSelected ? 3 : 1,
                   ),
-                ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(isSelected ? 11 : 13),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Wallpaper(pattern: pattern, brand: brandColor, scale: 0.5),
+                      if (isSelected)
+                        Center(child: Icon(Icons.check_circle_rounded, color: brandColor, size: 24)),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? brandColor : theme.colorScheme.onSurface,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -448,26 +430,4 @@ class _ProfileHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-class GridPainter extends CustomPainter {
-  final Color color;
-  GridPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.0;
-    const step = 30.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

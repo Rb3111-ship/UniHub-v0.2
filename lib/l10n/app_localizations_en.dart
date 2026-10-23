@@ -762,7 +762,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'No university - public account. Sign up with your university email to join one.';
 
   @override
-  String get wallpaperHint => 'Shown behind the student events feed.';
+  String get wallpaperHint =>
+      'Shown behind the main screens in both views. Saved on this device.';
 
   @override
   String get privacyTitle => 'Privacy & data';
@@ -1149,4 +1150,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashboardClaimedAttendance => 'Says they attended';
+
+  @override
+  String get wallpaperDots => 'Dots';
+
+  @override
+  String get wallpaperWaves => 'Waves';
+
+  @override
+  String get wallpaperAurora => 'Aurora';
+
+  @override
+  String get wallpaperOcean => 'Ocean';
+
+  @override
+  String get wallpaperBubbles => 'Bubbles';
+
+  @override
+  String get formCustomCategoryLabel => 'Your own category (optional)';
+
+  @override
+  String get formCustomCategoryHint => 'e.g. Yoga, Gaming, Careers';
+
+  @override
+  String get formCustomCategoryError => 'Use 2 to 30 letters or numbers.';
 }

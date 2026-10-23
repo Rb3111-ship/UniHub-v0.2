@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
+import '../../core/widgets/language_picker.dart';
+import '../../core/widgets/wallpaper.dart';
 import '../student/home_screen.dart';
 
 /// What signed-out visitors see: the public events feed (read-only) and a way to
@@ -36,7 +38,7 @@ class GuestHome extends StatelessWidget {
                     IconButton(
                       tooltip: l10n.languageLabel,
                       icon: const Icon(Icons.language_rounded),
-                      onPressed: appState.toggleLocale,
+                      onPressed: () => showLanguagePicker(context, appState),
                     ),
                     Flexible(
                       flex: 2,
@@ -50,7 +52,7 @@ class GuestHome extends StatelessWidget {
               ),
             ),
           ),
-          const Expanded(child: StudentHomeScreen()),
+          const Expanded(child: WallpaperArea(child: StudentHomeScreen())),
         ],
       ),
     );

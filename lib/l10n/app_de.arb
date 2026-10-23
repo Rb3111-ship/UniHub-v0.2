@@ -8,7 +8,7 @@
   "tabTickets": "Meine Tickets",
   "tabProfile": "Profil",
   "tabDashboard": "Dashboard",
-  "tabCreateEvent": "Event erstellen",
+  "tabCreateEvent": "Erstellen",
   "tabScanner": "Scanner",
   "languageLabel": "Sprache",
   "languageEnglish": "Englisch",
@@ -229,7 +229,7 @@
   "universityLabel": "Hochschule",
   "universityFromEmail": "Wird automatisch über deine bestätigte Hochschul-E-Mail festgelegt.",
   "universityNone": "Keine Hochschule - öffentliches Konto. Registriere dich mit deiner Hochschul-E-Mail, um beizutreten.",
-  "wallpaperHint": "Wird hinter dem Event-Feed für Studierende angezeigt.",
+  "wallpaperHint": "Wird in beiden Ansichten hinter den Hauptseiten angezeigt. Auf diesem Gerät gespeichert.",
   "privacyTitle": "Datenschutz & Daten",
   "privacySubtitle": "Was wir speichern, wer es sieht, und deine Kopie",
   "privacyWhatTitle": "Was UniHub über dich speichert",
@@ -348,5 +348,13 @@
   "dashboardActiveEvents": "Aktive Events",
   "dashboardNoPublicRatings": "Noch keine öffentlichen Bewertungen.",
   "dashboardNoPrivateFeedback": "Noch kein privates Feedback.",
-  "dashboardClaimedAttendance": "Gibt Teilnahme an"
+  "dashboardClaimedAttendance": "Gibt Teilnahme an",
+  "wallpaperDots": "Punkte",
+  "wallpaperWaves": "Wellen",
+  "wallpaperAurora": "Polarlicht",
+  "wallpaperOcean": "Ozean",
+  "wallpaperBubbles": "Blasen",
+  "formCustomCategoryLabel": "Eigene Kategorie (optional)",
+  "formCustomCategoryHint": "z. B. Yoga, Gaming, Karriere",
+  "formCustomCategoryError": "Bitte 2 bis 30 Buchstaben oder Zahlen verwenden."
 }

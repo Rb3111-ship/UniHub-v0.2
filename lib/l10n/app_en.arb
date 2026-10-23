@@ -343,7 +343,7 @@
   "universityLabel": "University",
   "universityFromEmail": "Set automatically from your verified university email.",
   "universityNone": "No university - public account. Sign up with your university email to join one.",
-  "wallpaperHint": "Shown behind the student events feed.",
+  "wallpaperHint": "Shown behind the main screens in both views. Saved on this device.",
   "privacyTitle": "Privacy & data",
   "privacySubtitle": "What we store, who can see it, and your copy",
   "privacyWhatTitle": "What UniHub stores about you",
@@ -497,5 +497,13 @@
   "dashboardActiveEvents": "Active events",
   "dashboardNoPublicRatings": "No public ratings yet.",
   "dashboardNoPrivateFeedback": "No private feedback yet.",
-  "dashboardClaimedAttendance": "Says they attended"
+  "dashboardClaimedAttendance": "Says they attended",
+  "wallpaperDots": "Dots",
+  "wallpaperWaves": "Waves",
+  "wallpaperAurora": "Aurora",
+  "wallpaperOcean": "Ocean",
+  "wallpaperBubbles": "Bubbles",
+  "formCustomCategoryLabel": "Your own category (optional)",
+  "formCustomCategoryHint": "e.g. Yoga, Gaming, Careers",
+  "formCustomCategoryError": "Use 2 to 30 letters or numbers."
 }

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/core/auth/user_role.dart';
+import 'package:uni_events_app/core/widgets/wallpaper.dart';
 import 'package:uni_events_app/main.dart';
 
 /// Runs the real app against a tiny fake Supabase server on this machine,
@@ -165,9 +166,14 @@ void main() {
     await tester.tap(find.byIcon(Icons.person_outline_rounded));
     await _settle(tester, rounds: 3);
 
-    await tester.tap(find.byType(Switch).first);
+    // The language is picked from a list, so more languages can be added later.
+    await tester.tap(find.text('Language'));
+    await _settle(tester, rounds: 3);
+    expect(find.text('English'), findsWidgets);
+    await tester.tap(find.text('Deutsch'));
     await _settle(tester, rounds: 3);
     expect(state.currentLocale.languageCode, 'de');
+    expect(find.text('Erstellen'), findsOneWidget); // short German tab label
     expect(Localizations.localeOf(tester.element(find.byType(Scaffold).first)).languageCode, 'de');
 
     await tester.scrollUntilVisible(find.byIcon(Icons.dark_mode_rounded), 200,
@@ -237,6 +243,15 @@ void main() {
     await tester.tap(find.text('Grid'));
     await _settle(tester, rounds: 2);
     expect(state.selectedWallpaper, WallpaperPattern.frostedGeometry);
+    // The organizer view paints the wallpaper too (not only the student feed).
+    expect(state.currentRole, UserRole.planner);
+    expect(
+        find.byWidgetPredicate(
+            (w) => w is Wallpaper && w.pattern == WallpaperPattern.frostedGeometry && w.scale == 1),
+        findsOneWidget);
+    for (final name in ['Dots', 'Waves', 'Sunset', 'Aurora', 'Ocean', 'Bubbles']) {
+      expect(find.text(name), findsOneWidget);
+    }
 
     await tester.dragUntilVisible(find.text('Privacy & data'), find.byType(ListView).first, const Offset(0, -250));
     await _settle(tester, rounds: 10); // let the list stop moving; a tap on a moving list only stops it
@@ -244,6 +259,23 @@ void main() {
     await _settle(tester, rounds: 12);
     await tester.dragUntilVisible(find.text('Copy my data'), find.byType(ListView).last, const Offset(0, -250));
     expect(find.text('Copy my data'), findsOneWidget);
+    await _finish(tester);
+  });
+
+  testWidgets('picking Other lets the organizer type a category', (tester) async {
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.add_circle_outline_rounded));
+    await _settle(tester, rounds: 3);
+    expect(find.text('Your own category (optional)'), findsNothing);
+    await tester.dragUntilVisible(find.text('Other'), find.byType(SingleChildScrollView).first, const Offset(0, -200));
+    await _settle(tester, rounds: 6);
+    await tester.tap(find.text('Other'));
+    await _settle(tester, rounds: 3);
+    final field = find.widgetWithText(TextFormField, 'Your own category (optional)');
+    expect(field, findsOneWidget);
+    await tester.enterText(field, 'Yoga');
+    await _settle(tester, rounds: 2);
+    expect(find.byIcon(Icons.label_rounded), findsWidgets); // the live preview uses the custom category
     await _finish(tester);
   });
 

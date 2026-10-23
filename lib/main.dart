@@ -108,7 +108,7 @@ class UniEventsApp extends StatelessWidget {
     return MaterialApp(
       title: 'UNIHUB',
       debugShowCheckedModeBanner: false,
-      
+
       // Theme Settings
       theme: AppTheme.getLightTheme(appState.getActiveTenantColor()),
       darkTheme: AppTheme.getDarkTheme(appState.getActiveTenantColor()),
@@ -116,10 +116,8 @@ class UniEventsApp extends StatelessWidget {
 
       // Localization Configuration
       locale: appState.currentLocale,
-      supportedLocales: const [
-        Locale('en'), // English
-        Locale('de'), // German
-      ],
+      // Every language with an ARB file in lib/l10n.
+      supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

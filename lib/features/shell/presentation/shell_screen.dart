@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
+import '../../../core/widgets/wallpaper.dart';
 import '../../student/home_screen.dart';
 import '../../student/tickets_screen.dart';
 import '../../student/profile_screen.dart';
@@ -120,11 +121,13 @@ class _ShellScreenState extends State<ShellScreen> {
                   .toList(),
             ),
 
-          // Main Screen view
+          // Main Screen view, with the chosen wallpaper behind it (both views)
           Expanded(
-            child: IndexedStack(
-              index: activeIndex,
-              children: activeScreens,
+            child: WallpaperArea(
+              child: IndexedStack(
+                index: activeIndex,
+                children: activeScreens,
+              ),
             ),
           ),
         ],

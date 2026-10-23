@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
+import '../../../core/models/categories.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/widgets/event_image.dart';
 import 'details_screen.dart';
@@ -26,14 +27,15 @@ class StudentHomeScreen extends StatelessWidget {
       {'key': 'Arts', 'label': localizations.categoryArts, 'icon': Icons.palette_rounded},
       {'key': 'Academic', 'label': localizations.categoryAcademic, 'icon': Icons.menu_book_rounded},
       {'key': 'Other', 'label': localizations.categoryOther, 'icon': Icons.more_horiz_rounded},
+      // Categories organizers typed in themselves get their own filter.
+      for (final custom in _customCategories(appState.events, appState.selectedCategory))
+        {'key': custom, 'label': custom, 'icon': categoryIcon(custom)},
     ];
 
     // Filter events by selected category (checking if it matches any of the categories array)
     final allEvents = appState.events;
-    final filteredEvents = allEvents.where((e) {
-      if (appState.selectedCategory == 'All') return true;
-      return e.categories.contains(appState.selectedCategory);
-    }).toList();
+    final filteredEvents =
+        allEvents.where((e) => matchesCategory(e.categories, appState.selectedCategory)).toList();
 
     // Split events by official status
     final campusEvents = filteredEvents.where((e) => e.isUniversityOfficial).toList();
@@ -147,65 +149,33 @@ class StudentHomeScreen extends StatelessWidget {
             ),
           ),
         ),
-        body: Stack(
-          children: [
-            // Premium background overlays (only active for student role)
-            if (appState.currentRole == UserRole.student)
-              Positioned.fill(
-                child: _buildWallpaperBackground(context, appState),
+        // The wallpaper is painted behind this screen by the surrounding WallpaperArea.
+        body: guest
+            ? _buildEventGrid(context, publicEvents, false, appState)
+            : TabBarView(
+                children: [
+                  // Feed 1: Campus Hub (University Official)
+                  _buildEventGrid(context, campusEvents, true, appState),
+                  // Feed 2: Public Events (Commercial/Public)
+                  _buildEventGrid(context, publicEvents, false, appState),
+                ],
               ),
-            // The responsive grid of rich-media cards
-            Positioned.fill(
-              child: guest
-                  ? _buildEventGrid(context, publicEvents, false, appState)
-                  : TabBarView(
-                      children: [
-                        // Feed 1: Campus Hub (University Official)
-                        _buildEventGrid(context, campusEvents, true, appState),
-                        // Feed 2: Public Events (Commercial/Public)
-                        _buildEventGrid(context, publicEvents, false, appState),
-                      ],
-                    ),
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildWallpaperBackground(BuildContext context, AppState appState) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final pattern = appState.selectedWallpaper;
-
-    if (pattern == WallpaperPattern.cyberAurora) {
-      return Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [const Color(0xFF0C0714), const Color(0xFF1D0E38), const Color(0xFF0A1C38)]
-                : [const Color(0xFFF2EAFF), const Color(0xFFEBF2FF), const Color(0xFFFFF0F5)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      );
-    } else if (pattern == WallpaperPattern.frostedGeometry) {
-      return Container(
-        color: isDark ? const Color(0xFF141416) : const Color(0xFFFAF9FC),
-        child: CustomPaint(
-          painter: _HomeGridPainter(
-            color: theme.colorScheme.onSurface.withOpacity(0.08),
-            drawDiagonal: true,
-          ),
-        ),
-      );
-    } else {
-      // minimalVelvet (clean matte dark/light canvas)
-      return Container(
-        color: isDark ? const Color(0xFF121214) : const Color(0xFFF5F5F7),
-      );
+  /// Custom categories used by the loaded events (plus the selected one, so its
+  /// chip does not vanish while selected).
+  static List<String> _customCategories(List<Event> events, String selected) {
+    final seen = <String, String>{};
+    for (final e in events) {
+      for (final c in e.categories) {
+        if (!isStandardCategory(c)) seen.putIfAbsent(c.toLowerCase(), () => c);
+      }
     }
+    if (!isStandardCategory(selected) && selected != 'All') seen.putIfAbsent(selected.toLowerCase(), () => selected);
+    final list = seen.values.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return list.take(12).toList();
   }
 
   Widget _buildEventGrid(
@@ -452,7 +422,7 @@ class StudentHomeScreen extends StatelessWidget {
                                         border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
                                       ),
                                       child: Text(
-                                        cat,
+                                        categoryLabel(AppLocalizations.of(context)!, cat),
                                         style: TextStyle(
                                           fontSize: 8,
                                           fontWeight: FontWeight.bold,
@@ -534,39 +504,4 @@ class StudentHomeScreen extends StatelessWidget {
     const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     return months[date.month - 1];
   }
-}
-
-class _HomeGridPainter extends CustomPainter {
-  final Color color;
-  final bool drawDiagonal;
-  _HomeGridPainter({required this.color, this.drawDiagonal = false});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 0.8;
-    const step = 40.0;
-
-    // Draw horizontal and vertical lines
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-
-    // Diagonal lines for premium frosted grid
-    if (drawDiagonal) {
-      final diagPaint = Paint()
-        ..color = color.withOpacity(color.opacity * 0.5)
-        ..strokeWidth = 0.5;
-      for (double x = -size.height; x < size.width; x += step * 2) {
-        canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), diagPaint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

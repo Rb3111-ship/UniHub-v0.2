@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
+import '../../../core/models/categories.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/widgets/event_image.dart';
+import '../../../core/widgets/wallpaper.dart';
 import 'register_action.dart';
 
 class EventDetailsScreen extends StatelessWidget {
@@ -37,8 +39,9 @@ class EventDetailsScreen extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          if (appState.currentRole == UserRole.student)
-            Positioned.fill(child: _buildBackgroundOverlay(context, appState)),
+          Positioned.fill(
+            child: Wallpaper(pattern: appState.selectedWallpaper, brand: appState.getActiveTenantColor()),
+          ),
           Column(
             children: [
               Expanded(
@@ -132,7 +135,7 @@ class EventDetailsScreen extends StatelessWidget {
                                                 border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
                                               ),
                                               child: Text(
-                                                c,
+                                                categoryLabel(l10n, c),
                                                 style: TextStyle(
                                                     fontSize: 9, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary),
                                               ),
@@ -244,35 +247,6 @@ class EventDetailsScreen extends StatelessWidget {
         Expanded(child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w600))),
       ]),
     );
-  }
-
-  Widget _buildBackgroundOverlay(BuildContext context, AppState appState) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final pattern = appState.selectedWallpaper;
-
-    if (pattern == WallpaperPattern.cyberAurora) {
-      return Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [const Color(0xFF07040C), const Color(0xFF140726), const Color(0xFF051126)]
-                : [const Color(0xFFF7F2FF), const Color(0xFFF0F5FF), const Color(0xFFFFF5FA)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      );
-    } else if (pattern == WallpaperPattern.frostedGeometry) {
-      return Container(
-        color: isDark ? const Color(0xFF141416) : const Color(0xFFFAF9FC),
-        child: CustomPaint(
-          painter: _DetailsGridPainter(color: theme.colorScheme.onSurface.withOpacity(0.04)),
-        ),
-      );
-    } else {
-      return Container(color: isDark ? const Color(0xFF121214) : const Color(0xFFF5F5F7));
-    }
   }
 
   Widget _buildGlassmorphicCard(BuildContext context, {required Widget child}) {
@@ -453,27 +427,4 @@ class _HostCard extends StatelessWidget {
       },
     );
   }
-}
-
-class _DetailsGridPainter extends CustomPainter {
-  final Color color;
-  _DetailsGridPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 0.8;
-    const step = 45.0;
-
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -1,6 +1,6 @@
 name: uni_events_app
 description: A multi-tenant university events app with role-based shell navigation and dual-language localization.
-version: 1.0.0+1
+version: 0.2.3+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

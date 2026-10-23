@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
+import '../../../core/models/categories.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/utils/image_type.dart';
 
@@ -24,6 +25,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   final _locationController = TextEditingController();
+  // Shown when "Other" is picked: the organizer's own category name.
+  final _customCategoryController = TextEditingController();
 
   final List<String> _selectedCategories = ['Sports'];
   double _capacity = 100;
@@ -56,9 +59,16 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
       _titleController.text = e.title;
       _descController.text = e.description;
       _locationController.text = e.location;
-      _selectedCategories
-        ..clear()
-        ..addAll(e.categories);
+      _selectedCategories.clear();
+      for (final c in e.categories) {
+        if (!isStandardCategory(c) && _customCategoryController.text.isEmpty) {
+          // The custom category goes back into the "Other" text field.
+          _customCategoryController.text = c;
+          if (!_selectedCategories.contains('Other')) _selectedCategories.add('Other');
+        } else if (!_selectedCategories.contains(c)) {
+          _selectedCategories.add(c);
+        }
+      }
       _selectedDate = e.date;
       _endDate = e.endDate;
       _requiresQr = e.requiresQrCode;
@@ -72,6 +82,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     _titleController.addListener(() => setState(() {}));
     _descController.addListener(() => setState(() {}));
     _locationController.addListener(() => setState(() {}));
+    _customCategoryController.addListener(() => setState(() {}));
   }
 
   @override
@@ -79,7 +90,19 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     _titleController.dispose();
     _descController.dispose();
     _locationController.dispose();
+    _customCategoryController.dispose();
     super.dispose();
+  }
+
+  /// The categories to save: "Other" is replaced by the typed category, if any.
+  List<String> _categoriesForSave() {
+    final custom = normalizeCustomCategory(_customCategoryController.text);
+    final result = <String>[];
+    for (final c in _selectedCategories) {
+      final value = (c == 'Other' && custom != null) ? custom : c;
+      if (!result.contains(value)) result.add(value);
+    }
+    return result.isEmpty ? ['Other'] : result;
   }
 
   Future<void> _pickImage(AppLocalizations l10n) async {
@@ -206,7 +229,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         isUniversityOfficial: original.isUniversityOfficial,
         requiresQrCode: _requiresQr,
         allowReviews: _allowReviews,
-        categories: List.from(_selectedCategories),
+        categories: _categoriesForSave(),
         capacity: _unlimited ? null : _capacity.round(),
         priceCents: original.priceCents,
         status: original.status,
@@ -383,6 +406,24 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   _buildCategoryChip("Other", localizations.categoryOther, localizations),
                 ],
               ),
+              if (_selectedCategories.contains('Other')) ...[
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _customCategoryController,
+                  maxLength: maxCustomCategoryLength,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: localizations.formCustomCategoryLabel,
+                    hintText: localizations.formCustomCategoryHint,
+                    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    prefixIcon: const Icon(Icons.label_rounded),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) return null; // optional: stays "Other"
+                    return normalizeCustomCategory(val) == null ? localizations.formCustomCategoryError : null;
+                  },
+                ),
+              ],
               const SizedBox(height: 16),
 
               // Location
@@ -422,7 +463,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildSectionHeader(localizations.formFieldCapacity),
+                  Flexible(child: _buildSectionHeader(localizations.formFieldCapacity)),
                   Text(
                     _unlimited ? '\u221e' : _capacity.round().toString(),
                     style: TextStyle(
@@ -561,7 +602,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       isUniversityOfficial: isOfficial,
                       requiresQrCode: _requiresQr,
                       allowReviews: _allowReviews,
-                      categories: List.from(_selectedCategories),
+                      categories: _categoriesForSave(),
                       capacity: _unlimited ? null : _capacity.round(),
                       endDate: _endDate,
                       imagePath: imagePath,
@@ -596,6 +637,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                     _titleController.clear();
                     _descController.clear();
                     _locationController.clear();
+                    _customCategoryController.clear();
                     setState(() {
                       _requiresQr = true;
                       _allowReviews = true;
@@ -711,12 +753,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     final previewDesc = _descController.text.isNotEmpty ? _descController.text : localizations.previewDescPlaceholder;
     final locale = Localizations.localeOf(context).toString();
 
-    final firstCat = _selectedCategories.isNotEmpty ? _selectedCategories.first : 'Other';
-    IconData categoryIcon = Icons.event_rounded;
-    if (firstCat == 'Music') categoryIcon = Icons.music_note_rounded;
-    if (firstCat == 'Tech') categoryIcon = Icons.code_rounded;
-    if (firstCat == 'Sports') categoryIcon = Icons.sports_soccer_rounded;
-    if (firstCat == 'Arts') categoryIcon = Icons.palette_rounded;
+    final previewIcon = categoryIcon(_categoriesForSave().first);
 
     return Container(
       decoration: BoxDecoration(
@@ -763,7 +800,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
-                          categoryIcon,
+                          previewIcon,
                           color: isOfficial ? universityColor : theme.colorScheme.primary,
                           size: 24,
                         ),
@@ -782,7 +819,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            Row(
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
                               children: [
                                 // Official/Public Badge
                                 Container(
@@ -804,7 +843,6 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 6),
                                 // QR code scanner badge
                                 if (_requiresQr)
                                   Container(
@@ -814,6 +852,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(Icons.qr_code_2_rounded, size: 10, color: theme.colorScheme.tertiary),
                                         const SizedBox(width: 2),
@@ -875,18 +914,24 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          if (_allowReviews)
-                            Row(
-                              children: [
-                                Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade700),
-                                const SizedBox(width: 4),
-                                Text(localizations.previewReviewsOn, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                              ],
-                            ),
-                        ],
-                      ),
+                      if (_allowReviews)
+                        Flexible(
+                          child: Row(
+                            children: [
+                              Icon(Icons.star_rounded, size: 16, color: Colors.amber.shade700),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(localizations.previewReviewsOn,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        const SizedBox(),
+                      const SizedBox(width: 8),
                       Row(
                         children: [
                           ElevatedButton(

@@ -36,7 +36,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tabDashboard => 'Dashboard';
 
   @override
-  String get tabCreateEvent => 'Event erstellen';
+  String get tabCreateEvent => 'Erstellen';
 
   @override
   String get tabScanner => 'Scanner';
@@ -780,7 +780,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get wallpaperHint =>
-      'Wird hinter dem Event-Feed für Studierende angezeigt.';
+      'Wird in beiden Ansichten hinter den Hauptseiten angezeigt. Auf diesem Gerät gespeichert.';
 
   @override
   String get privacyTitle => 'Datenschutz & Daten';
@@ -1171,4 +1171,29 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dashboardClaimedAttendance => 'Gibt Teilnahme an';
+
+  @override
+  String get wallpaperDots => 'Punkte';
+
+  @override
+  String get wallpaperWaves => 'Wellen';
+
+  @override
+  String get wallpaperAurora => 'Polarlicht';
+
+  @override
+  String get wallpaperOcean => 'Ozean';
+
+  @override
+  String get wallpaperBubbles => 'Blasen';
+
+  @override
+  String get formCustomCategoryLabel => 'Eigene Kategorie (optional)';
+
+  @override
+  String get formCustomCategoryHint => 'z. B. Yoga, Gaming, Karriere';
+
+  @override
+  String get formCustomCategoryError =>
+      'Bitte 2 bis 30 Buchstaben oder Zahlen verwenden.';
 }
