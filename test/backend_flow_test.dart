@@ -261,7 +261,14 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await _settle(tester, rounds: 3);
 
+    // The wallpaper choices are folded away until the card is opened.
+    expect(find.text('Grid'), findsNothing);
+    await tester.dragUntilVisible(find.text('Wallpaper Overlay'), find.byType(ListView).first, const Offset(0, -250));
+    await _settle(tester, rounds: 10);
+    await tester.tap(find.text('Wallpaper Overlay'));
+    await _settle(tester, rounds: 4);
     await tester.dragUntilVisible(find.text('Grid'), find.byType(ListView).first, const Offset(0, -250));
+    await _settle(tester, rounds: 10);
     await tester.tap(find.text('Grid'));
     await _settle(tester, rounds: 2);
     expect(state.selectedWallpaper, WallpaperPattern.frostedGeometry);

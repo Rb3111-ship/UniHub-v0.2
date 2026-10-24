@@ -80,21 +80,37 @@ class StudentProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          _sectionTitle(context, l10n.prefWallpaper),
-          Padding(
-            padding: const EdgeInsets.only(left: 4, top: 2, bottom: 8),
-            child: Text(l10n.wallpaperHint, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
-          ),
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 0.78,
-            children: [
-              for (final pattern in wallpaperChoices) _wallpaperCard(context, appState, pattern, wallpaperName(l10n, pattern)),
-            ],
+          // Folded away by default so the profile page stays calm.
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
+            child: ExpansionTile(
+              shape: const Border(),
+              collapsedShape: const Border(),
+              leading: Icon(Icons.wallpaper_rounded, color: theme.colorScheme.primary),
+              title: Text(l10n.prefWallpaper, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              subtitle: Text(wallpaperName(l10n, appState.selectedWallpaper),
+                  style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(l10n.wallpaperHint, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+                ),
+                GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 0.78,
+                  children: [
+                    for (final pattern in wallpaperChoices) _wallpaperCard(context, appState, pattern, wallpaperName(l10n, pattern)),
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
