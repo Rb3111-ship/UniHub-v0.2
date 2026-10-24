@@ -16,13 +16,16 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _formKey = GlobalKey<FormState>();
+  var _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _name = TextEditingController();
   final _code = TextEditingController();
 
   _Mode _mode = _Mode.signIn;
+  // The address the code was sent to. Kept separately so the code screens need
+  // no (locked) e-mail field.
+  String _pendingEmail = '';
   bool _busy = false;
   bool _hidePassword = true;
   String? _error;
@@ -43,8 +46,9 @@ class _AuthScreenState extends State<AuthScreen> {
       _error = null;
       _info = null;
       _code.clear();
+      // A fresh form drops old error messages but keeps what was typed.
+      _formKey = GlobalKey<FormState>();
     });
-    _formKey.currentState?.reset();
   }
 
   String _message(Object e, AppLocalizations l10n) {
@@ -87,21 +91,40 @@ class _AuthScreenState extends State<AuthScreen> {
   void _submit(AppState appState, AppLocalizations l10n) {
     switch (_mode) {
       case _Mode.signIn:
-        _run(() => appState.signIn(_email.text, _password.text), l10n);
+        _run(() async {
+          try {
+            await appState.signIn(_email.text, _password.text);
+          } on AuthApiException catch (e) {
+            if (e.code != 'email_not_confirmed') rethrow;
+            // Signed up earlier but never entered the code: send a new one.
+            _pendingEmail = _email.text.trim();
+            await appState.resendSignUpCode(_pendingEmail);
+            if (mounted) {
+              _go(_Mode.verify);
+              setState(() => _info = l10n.authConfirmFirst);
+            }
+          }
+        }, l10n);
       case _Mode.signUp:
         _run(() async {
           final signedIn = await appState.signUp(_email.text, _password.text, _name.text);
-          if (!signedIn && mounted) _go(_Mode.verify);
+          if (!signedIn && mounted) {
+            _pendingEmail = _email.text.trim();
+            _go(_Mode.verify);
+          }
         }, l10n);
       case _Mode.verify:
-        _run(() => appState.verifySignUpCode(_email.text, _code.text), l10n);
+        _run(() => appState.verifySignUpCode(_pendingEmail, _code.text), l10n);
       case _Mode.forgot:
         _run(() async {
           await appState.sendPasswordResetCode(_email.text);
-          if (mounted) _go(_Mode.reset);
+          if (mounted) {
+            _pendingEmail = _email.text.trim();
+            _go(_Mode.reset);
+          }
         }, l10n);
       case _Mode.reset:
-        _run(() => appState.resetPasswordWithCode(_email.text, _code.text, _password.text), l10n);
+        _run(() => appState.resetPasswordWithCode(_pendingEmail, _code.text, _password.text), l10n);
     }
   }
 
@@ -142,13 +165,13 @@ class _AuthScreenState extends State<AuthScreen> {
       controller: _email,
       keyboardType: TextInputType.emailAddress,
       autofillHints: const [AutofillHints.email],
-      readOnly: _mode == _Mode.verify || _mode == _Mode.reset,
       onChanged: (_) => setState(() {}),
       decoration: InputDecoration(labelText: l10n.authEmail, border: const OutlineInputBorder()),
       validator: (v) => _validateEmail(v, l10n),
     );
     final codeField = TextFormField(
       controller: _code,
+      autofocus: true,
       keyboardType: TextInputType.number,
       autofillHints: const [AutofillHints.oneTimeCode],
       decoration: InputDecoration(labelText: l10n.authCode, border: const OutlineInputBorder()),
@@ -182,11 +205,17 @@ class _AuthScreenState extends State<AuthScreen> {
           _passwordField(l10n, l10n.authPassword, isNew: true),
         ];
       case _Mode.verify:
-        return [Text(l10n.authVerifyBody(_email.text.trim())), gap, emailField, gap, codeField];
+        return [Text(l10n.authVerifyBody(_pendingEmail)), gap, codeField];
       case _Mode.forgot:
         return [Text(l10n.authResetBody), gap, emailField];
       case _Mode.reset:
-        return [emailField, gap, codeField, gap, _passwordField(l10n, l10n.authNewPassword, isNew: true)];
+        return [
+          Text(l10n.authVerifyBody(_pendingEmail)),
+          gap,
+          codeField,
+          gap,
+          _passwordField(l10n, l10n.authNewPassword, isNew: true),
+        ];
     }
   }
 
@@ -209,12 +238,13 @@ class _AuthScreenState extends State<AuthScreen> {
         return [
           link(l10n.authResend, () async {
             try {
-              await appState.resendSignUpCode(_email.text);
+              await appState.resendSignUpCode(_pendingEmail);
               if (mounted) setState(() => _info = l10n.authResent);
             } catch (e) {
               if (mounted) setState(() => _error = _message(e, l10n));
             }
           }),
+          link(l10n.authChangeEmail, () => _go(_Mode.signUp)),
           link(l10n.authBackToSignIn, () => _go(_Mode.signIn)),
         ];
       case _Mode.forgot:

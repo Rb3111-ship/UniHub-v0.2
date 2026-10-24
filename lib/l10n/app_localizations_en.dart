@@ -1174,4 +1174,72 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formCustomCategoryError => 'Use 2 to 30 letters or numbers.';
+
+  @override
+  String get posterShowFull => 'Show the whole poster';
+
+  @override
+  String get posterClose => 'Close';
+
+  @override
+  String get linkCopied => 'No app found to open this, so it was copied.';
+
+  @override
+  String get detailsContactTitle => 'Contact & links';
+
+  @override
+  String get contactWebsite => 'Website';
+
+  @override
+  String get contactEmail => 'Email';
+
+  @override
+  String get contactPhone => 'Phone';
+
+  @override
+  String get formContactSection => 'Contact & links (optional)';
+
+  @override
+  String get formContactHint =>
+      'Students see these as tappable links on the event page.';
+
+  @override
+  String get formWebsiteError => 'Enter a web address like www.example.org.';
+
+  @override
+  String get formPhoneError =>
+      'Enter a phone number (digits, spaces and + - / ( ) only).';
+
+  @override
+  String get otherCategoriesTitle => 'More categories';
+
+  @override
+  String get otherCategoriesAll => 'All other events';
+
+  @override
+  String get otherCategoriesEmpty => 'No other categories yet.';
+
+  @override
+  String get searchHint => 'Search events, categories, organizers';
+
+  @override
+  String get searchOpen => 'Search';
+
+  @override
+  String get searchClose => 'Close search';
+
+  @override
+  String get searchNoResults => 'No events match your search.';
+
+  @override
+  String byOrganizer(String name) {
+    return 'by $name';
+  }
+
+  @override
+  String get authConfirmFirst =>
+      'Please confirm your email first. We sent you a new code.';
+
+  @override
+  String get authChangeEmail => 'Wrong email? Start again';
 }

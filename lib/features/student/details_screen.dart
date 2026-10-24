@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/categories.dart';
+import '../../../core/models/event_host.dart';
 import '../../../core/models/event_model.dart';
+import '../../../core/utils/open_link.dart';
 import '../../../core/widgets/event_image.dart';
+import '../../../core/widgets/poster_viewer.dart';
 import '../../../core/widgets/wallpaper.dart';
 import 'register_action.dart';
 
@@ -52,16 +55,31 @@ class EventDetailsScreen extends StatelessWidget {
                       pinned: true,
                       backgroundColor: isDark ? const Color(0xFF1E1E22) : brandColor,
                       iconTheme: const IconThemeData(color: Colors.white),
+                      actions: [
+                        if (event.imageUrl != null)
+                          IconButton(
+                            tooltip: l10n.posterShowFull,
+                            icon: const Icon(Icons.open_in_full_rounded, color: Colors.white),
+                            onPressed: () => showPoster(context, event.imageUrl!, 'event-image-${event.id}'),
+                          ),
+                      ],
                       flexibleSpace: FlexibleSpaceBar(
                         background: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Hero(
-                              tag: 'event-image-${event.id}',
-                              child: EventImage(url: event.imageUrl, color: brandColor, iconSize: 72),
+                            // Tap the poster to see all of it (the header crops it).
+                            GestureDetector(
+                              onTap: event.imageUrl == null
+                                  ? null
+                                  : () => showPoster(context, event.imageUrl!, 'event-image-${event.id}'),
+                              child: Hero(
+                                tag: 'event-image-${event.id}',
+                                child: EventImage(url: event.imageUrl, color: brandColor, iconSize: 72),
+                              ),
                             ),
                             Positioned.fill(
-                              child: DecoratedBox(
+                              child: IgnorePointer(
+                                child: DecoratedBox(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
@@ -73,6 +91,7 @@ class EventDetailsScreen extends StatelessWidget {
                                     end: Alignment.bottomCenter,
                                   ),
                                 ),
+                              ),
                               ),
                             ),
                             Positioned(
@@ -192,6 +211,7 @@ class EventDetailsScreen extends StatelessWidget {
                             ),
                           ),
                           if (event.organizerId != null) _HostCard(organizerId: event.organizerId!),
+                          if (event.hasContact) _ContactCard(event: event, color: brandColor),
                           const SizedBox(height: 24),
                           if (event.description.trim().isNotEmpty) ...[
                             Text(l10n.detailsAbout,
@@ -384,7 +404,7 @@ class EventDetailsScreen extends StatelessWidget {
   }
 }
 
-/// "Hosted by" with the organizer's name and photo.
+/// "Hosted by" with the organizer's organization, name and photo.
 class _HostCard extends StatelessWidget {
   const _HostCard({required this.organizerId});
 
@@ -394,20 +414,23 @@ class _HostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    return FutureBuilder<({String name, String? photoUrl})?>(
-      future: context.read<AppState>().organizerFor(organizerId),
+    final appState = context.read<AppState>();
+    return FutureBuilder<EventHost?>(
+      future: appState.organizerFor(organizerId),
+      initialData: appState.hostOf(organizerId),
       builder: (context, snap) {
         final host = snap.data;
-        if (host == null || host.name.isEmpty) return const SizedBox.shrink();
+        if (host == null || host.label.isEmpty) return const SizedBox.shrink();
+        final showPerson = host.label != host.name && host.name.isNotEmpty;
         return Padding(
           padding: const EdgeInsets.only(top: 16),
           child: Row(
             children: [
               CircleAvatar(
-                radius: 20,
+                radius: 22,
                 backgroundColor: theme.colorScheme.primary,
                 foregroundImage: host.photoUrl == null ? null : NetworkImage(host.photoUrl!),
-                child: Text(host.name.characters.first.toUpperCase(),
+                child: Text(host.label.characters.first.toUpperCase(),
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 12),
@@ -417,7 +440,9 @@ class _HostCard extends StatelessWidget {
                   children: [
                     Text(l10n.detailsHostedBy,
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary)),
-                    Text(host.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(host.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    if (showPerson)
+                      Text(host.name, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
                   ],
                 ),
               ),
@@ -425,6 +450,95 @@ class _HostCard extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// The organizer's website, e-mail and phone as tappable links.
+class _ContactCard extends StatelessWidget {
+  const _ContactCard({required this.event, required this.color});
+
+  final Event event;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    Widget link(IconData icon, String label, String value, Uri uri) => Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => openLink(context, uri, value),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: color.withOpacity(0.15),
+                    child: Icon(icon, size: 18, color: color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label,
+                            style: TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary)),
+                        Text(
+                          value,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                            decorationColor: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.open_in_new_rounded, size: 18, color: color),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    final website = event.websiteUrl;
+    final email = event.contactEmail;
+    final phone = event.contactPhone;
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.35), width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
+              child: Text(l10n.detailsContactTitle,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            ),
+            if (website != null)
+              link(Icons.language_rounded, l10n.contactWebsite, website.replaceFirst(RegExp(r'^https://'), ''),
+                  Uri.parse(website)),
+            if (email != null) link(Icons.mail_rounded, l10n.contactEmail, email, Uri(scheme: 'mailto', path: email)),
+            if (phone != null)
+              link(Icons.phone_rounded, l10n.contactPhone, phone,
+                  Uri(scheme: 'tel', path: phone.replaceAll(RegExp(r'[^0-9+]'), ''))),
+          ],
+        ),
+      ),
     );
   }
 }

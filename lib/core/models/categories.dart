@@ -48,6 +48,31 @@ IconData categoryIcon(String key) => switch (key) {
 /// "Other" also covers every custom category.
 bool matchesCategory(List<String> categories, String selected) {
   if (selected == 'All') return true;
-  if (categories.contains(selected)) return true;
-  return selected == 'Other' && categories.any((c) => !isStandardCategory(c));
+  if (selected == 'Other') return categories.any((c) => c == 'Other' || !isStandardCategory(c));
+  final wanted = selected.toLowerCase();
+  return categories.any((c) => c.toLowerCase() == wanted);
+}
+
+/// At most this many custom categories are offered under "Other".
+const maxOtherCategories = 15;
+
+/// The custom categories used by the most events (ties: alphabetical), at most
+/// [maxOtherCategories]. Recomputed whenever the feed reloads.
+List<({String name, int count})> topCustomCategories(Iterable<List<String>> eventCategories) {
+  final counts = <String, int>{};
+  final names = <String, String>{};
+  for (final cats in eventCategories) {
+    for (final c in cats.toSet()) {
+      if (isStandardCategory(c)) continue;
+      final key = c.toLowerCase();
+      counts[key] = (counts[key] ?? 0) + 1;
+      names.putIfAbsent(key, () => c);
+    }
+  }
+  final keys = counts.keys.toList()
+    ..sort((a, b) {
+      final byCount = counts[b]!.compareTo(counts[a]!);
+      return byCount != 0 ? byCount : a.compareTo(b);
+    });
+  return [for (final k in keys.take(maxOtherCategories)) (name: names[k]!, count: counts[k]!)];
 }

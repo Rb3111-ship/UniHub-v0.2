@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/categories.dart';
+import '../../../core/models/event_host.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/utils/image_type.dart';
 
@@ -27,6 +28,10 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
   final _locationController = TextEditingController();
   // Shown when "Other" is picked: the organizer's own category name.
   final _customCategoryController = TextEditingController();
+  // Optional ways for students to reach the organizer.
+  final _contactEmailController = TextEditingController();
+  final _contactPhoneController = TextEditingController();
+  final _websiteController = TextEditingController();
 
   final List<String> _selectedCategories = ['Sports'];
   double _capacity = 100;
@@ -77,6 +82,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
       _capacity = (e.capacity ?? 100).clamp(1, 1000).toDouble();
       _imagePath = e.imagePath;
       _existingImageUrl = e.imageUrl;
+      _contactEmailController.text = e.contactEmail ?? '';
+      _contactPhoneController.text = e.contactPhone ?? '';
+      _websiteController.text = e.websiteUrl ?? '';
     }
     // Add text controllers listeners to trigger rebuilds for the live preview card
     _titleController.addListener(() => setState(() {}));
@@ -91,6 +99,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     _descController.dispose();
     _locationController.dispose();
     _customCategoryController.dispose();
+    _contactEmailController.dispose();
+    _contactPhoneController.dispose();
+    _websiteController.dispose();
     super.dispose();
   }
 
@@ -235,6 +246,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         status: original.status,
         imageUrl: original.imageUrl,
         imagePath: imagePath,
+        contactEmail: EventContact.email(_contactEmailController.text),
+        contactPhone: EventContact.phone(_contactPhoneController.text),
+        websiteUrl: EventContact.website(_websiteController.text),
       );
       await appState.updateEvent(updated);
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text(l10n.eventSaved)));
@@ -577,6 +591,23 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                 ),
               ),
+              const SizedBox(height: 16),
+
+              // Contact & links (optional; shown as tappable links to students)
+              _buildSectionHeader(localizations.formContactSection),
+              Padding(
+                padding: const EdgeInsets.only(left: 2, top: 2, bottom: 8),
+                child: Text(localizations.formContactHint,
+                    style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+              ),
+              _contactField(_websiteController, localizations.contactWebsite, 'www.example.org',
+                  Icons.language_rounded, TextInputType.url, EventContact.website, localizations.formWebsiteError),
+              const SizedBox(height: 10),
+              _contactField(_contactEmailController, localizations.contactEmail, 'events@example.org',
+                  Icons.mail_rounded, TextInputType.emailAddress, EventContact.email, localizations.authErrInvalidEmail),
+              const SizedBox(height: 10),
+              _contactField(_contactPhoneController, localizations.contactPhone, '+49 40 123456',
+                  Icons.phone_rounded, TextInputType.phone, EventContact.phone, localizations.formPhoneError),
               const SizedBox(height: 24),
 
               // Publish Button
@@ -606,6 +637,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       capacity: _unlimited ? null : _capacity.round(),
                       endDate: _endDate,
                       imagePath: imagePath,
+                      contactEmail: EventContact.email(_contactEmailController.text),
+                      contactPhone: EventContact.phone(_contactPhoneController.text),
+                      websiteUrl: EventContact.website(_websiteController.text),
                     );
 
                     try {
@@ -638,6 +672,9 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                     _descController.clear();
                     _locationController.clear();
                     _customCategoryController.clear();
+                    _contactEmailController.clear();
+                    _contactPhoneController.clear();
+                    _websiteController.clear();
                     setState(() {
                       _requiresQr = true;
                       _allowReviews = true;
@@ -724,6 +761,24 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                 ],
               ),
       ),
+    );
+  }
+
+  Widget _contactField(TextEditingController controller, String label, String hint, IconData icon,
+      TextInputType keyboard, String? Function(String) check, String error) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboard,
+      maxLength: 500,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        counterText: '',
+        border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+        prefixIcon: Icon(icon),
+      ),
+      // '' means "filled in but not valid"; empty input is fine (optional).
+      validator: (val) => check(val ?? '') == '' ? error : null,
     );
   }
 

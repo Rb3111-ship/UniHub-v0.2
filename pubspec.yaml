@@ -1,6 +1,6 @@
 name: uni_events_app
 description: A multi-tenant university events app with role-based shell navigation and dual-language localization.
-version: 0.2.3+4
+version: 0.2.4+5
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -17,6 +17,7 @@ dependencies:
   supabase_flutter: ^2.18.3
   image_picker: ^1.2.4
   shared_preferences: ^2.5.3
+  url_launcher: ^6.3.3
 
   # Firebase core & auth (placeholder setup)
   # firebase_core: ^3.0.0

@@ -17,6 +17,10 @@ class Event {
   final String status; // draft | published | cancelled
   final String? imagePath; // path inside the event-images storage bucket
   final String? organizerId; // null in demo data
+  // Optional ways to reach the organizer, shown as links on the event page.
+  final String? contactEmail;
+  final String? contactPhone;
+  final String? websiteUrl;
 
   const Event({
     required this.id,
@@ -37,7 +41,12 @@ class Event {
     this.status = 'published',
     this.imagePath,
     this.organizerId,
+    this.contactEmail,
+    this.contactPhone,
+    this.websiteUrl,
   }) : _endDate = endDate;
+
+  bool get hasContact => contactEmail != null || contactPhone != null || websiteUrl != null;
 
   bool get isCancelled => status == 'cancelled';
 
@@ -68,6 +77,9 @@ class Event {
       status: (row['status'] as String?) ?? 'published',
       imagePath: row['image_path'] as String?,
       organizerId: row['organizer_id'] as String?,
+      contactEmail: row['contact_email'] as String?,
+      contactPhone: row['contact_phone'] as String?,
+      websiteUrl: row['website_url'] as String?,
     );
   }
 
@@ -92,6 +104,9 @@ class Event {
     String? status,
     String? imagePath,
     String? organizerId,
+    String? contactEmail,
+    String? contactPhone,
+    String? websiteUrl,
   }) {
     return Event(
       id: id ?? this.id,
@@ -112,6 +127,9 @@ class Event {
       status: status ?? this.status,
       imagePath: imagePath ?? this.imagePath,
       organizerId: organizerId ?? this.organizerId,
+      contactEmail: contactEmail ?? this.contactEmail,
+      contactPhone: contactPhone ?? this.contactPhone,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../models/event_host.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
 import '../models/admin_model.dart';
@@ -306,6 +307,7 @@ class AppState extends ChangeNotifier {
   Future<void> uploadAvatar(Uint8List bytes, String contentType, String extension) async {
     _avatarPath = await _accountRepository!.uploadAvatar(bytes, contentType, extension, _avatarPath);
     _organizers.remove(currentUserId); // event pages show the new photo
+    _hosts.remove(currentUserId);
     notifyListeners();
   }
 
@@ -315,34 +317,71 @@ class AppState extends ChangeNotifier {
     await _accountRepository!.removeAvatar(path);
     _avatarPath = null;
     _organizers.remove(currentUserId);
+    _hosts.remove(currentUserId);
     notifyListeners();
   }
 
-  // Organizer name + photo shown on event pages (cached per organizer).
-  final Map<String, Future<({String name, String? photoUrl})?>> _organizers = {};
+  // Organizer name, organization and photo shown in the feed and on event pages
+  // (cached per organizer; loaded for the whole feed in one request).
+  final Map<String, Future<EventHost?>> _organizers = {};
+  final Map<String, EventHost> _hosts = {};
 
-  Future<({String name, String? photoUrl})?> organizerFor(String organizerId) {
+  /// The organizer of an event if already loaded (null while loading or unknown).
+  EventHost? hostOf(String? organizerId) => organizerId == null ? null : _hosts[organizerId];
+
+  EventHost _hostFromRow(SupabaseClient c, Map<String, dynamic> row) {
+    final path = row['avatar_path'] as String?;
+    return EventHost(
+      name: (row['display_name'] as String?) ?? '',
+      organization: row['organization_name'] as String?,
+      photoUrl: path == null ? null : c.storage.from('avatars').getPublicUrl(path),
+    );
+  }
+
+  Future<EventHost?> organizerFor(String organizerId) {
     final c = _client;
     if (c == null) return Future.value(null);
+    final known = _hosts[organizerId];
+    if (known != null) return Future.value(known);
     return _organizers[organizerId] ??= () async {
       try {
         final row = await c
             .from('organizer_profiles')
-            .select('display_name, avatar_path')
+            .select('id, display_name, avatar_path, organization_name')
             .eq('id', organizerId)
             .maybeSingle()
             .timeout(_requestTimeout);
         if (row == null) return null;
-        final path = row['avatar_path'] as String?;
-        return (
-          name: (row['display_name'] as String?) ?? '',
-          photoUrl: path == null ? null : c.storage.from('avatars').getPublicUrl(path),
-        );
+        return _hosts[organizerId] = _hostFromRow(c, row);
       } catch (_) {
         _organizers.remove(organizerId); // try again next time
         return null;
       }
     }();
+  }
+
+  /// Loads the organizers of [events] that are not cached yet, in one request.
+  Future<void> _loadHosts(List<Event> events) async {
+    final c = _client;
+    if (c == null) return;
+    final missing = {
+      for (final e in events)
+        if (e.organizerId != null && !_hosts.containsKey(e.organizerId)) e.organizerId!,
+    }.toList();
+    if (missing.isEmpty) return;
+    try {
+      final rows = await c
+          .from('organizer_profiles')
+          .select('id, display_name, avatar_path, organization_name')
+          .inFilter('id', missing)
+          .timeout(_requestTimeout);
+      for (final row in rows) {
+        _hosts[row['id'] as String] = _hostFromRow(c, row);
+      }
+      notifyListeners();
+    } catch (_) {
+      // Names are optional extras; the feed works without them.
+    }
   }
 
   /// A JSON copy of everything stored about the signed-in user.
@@ -540,6 +579,7 @@ class AppState extends ChangeNotifier {
       return refreshEvents();
     }
     refreshRatings();
+    _loadHosts(_events);
   }
 
   bool _eventsReloadPending = false;

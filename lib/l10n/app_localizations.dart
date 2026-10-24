@@ -2245,6 +2245,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use 2 to 30 letters or numbers.'**
   String get formCustomCategoryError;
+
+  /// No description provided for @posterShowFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the whole poster'**
+  String get posterShowFull;
+
+  /// No description provided for @posterClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get posterClose;
+
+  /// No description provided for @linkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'No app found to open this, so it was copied.'**
+  String get linkCopied;
+
+  /// No description provided for @detailsContactTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact & links'**
+  String get detailsContactTitle;
+
+  /// No description provided for @contactWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website'**
+  String get contactWebsite;
+
+  /// No description provided for @contactEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get contactEmail;
+
+  /// No description provided for @contactPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get contactPhone;
+
+  /// No description provided for @formContactSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact & links (optional)'**
+  String get formContactSection;
+
+  /// No description provided for @formContactHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Students see these as tappable links on the event page.'**
+  String get formContactHint;
+
+  /// No description provided for @formWebsiteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a web address like www.example.org.'**
+  String get formWebsiteError;
+
+  /// No description provided for @formPhoneError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a phone number (digits, spaces and + - / ( ) only).'**
+  String get formPhoneError;
+
+  /// No description provided for @otherCategoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'More categories'**
+  String get otherCategoriesTitle;
+
+  /// No description provided for @otherCategoriesAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All other events'**
+  String get otherCategoriesAll;
+
+  /// No description provided for @otherCategoriesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No other categories yet.'**
+  String get otherCategoriesEmpty;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search events, categories, organizers'**
+  String get searchHint;
+
+  /// No description provided for @searchOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get searchOpen;
+
+  /// No description provided for @searchClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close search'**
+  String get searchClose;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No events match your search.'**
+  String get searchNoResults;
+
+  /// No description provided for @byOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'by {name}'**
+  String byOrganizer(String name);
+
+  /// No description provided for @authConfirmFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your email first. We sent you a new code.'**
+  String get authConfirmFirst;
+
+  /// No description provided for @authChangeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong email? Start again'**
+  String get authChangeEmail;
 }
 
 class _AppLocalizationsDelegate

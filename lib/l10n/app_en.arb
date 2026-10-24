@@ -505,5 +505,33 @@
   "wallpaperBubbles": "Bubbles",
   "formCustomCategoryLabel": "Your own category (optional)",
   "formCustomCategoryHint": "e.g. Yoga, Gaming, Careers",
-  "formCustomCategoryError": "Use 2 to 30 letters or numbers."
+  "formCustomCategoryError": "Use 2 to 30 letters or numbers.",
+  "posterShowFull": "Show the whole poster",
+  "posterClose": "Close",
+  "linkCopied": "No app found to open this, so it was copied.",
+  "detailsContactTitle": "Contact & links",
+  "contactWebsite": "Website",
+  "contactEmail": "Email",
+  "contactPhone": "Phone",
+  "formContactSection": "Contact & links (optional)",
+  "formContactHint": "Students see these as tappable links on the event page.",
+  "formWebsiteError": "Enter a web address like www.example.org.",
+  "formPhoneError": "Enter a phone number (digits, spaces and + - / ( ) only).",
+  "otherCategoriesTitle": "More categories",
+  "otherCategoriesAll": "All other events",
+  "otherCategoriesEmpty": "No other categories yet.",
+  "searchHint": "Search events, categories, organizers",
+  "searchOpen": "Search",
+  "searchClose": "Close search",
+  "searchNoResults": "No events match your search.",
+  "byOrganizer": "by {name}",
+  "@byOrganizer": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "authConfirmFirst": "Please confirm your email first. We sent you a new code.",
+  "authChangeEmail": "Wrong email? Start again"
 }

@@ -5,12 +5,86 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/categories.dart';
 import '../../../core/models/event_model.dart';
+import '../../../core/models/event_search.dart';
 import '../../../core/widgets/event_image.dart';
 import 'details_screen.dart';
 import 'register_action.dart';
 
-class StudentHomeScreen extends StatelessWidget {
+class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
+
+  @override
+  State<StudentHomeScreen> createState() => _StudentHomeScreenState();
+}
+
+class _StudentHomeScreenState extends State<StudentHomeScreen> {
+  final _searchController = TextEditingController();
+  bool _searching = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _closeSearch() {
+    setState(() {
+      _searching = false;
+      _searchController.clear();
+    });
+  }
+
+  /// "Other" opens a short list: everything else, or one of the (at most 15)
+  /// most used categories organizers typed in themselves.
+  Future<void> _showOtherCategories(AppState appState, AppLocalizations l10n) async {
+    final top = topCustomCategories(appState.events.map((e) => e.categories));
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final selected = appState.selectedCategory;
+        Widget option(String key, String label, IconData icon, {int? count}) {
+          final isSelected = selected.toLowerCase() == key.toLowerCase();
+          return ListTile(
+            leading: Icon(icon, color: isSelected ? appState.getActiveTenantColor() : null),
+            title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+            trailing: count == null
+                ? null
+                : Text('$count', style: TextStyle(color: theme.colorScheme.secondary, fontWeight: FontWeight.bold)),
+            selected: isSelected,
+            onTap: () => Navigator.pop(ctx, key),
+          );
+        }
+
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.75),
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  child: Text(l10n.otherCategoriesTitle, style: theme.textTheme.titleMedium),
+                ),
+                option('Other', l10n.otherCategoriesAll, Icons.more_horiz_rounded),
+                if (top.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(l10n.otherCategoriesEmpty, style: TextStyle(color: theme.colorScheme.secondary)),
+                  )
+                else
+                  for (final c in top) option(c.name, c.name, Icons.label_rounded, count: c.count),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (picked != null) appState.setSelectedCategory(picked);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +92,9 @@ class StudentHomeScreen extends StatelessWidget {
     final appState = context.watch<AppState>();
     final theme = Theme.of(context);
 
-    // Categories list matching translations
+    final selected = appState.selectedCategory;
+    final customSelected = selected != 'All' && !isStandardCategory(selected);
+    // The fixed category chips. "Other" shows the chosen custom category, if any.
     final categories = [
       {'key': 'All', 'label': localizations.categoryAll, 'icon': Icons.grid_view_rounded},
       {'key': 'Music', 'label': localizations.categoryMusic, 'icon': Icons.music_note_rounded},
@@ -26,16 +102,19 @@ class StudentHomeScreen extends StatelessWidget {
       {'key': 'Sports', 'label': localizations.categorySports, 'icon': Icons.sports_soccer_rounded},
       {'key': 'Arts', 'label': localizations.categoryArts, 'icon': Icons.palette_rounded},
       {'key': 'Academic', 'label': localizations.categoryAcademic, 'icon': Icons.menu_book_rounded},
-      {'key': 'Other', 'label': localizations.categoryOther, 'icon': Icons.more_horiz_rounded},
-      // Categories organizers typed in themselves get their own filter.
-      for (final custom in _customCategories(appState.events, appState.selectedCategory))
-        {'key': custom, 'label': custom, 'icon': categoryIcon(custom)},
+      {
+        'key': 'Other',
+        'label': customSelected ? '${localizations.categoryOther}: $selected' : localizations.categoryOther,
+        'icon': Icons.expand_more_rounded,
+      },
     ];
 
-    // Filter events by selected category (checking if it matches any of the categories array)
-    final allEvents = appState.events;
-    final filteredEvents =
-        allEvents.where((e) => matchesCategory(e.categories, appState.selectedCategory)).toList();
+    // Category filter, then the search box (title, category, organizer, place).
+    final query = _searchController.text;
+    final filteredEvents = appState.events
+        .where((e) => matchesCategory(e.categories, selected))
+        .where((e) => matchesSearch(e, query, appState.hostOf(e.organizerId), localizations))
+        .toList();
 
     // Split events by official status
     final campusEvents = filteredEvents.where((e) => e.isUniversityOfficial).toList();
@@ -43,29 +122,47 @@ class StudentHomeScreen extends StatelessWidget {
     // Signed-out visitors only ever get public events, so they see a single feed.
     final guest = appState.isGuest;
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Column(
+    final titleWidget = _searching
+        ? TextField(
+            controller: _searchController,
+            autofocus: true,
+            textInputAction: TextInputAction.search,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: localizations.searchHint,
+              border: InputBorder.none,
+            ),
+          )
+        : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!guest)
                 Text(
                   appState.getTenantDisplayName(),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: appState.getActiveTenantColor(),
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: appState.getActiveTenantColor(),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               Text(
                 guest ? localizations.guestFeedTitle : localizations.studentHomeTitle,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
             ],
-          ),
+          );
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: titleWidget,
+          actions: [
+            IconButton(
+              tooltip: _searching ? localizations.searchClose : localizations.searchOpen,
+              icon: Icon(_searching ? Icons.close_rounded : Icons.search_rounded),
+              onPressed: _searching ? _closeSearch : () => setState(() => _searching = true),
+            ),
+          ],
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(guest ? 52 : 108),
             child: Column(
@@ -80,7 +177,8 @@ class StudentHomeScreen extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final cat = categories[index];
-                      final isSelected = appState.selectedCategory == cat['key'];
+                      final key = cat['key'] as String;
+                      final isSelected = key == 'Other' ? (selected == 'Other' || customSelected) : selected == key;
                       final activeColor = appState.getActiveTenantColor();
 
                       return ChoiceChip(
@@ -100,15 +198,15 @@ class StudentHomeScreen extends StatelessWidget {
                         selected: isSelected,
                         selectedColor: activeColor,
                         labelStyle: TextStyle(
-                          color: isSelected
-                              ? Colors.white
-                              : theme.colorScheme.onSurface.withOpacity(0.85),
+                          color: isSelected ? Colors.white : theme.colorScheme.onSurface.withOpacity(0.85),
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
-                        onSelected: (selected) {
-                          if (selected) {
-                            appState.setSelectedCategory(cat['key'] as String);
+                        onSelected: (_) {
+                          if (key == 'Other') {
+                            _showOtherCategories(appState, localizations);
+                          } else {
+                            appState.setSelectedCategory(key);
                           }
                         },
                       );
@@ -117,34 +215,35 @@ class StudentHomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 // Main Feeds TabBar
-                if (!guest) TabBar(
-                  indicatorColor: appState.getActiveTenantColor(),
-                  labelColor: appState.getActiveTenantColor(),
-                  unselectedLabelColor: Colors.grey,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  tabs: [
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.school_rounded, size: 18),
-                          const SizedBox(width: 8),
-                          Flexible(child: Text(localizations.tabCampusHub, overflow: TextOverflow.ellipsis)),
-                        ],
+                if (!guest)
+                  TabBar(
+                    indicatorColor: appState.getActiveTenantColor(),
+                    labelColor: appState.getActiveTenantColor(),
+                    unselectedLabelColor: Colors.grey,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    tabs: [
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.school_rounded, size: 18),
+                            const SizedBox(width: 8),
+                            Flexible(child: Text(localizations.tabCampusHub, overflow: TextOverflow.ellipsis)),
+                          ],
+                        ),
                       ),
-                    ),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.public_rounded, size: 18),
-                          const SizedBox(width: 8),
-                          Flexible(child: Text(localizations.tabPublicEvents, overflow: TextOverflow.ellipsis)),
-                        ],
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.public_rounded, size: 18),
+                            const SizedBox(width: 8),
+                            Flexible(child: Text(localizations.tabPublicEvents, overflow: TextOverflow.ellipsis)),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -162,20 +261,6 @@ class StudentHomeScreen extends StatelessWidget {
               ),
       ),
     );
-  }
-
-  /// Custom categories used by the loaded events (plus the selected one, so its
-  /// chip does not vanish while selected).
-  static List<String> _customCategories(List<Event> events, String selected) {
-    final seen = <String, String>{};
-    for (final e in events) {
-      for (final c in e.categories) {
-        if (!isStandardCategory(c)) seen.putIfAbsent(c.toLowerCase(), () => c);
-      }
-    }
-    if (!isStandardCategory(selected) && selected != 'All') seen.putIfAbsent(selected.toLowerCase(), () => selected);
-    final list = seen.values.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return list.take(12).toList();
   }
 
   Widget _buildEventGrid(
@@ -214,7 +299,8 @@ class StudentHomeScreen extends StatelessWidget {
                   Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey.shade400),
                   const SizedBox(height: 12),
                   Text(
-                    l10n.eventsEmptyCategory,
+                    _searchController.text.trim().isNotEmpty ? l10n.searchNoResults : l10n.eventsEmptyCategory,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -441,14 +527,28 @@ class StudentHomeScreen extends StatelessWidget {
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                event.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    event.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  // Who organizes it
+                                  if (appState.hostOf(event.organizerId) case final host?)
+                                    Text(
+                                      AppLocalizations.of(context)!.byOrganizer(host.label),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary),
+                                    ),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 8),

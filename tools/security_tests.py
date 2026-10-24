@@ -605,6 +605,30 @@ def run(s: Sim, tag: str) -> None:
         _, err = s.call("update public.events set categories = %s::text[] where id = %s", [cats, ev_tum])
         check(f"category rejected: {label}", err is not None, "accepted")
 
+    print("\n[20] Event contact details and organizer names")
+    s.user(org_tum)
+    _, err = s.call("update public.events set contact_email = 'club@tum.de', contact_phone = '+49 89 1234-567', "
+                    "website_url = 'https://club.example.org/events?id=1' where id = %s", [ev_tum])
+    check("organizer can save contact email, phone and website", err is None, str(err))
+    for label, col, value in (("javascript: link", "website_url", "javascript:alert(1)"),
+                              ("plain http link", "website_url", "http://example.org"),
+                              ("data: link", "website_url", "data:text/html,hi"),
+                              ("link with spaces/HTML", "website_url", "https://a.org/<script>"),
+                              ("e-mail without @", "contact_email", "club.tum.de"),
+                              ("e-mail with HTML", "contact_email", "<a>@b.de"),
+                              ("phone with letters", "contact_phone", "call me"),
+                              ("too short phone", "contact_phone", "123")):
+        _, err = s.call(f"update public.events set {col} = %s where id = %s", [value, ev_tum])
+        check(f"contact rejected: {label}", err is not None, "accepted")
+    s.user(stu_tum)
+    s.affects_nothing("a student cannot change an event's website", "update public.events set website_url = 'https://evil.example' where id = %s", [ev_tum])
+    s.anon()
+    names = {r[0] for r in s.rows("select id from public.organizer_profiles")}
+    check("anyone can see organizer names (for the feed)", org_tum in names)
+    check("organizer list shows platform admins who publish", p_admin in names)
+    check("organizer list still has no students", stu_tum not in names)
+    check("organizer_profiles has the organization name column", "organization_name" in {r[0] for r in s.rows("select column_name from information_schema.columns where table_name='organizer_profiles'")})
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {

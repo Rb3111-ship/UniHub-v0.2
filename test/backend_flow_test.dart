@@ -46,13 +46,16 @@ final _publicEvent = {
   'tenant_id': null,
   'requires_qr': true,
   'allow_reviews': true,
-  'categories': ['Music'],
+  'categories': ['Music', 'Yoga'],
   'capacity': 100,
   'price_cents': 0,
   'status': 'published',
   'image_path': null,
   'organizer_id': _uid,
   'tenants': null,
+  'contact_email': 'club@example.org',
+  'contact_phone': null,
+  'website_url': 'https://club.example.org',
 };
 
 class _FakeBackend {
@@ -82,6 +85,25 @@ class _FakeBackend {
         body = single ? row : [row];
       } else if (path.endsWith('/events') && req.method == 'GET') {
         body = [_publicEvent];
+      } else if (path.endsWith('/organizer_profiles')) {
+        final host = {
+          'id': _uid,
+          'display_name': 'Test Admin',
+          'avatar_path': null,
+          'organization_name': 'Campus Club',
+        };
+        final single = (req.headers.value('accept') ?? '').contains('vnd.pgrst.object');
+        body = single ? host : [host];
+      } else if (path.endsWith('/auth/v1/signup')) {
+        // "Confirm email" is on: a user but no session, so the app asks for the code.
+        body = {
+          'id': '33333333-3333-3333-3333-333333333333',
+          'aud': 'authenticated',
+          'email': 'new@example.org',
+          'app_metadata': {},
+          'user_metadata': {},
+          'created_at': '2026-01-01T00:00:00Z',
+        };
       } else if (path.startsWith('/auth/v1/logout')) {
         res.statusCode = 204;
         await res.close();
@@ -119,7 +141,7 @@ void main() {
     client = SupabaseClient(
       backend.url,
       'test-key',
-      authOptions: const AuthClientOptions(autoRefreshToken: false),
+      authOptions: const AuthClientOptions(autoRefreshToken: false, authFlowType: AuthFlowType.implicit),
     );
   });
 
@@ -276,6 +298,75 @@ void main() {
     await tester.enterText(field, 'Yoga');
     await _settle(tester, rounds: 2);
     expect(find.byIcon(Icons.label_rounded), findsWidgets); // the live preview uses the custom category
+    await _finish(tester);
+  });
+
+  testWidgets('sign-up code screen asks only for the code', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(ChangeNotifierProvider(
+      create: (_) => AppState(client: client),
+      child: const UniEventsApp(),
+    ));
+    await _settle(tester);
+    await tester.tap(find.text('Sign in / Sign up'));
+    await _settle(tester, rounds: 3);
+    await tester.tap(find.text('New here? Create an account'));
+    await _settle(tester, rounds: 3);
+    await tester.enterText(find.widgetWithText(TextFormField, 'Your name'), 'New Person');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'new@example.org');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'long-password');
+    await tester.tap(find.text('Create account').last);
+    await _settle(tester, rounds: 8);
+    expect(find.text("Check your email"), findsOneWidget);
+    expect(find.textContaining('new@example.org'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Email'), findsNothing); // no locked e-mail box
+    expect(find.widgetWithText(TextFormField, 'Code from your email'), findsOneWidget);
+    expect(find.text('Wrong email? Start again'), findsOneWidget);
+    await _finish(tester);
+  });
+
+  testWidgets('student feed: organizer, search, Other list, contact links', (tester) async {
+    backend.role = 'student';
+    final state = await launchSignedIn(tester);
+    await tester.tap(find.text('Public Events'));
+    await _settle(tester, rounds: 6);
+    expect(find.text('by Campus Club'), findsOneWidget);
+
+    // Search by organizer, then something that matches nothing.
+    await tester.tap(find.byIcon(Icons.search_rounded));
+    await _settle(tester, rounds: 3);
+    await tester.enterText(find.byType(TextField).first, 'campus');
+    await _settle(tester, rounds: 3);
+    expect(find.text('Open Air Concert'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).first, 'zzz');
+    await _settle(tester, rounds: 3);
+    expect(find.text('Open Air Concert'), findsNothing);
+    expect(find.text('No events match your search.'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await _settle(tester, rounds: 3);
+
+    // "Other" opens the list of custom categories.
+    await tester.dragUntilVisible(find.text('Other'), find.byType(ListView).first, const Offset(-200, 0));
+    await _settle(tester, rounds: 4);
+    await tester.tap(find.text('Other'));
+    await _settle(tester, rounds: 4);
+    expect(find.text('More categories'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ListTile, 'Yoga'));
+    await _settle(tester, rounds: 4);
+    expect(state.selectedCategory, 'Yoga');
+    expect(find.text('Other: Yoga'), findsOneWidget);
+    expect(find.text('Open Air Concert'), findsOneWidget);
+
+    // Event page: host and contact links.
+    await tester.tap(find.text('Open Air Concert'));
+    await _settle(tester, rounds: 8);
+    await tester.dragUntilVisible(find.text('Contact & links'), find.byType(CustomScrollView), const Offset(0, -250));
+    await _settle(tester, rounds: 3);
+    expect(find.text('Campus Club'), findsOneWidget);
+    expect(find.text('club.example.org'), findsOneWidget);
+    expect(find.text('club@example.org'), findsOneWidget);
     await _finish(tester);
   });
 

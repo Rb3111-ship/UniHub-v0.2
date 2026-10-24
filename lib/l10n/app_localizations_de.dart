@@ -1196,4 +1196,73 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get formCustomCategoryError =>
       'Bitte 2 bis 30 Buchstaben oder Zahlen verwenden.';
+
+  @override
+  String get posterShowFull => 'Ganzes Plakat anzeigen';
+
+  @override
+  String get posterClose => 'Schließen';
+
+  @override
+  String get linkCopied => 'Keine App zum Öffnen gefunden, daher kopiert.';
+
+  @override
+  String get detailsContactTitle => 'Kontakt & Links';
+
+  @override
+  String get contactWebsite => 'Webseite';
+
+  @override
+  String get contactEmail => 'E-Mail';
+
+  @override
+  String get contactPhone => 'Telefon';
+
+  @override
+  String get formContactSection => 'Kontakt & Links (optional)';
+
+  @override
+  String get formContactHint =>
+      'Studierende sehen das als antippbare Links auf der Event-Seite.';
+
+  @override
+  String get formWebsiteError =>
+      'Bitte eine Webadresse wie www.example.org eingeben.';
+
+  @override
+  String get formPhoneError =>
+      'Bitte eine Telefonnummer eingeben (nur Ziffern, Leerzeichen und + - / ( )).';
+
+  @override
+  String get otherCategoriesTitle => 'Weitere Kategorien';
+
+  @override
+  String get otherCategoriesAll => 'Alle anderen Events';
+
+  @override
+  String get otherCategoriesEmpty => 'Noch keine weiteren Kategorien.';
+
+  @override
+  String get searchHint => 'Events, Kategorien, Veranstalter suchen';
+
+  @override
+  String get searchOpen => 'Suchen';
+
+  @override
+  String get searchClose => 'Suche schließen';
+
+  @override
+  String get searchNoResults => 'Keine Events passen zu deiner Suche.';
+
+  @override
+  String byOrganizer(String name) {
+    return 'von $name';
+  }
+
+  @override
+  String get authConfirmFirst =>
+      'Bitte bestätige zuerst deine E-Mail. Wir haben dir einen neuen Code geschickt.';
+
+  @override
+  String get authChangeEmail => 'Falsche E-Mail? Neu beginnen';
 }

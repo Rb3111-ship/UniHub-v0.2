@@ -78,6 +78,9 @@ class SupabaseEventRepository implements EventRepository {
           'allow_reviews': event.allowReviews,
           'categories': event.categories,
           'image_path': event.imagePath,
+          'contact_email': event.contactEmail,
+          'contact_phone': event.contactPhone,
+          'website_url': event.websiteUrl,
           'status': 'published',
         })
         .select(_select)
@@ -100,6 +103,9 @@ class SupabaseEventRepository implements EventRepository {
           'allow_reviews': event.allowReviews,
           'categories': event.categories,
           'image_path': event.imagePath,
+          'contact_email': event.contactEmail,
+          'contact_phone': event.contactPhone,
+          'website_url': event.websiteUrl,
         })
         .eq('id', event.id)
         .select(_select)
