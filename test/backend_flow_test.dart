@@ -61,6 +61,7 @@ final _publicEvent = {
 class _FakeBackend {
   late HttpServer server;
   final requests = <String>[];
+  final bodies = <String, String>{}; // last request body per path
   String role = 'platform_admin';
 
   Future<void> start() async {
@@ -68,7 +69,7 @@ class _FakeBackend {
     server.listen((req) async {
       final path = req.uri.path;
       requests.add('${req.method} $path');
-      await utf8.decoder.bind(req).join();
+      bodies[path] = await utf8.decoder.bind(req).join();
       final res = req.response..headers.contentType = ContentType.json;
       Object body = [];
       if (path.endsWith('/profiles') && req.method == 'GET') {
@@ -340,6 +341,9 @@ void main() {
     await tester.tap(find.text('Public Events'));
     await _settle(tester, rounds: 6);
     expect(find.text('by Campus Club'), findsOneWidget);
+    // This user organizes the event, so there is no Register button for it.
+    expect(find.text('Your event'), findsOneWidget);
+    expect(find.text('Register'), findsNothing);
 
     // Search by organizer, then something that matches nothing.
     await tester.tap(find.byIcon(Icons.search_rounded));
@@ -374,6 +378,55 @@ void main() {
     expect(find.text('Campus Club'), findsOneWidget);
     expect(find.text('club.example.org'), findsOneWidget);
     expect(find.text('club@example.org'), findsOneWidget);
+    expect(find.text('YOUR EVENT'), findsOneWidget);
+    await _finish(tester);
+  });
+
+  testWidgets('organizer application needs position, phone and consent', (tester) async {
+    backend.role = 'student';
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await _settle(tester, rounds: 3);
+    final open = find.widgetWithText(FilledButton, 'Become an organizer');
+    await tester.dragUntilVisible(open, find.byType(ListView).first, const Offset(0, -250));
+    await _settle(tester, rounds: 10);
+    await tester.tap(open);
+    await _settle(tester, rounds: 4);
+    expect(find.text('Your position *'), findsOneWidget);
+
+    final form = find.byType(SingleChildScrollView).last;
+    final send = find.text('Send request');
+    await tester.dragUntilVisible(send, form, const Offset(0, -250));
+    await _settle(tester, rounds: 3);
+    await tester.tap(send);
+    await _settle(tester, rounds: 3);
+    expect(find.text('Please confirm this to send the request.'), findsOneWidget);
+    expect(find.text('Please enter your position.'), findsOneWidget);
+    expect(find.text('Please enter a phone number.'), findsOneWidget);
+    expect(backend.requests.any((r) => r.contains('request_organizer_access')), isFalse);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Organization or club name *'), 'HAW Film Club');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Your position *'), 'Chair');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Phone number *'), 'call me');
+    await tester.dragUntilVisible(send, form, const Offset(0, -250));
+    await _settle(tester, rounds: 10); // a tap on a moving list only stops it
+    await tester.tap(find.byType(CheckboxListTile));
+    await _settle(tester, rounds: 2);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    await tester.tap(send);
+    await _settle(tester, rounds: 3);
+    expect(backend.requests.any((r) => r.contains('request_organizer_access')), isFalse); // bad phone
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Phone number *'), '+49 40 1234567');
+    await tester.dragUntilVisible(send, form, const Offset(0, -250));
+    await _settle(tester, rounds: 3);
+    await tester.tap(send);
+    await _settle(tester, rounds: 8);
+    final body = backend.bodies['/rest/v1/rpc/request_organizer_access'] ?? '';
+    expect(body, contains('"p_phone":"+49 40 1234567"'));
+    expect(body, contains('"p_position":"Chair"'));
+    await _settle(tester, rounds: 6);
+    expect(find.text('Request sent. An admin will review it.'), findsWidgets);
     await _finish(tester);
   });
 

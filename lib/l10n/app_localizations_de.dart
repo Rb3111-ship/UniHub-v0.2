@@ -1265,4 +1265,102 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get authChangeEmail => 'Falsche E-Mail? Neu beginnen';
+
+  @override
+  String get registerOwnEvent =>
+      'Du veranstaltest dieses Event und kannst dich daher nicht anmelden.';
+
+  @override
+  String get ownEventHeadline => 'DEIN EVENT';
+
+  @override
+  String get ownEventBody => 'Verwalte es in der Veranstalter-Ansicht.';
+
+  @override
+  String get ctaOwnEvent => 'Dein Event';
+
+  @override
+  String get applyIntro =>
+      'Erzähl uns, wer du bist. Ein Admin prüft jede Anfrage und ruft dich eventuell vor der Freigabe an.';
+
+  @override
+  String get applyTypeSection => 'Was möchtest du veröffentlichen?';
+
+  @override
+  String get applyAboutSection => 'Du und deine Organisation';
+
+  @override
+  String get applyPosition => 'Deine Position';
+
+  @override
+  String get applyPositionHint => 'z. B. Vorsitz des Filmclubs, Eventmanager';
+
+  @override
+  String get applyPositionRequired => 'Bitte gib deine Position an.';
+
+  @override
+  String get applyWebsite => 'Webseite der Organisation (optional)';
+
+  @override
+  String get applyContactSection => 'Telefonnummer';
+
+  @override
+  String get applyContactHint =>
+      'Nur Admins sehen sie. Damit bestätigen wir, dass die Anfrage wirklich von dir ist.';
+
+  @override
+  String get applyPhone => 'Telefonnummer';
+
+  @override
+  String get applyPhoneRequired => 'Bitte gib eine Telefonnummer ein.';
+
+  @override
+  String get applyDocsSection => 'Nachweise (optional, bis zu 3 Dateien)';
+
+  @override
+  String get applyDocsHint =>
+      'Zum Beispiel ein Schreiben der Hochschule, eine Vereinsregistrierung oder eine Referenz. PDF, JPG oder PNG, je bis 5 MB. Nur Admins können sie öffnen, und sie werden nach der Entscheidung gelöscht.';
+
+  @override
+  String get applyDocAdd => 'Dokument hinzufügen';
+
+  @override
+  String get applyDocRemove => 'Entfernen';
+
+  @override
+  String get applyDocTooBig => 'Diese Datei ist größer als 5 MB.';
+
+  @override
+  String get applyDocWrongType => 'Bitte wähle eine PDF-, JPG- oder PNG-Datei.';
+
+  @override
+  String get applyDocFailed =>
+      'Das Dokument konnte nicht hochgeladen werden. Bitte versuche es erneut.';
+
+  @override
+  String get applyMessageSection => 'Sonst noch etwas?';
+
+  @override
+  String get applyConsent =>
+      'Ein Admin darf mich anrufen und meine Dokumente ansehen, um diese Anfrage zu prüfen.';
+
+  @override
+  String get applyConsentRequired =>
+      'Bitte bestätige das, um die Anfrage zu senden.';
+
+  @override
+  String adminDocument(int number) {
+    return 'Dokument $number';
+  }
+
+  @override
+  String get adminDocFailed => 'Das Dokument konnte nicht geöffnet werden.';
+
+  @override
+  String get adminDocsDeleted =>
+      'Die Dokumente wurden nach der Entscheidung gelöscht.';
+
+  @override
+  String get adminNoVerificationDetails =>
+      'Gesendet, bevor Telefonnummern Pflicht waren: Details per E-Mail erfragen.';
 }

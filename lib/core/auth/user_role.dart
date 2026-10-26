@@ -104,6 +104,9 @@ class AppState extends ChangeNotifier {
   /// Id of the signed-in user (null in demo mode or when signed out).
   String? get currentUserId => _client?.auth.currentUser?.id;
 
+  /// Organizers cannot register for their own events (the database refuses it too).
+  bool isOwnEvent(Event event) => event.organizerId != null && event.organizerId == currentUserId;
+
   // Signed-out visitors see the public events feed (guest mode) until they choose
   // to sign in; the sign-in screen can send them back to the feed.
   bool _guest = true;
@@ -418,10 +421,13 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> requestOrganizerAccess(String role, String organization, String message) async {
-    await _accountRepository!.requestOrganizerAccess(role, organization, message);
+  Future<void> requestOrganizerAccess(OrganizerApplication application) async {
+    await _accountRepository!.requestOrganizerAccess(application);
     await refreshMyRequest();
   }
+
+  /// Short-lived link to an applicant's document (admins only; checked by the database).
+  Future<String> organizerDocumentUrl(String path) => _accountRepository!.documentUrl(path);
 
   // ---- admin ---------------------------------------------------------------
 
@@ -451,7 +457,15 @@ class AppState extends ChangeNotifier {
   static const _requestTimeout = Duration(seconds: 20);
 
   Future<void> reviewRequest(String id, bool approve, String? note) async {
-    await _accountRepository!.reviewRequest(id, approve, note);
+    final repo = _accountRepository!;
+    await repo.reviewRequest(id, approve, note);
+    // The documents were only needed for the decision, so they are deleted now.
+    final docs = [for (final r in _requests) if (r.id == id) ...r.documents];
+    try {
+      await repo.removeDocuments(docs);
+    } catch (_) {
+      // Not critical: the applicant's next request or account deletion clears them.
+    }
     await refreshRequests();
     refreshUsers('');
   }

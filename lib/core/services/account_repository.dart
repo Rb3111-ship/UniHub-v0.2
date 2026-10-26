@@ -48,7 +48,7 @@ class AccountRepository {
   /// Removes the account and all of the user's data. Files the user uploaded are
   /// deleted first because the database cannot delete storage blobs itself.
   Future<void> deleteMyAccount() async {
-    for (final name in ['event-images', 'avatars']) {
+    for (final name in ['event-images', 'avatars', 'organizer-docs']) {
       final bucket = _client.storage.from(name);
       final files = await bucket.list(path: _uid);
       if (files.isNotEmpty) {
@@ -103,7 +103,7 @@ class AccountRepository {
         await _client.from('reviews').select('rating, comment, is_verified, created_at, events(title)').eq('user_id', _uid);
     final requests = await _client
         .from('organizer_requests')
-        .select('requested_role, organization_name, message, status, created_at')
+        .select('requested_role, organization_name, applicant_position, phone, website_url, message, documents, status, created_at')
         .eq('user_id', _uid);
     return const JsonEncoder.withIndent('  ').convert({
       'exported_at': DateTime.now().toUtc().toIso8601String(),
@@ -117,12 +117,53 @@ class AccountRepository {
 
   // ---- organizer requests ---------------------------------------------------
 
-  Future<void> requestOrganizerAccess(String role, String organization, String message) async {
-    await _client.rpc('request_organizer_access', params: {
-      'p_role': role,
-      'p_org': organization,
-      'p_message': message,
-    });
+  static const _docsBucket = 'organizer-docs';
+
+  /// Uploads the documents into the user's private folder, then sends the request.
+  /// If anything fails, the uploaded files are removed again.
+  Future<void> requestOrganizerAccess(OrganizerApplication a) async {
+    final bucket = _client.storage.from(_docsBucket);
+    // Leftovers from an earlier (decided or failed) request would count against the upload limit.
+    final latest = await fetchMyLatestRequest();
+    if (latest == null || !latest.isPending) {
+      final old = await bucket.list(path: _uid);
+      if (old.isNotEmpty) await bucket.remove([for (final f in old) '$_uid/${f.name}']);
+    }
+    final uploaded = <String>[];
+    try {
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      for (var i = 0; i < a.documents.length; i++) {
+        final d = a.documents[i];
+        final path = '$_uid/doc-${stamp + i}.${d.extension}';
+        await bucket.uploadBinary(path, d.bytes, fileOptions: FileOptions(contentType: d.contentType));
+        uploaded.add(path);
+      }
+      await _client.rpc('request_organizer_access', params: {
+        'p_role': a.role,
+        'p_org': a.organization,
+        'p_message': a.message,
+        'p_position': a.position,
+        'p_phone': a.phone,
+        'p_website': a.website,
+        'p_documents': uploaded,
+      });
+    } catch (_) {
+      if (uploaded.isNotEmpty) {
+        try {
+          await bucket.remove(uploaded);
+        } catch (_) {}
+      }
+      rethrow;
+    }
+  }
+
+  /// A link to one document that works for 5 minutes (the bucket is private).
+  Future<String> documentUrl(String path) => _client.storage.from(_docsBucket).createSignedUrl(path, 300);
+
+  /// Called after a decision: the documents are no longer needed.
+  Future<void> removeDocuments(List<String> paths) async {
+    if (paths.isEmpty) return;
+    await _client.storage.from(_docsBucket).remove(paths);
   }
 
   /// The user's most recent request, if any.

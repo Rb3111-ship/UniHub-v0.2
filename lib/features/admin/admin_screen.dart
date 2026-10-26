@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
 import '../../core/models/admin_model.dart';
+import '../../core/utils/open_link.dart';
 
 /// Approve organizer requests and manage user roles.
 /// What each admin may actually do is enforced by the database
@@ -76,6 +77,41 @@ class _AdminScreenState extends State<AdminScreen> {
     } catch (_) {
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
     }
+  }
+
+  /// Opens one of the applicant's documents through a short-lived private link.
+  Future<void> _openDocument(AppState appState, String path) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final url = await appState.organizerDocumentUrl(path);
+      if (!mounted) return;
+      await openLink(context, Uri.parse(url), url);
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminDocFailed)));
+    }
+  }
+
+  Widget _detailLine(IconData icon, String text, ThemeData theme, {VoidCallback? onTap}) {
+    final line = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(children: [
+        Icon(icon, size: 16, color: theme.colorScheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text,
+              style: onTap == null
+                  ? const TextStyle(fontSize: 13)
+                  : TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                      decorationColor: theme.colorScheme.primary)),
+        ),
+      ]),
+    );
+    return onTap == null ? line : InkWell(onTap: onTap, child: line);
   }
 
   Future<void> _changeRole(AppState appState, AdminUser u, String role) async {
@@ -170,6 +206,33 @@ class _AdminScreenState extends State<AdminScreen> {
             Text('${r.displayName}  -  ${r.email}', style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
             Text(r.isCommercial ? l10n.organizerRoleCommercial : l10n.organizerRoleUniversity,
                 style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+            const SizedBox(height: 6),
+            if ((r.position ?? '').isNotEmpty) _detailLine(Icons.badge_outlined, r.position!, theme),
+            if ((r.phone ?? '').isNotEmpty)
+              _detailLine(Icons.phone_rounded, r.phone!, theme,
+                  onTap: () => openLink(context, Uri(scheme: 'tel', path: r.phone!.replaceAll(RegExp(r'[^0-9+]'), '')), r.phone!)),
+            if (r.email.isNotEmpty)
+              _detailLine(Icons.mail_outline_rounded, r.email, theme,
+                  onTap: () => openLink(context, Uri(scheme: 'mailto', path: r.email), r.email)),
+            if ((r.website ?? '').isNotEmpty)
+              _detailLine(Icons.language_rounded, r.website!.replaceFirst('https://', ''), theme,
+                  onTap: () => openLink(context, Uri.parse(r.website!), r.website!)),
+            if (r.isPending && r.phone == null)
+              Text(l10n.adminNoVerificationDetails, style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
+            if (r.documents.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              if (r.isPending)
+                Wrap(spacing: 8, runSpacing: 4, children: [
+                  for (var i = 0; i < r.documents.length; i++)
+                    ActionChip(
+                      avatar: Icon(r.documents[i].endsWith('.pdf') ? Icons.picture_as_pdf_rounded : Icons.image_rounded, size: 18),
+                      label: Text(l10n.adminDocument(i + 1)),
+                      onPressed: () => _openDocument(appState, r.documents[i]),
+                    ),
+                ])
+              else
+                Text(l10n.adminDocsDeleted, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+            ],
             if (r.message.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(r.message),

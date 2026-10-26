@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
 import '../../core/services/account_repository.dart' show WrongPasswordException;
+import 'organizer_application_screen.dart';
 
 /// Account tools shown on the profile page when signed in:
 /// edit name, change password, switch view, become an organizer.
@@ -229,81 +230,12 @@ class _BecomeOrganizerCard extends StatelessWidget {
   Future<void> _openForm(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
-    final hasUniversity = appState.getTenantDomain().isNotEmpty;
-    var role = hasUniversity ? 'organizer' : 'commercial_planner';
-    final org = TextEditingController();
-    final msg = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    final send = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text(l10n.organizerBecomeTitle),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RadioListTile<String>(
-                    contentPadding: EdgeInsets.zero,
-                    value: 'organizer',
-                    groupValue: role,
-                    onChanged: hasUniversity ? (v) => setState(() => role = v!) : null,
-                    title: Text(l10n.organizerRoleUniversity),
-                    subtitle: hasUniversity ? null : Text(l10n.organizerErrNoUniversity, style: const TextStyle(fontSize: 11)),
-                  ),
-                  RadioListTile<String>(
-                    contentPadding: EdgeInsets.zero,
-                    value: 'commercial_planner',
-                    groupValue: role,
-                    onChanged: (v) => setState(() => role = v!),
-                    title: Text(l10n.organizerRoleCommercial),
-                  ),
-                  TextFormField(
-                    controller: org,
-                    maxLength: 120,
-                    decoration: InputDecoration(labelText: l10n.organizerOrgName),
-                    validator: (v) => (v ?? '').trim().length < 2 ? l10n.authErrNameRequired : null,
-                  ),
-                  TextFormField(
-                    controller: msg,
-                    maxLines: 3,
-                    maxLength: 1000,
-                    decoration: InputDecoration(labelText: l10n.organizerMessage),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) Navigator.pop(ctx, true);
-              },
-              child: Text(l10n.organizerSubmit),
-            ),
-          ],
-        ),
-      ),
+    final sent = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const OrganizerApplicationScreen()),
     );
-    final orgName = org.text.trim();
-    final message = msg.text.trim();
-    // Controllers are left to the garbage collector: the dialog may still be animating closed.
-    if (send != true) return;
-    try {
-      await appState.requestOrganizerAccess(role, orgName, message);
+    if (sent == true) {
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text(l10n.organizerRequestSent)));
-    } catch (e) {
-      final text = switch (e is PostgrestException ? e.message : '') {
-        'no_university' => l10n.organizerErrNoUniversity,
-        'request_pending' => l10n.organizerErrPending,
-        _ => l10n.organizerErrGeneric,
-      };
-      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(text)));
     }
   }
 }

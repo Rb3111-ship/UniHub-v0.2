@@ -464,18 +464,18 @@ def run(s: Sim, tag: str) -> None:
     rq_pub = mk_user(f"rq2-{tag}@gmail.com")
     rq_tum = mk_user(f"rq3-{tag}@tum.de")
     s.user(rq_haw)
-    _, err = s.call("select public.request_organizer_access('organizer', 'HAW Film Club', 'We screen films')"); check("student with a university can request organizer access", err is None, str(err))
-    _, err = s.call("select public.request_organizer_access('organizer', 'Again', '')"); check("a second pending request is refused", err is not None and "request_pending" in err, str(err))
+    _, err = s.call("select public.request_organizer_access('organizer', 'HAW Film Club', 'We screen films', 'Chair', '+49 40 1234567')"); check("student with a university can request organizer access", err is None, str(err))
+    _, err = s.call("select public.request_organizer_access('organizer', 'Again', '', 'Chair', '+49 40 1234567')"); check("a second pending request is refused", err is not None and "request_pending" in err, str(err))
     for bad in ("platform_admin", "tenant_admin", "student"):
-        _, err = s.call("select public.request_organizer_access(%s::public.user_role, 'X Org', '')", [bad]); check(f"cannot request the {bad} role", err is not None, "accepted")
+        _, err = s.call("select public.request_organizer_access(%s::public.user_role, 'X Org', '', 'Chair', '+49 40 1234567')", [bad]); check(f"cannot request the {bad} role", err is not None, "accepted")
     s.user(rq_pub)
-    _, err = s.call("select public.request_organizer_access('organizer', 'Fake Uni Club', '')"); check("no university -> cannot request university organizer", err is not None and "no_university" in err, str(err))
-    _, err = s.call("select public.request_organizer_access('commercial_planner', 'Acme Events', 'We run concerts')"); check("anyone can request commercial planner access", err is None, str(err))
-    _, err = s.call("select public.request_organizer_access('commercial_planner', %s, '')", ["x"]); check("request needs a real organization name", err is not None)
+    _, err = s.call("select public.request_organizer_access('organizer', 'Fake Uni Club', '', 'Chair', '+49 40 1234567')"); check("no university -> cannot request university organizer", err is not None and "no_university" in err, str(err))
+    _, err = s.call("select public.request_organizer_access('commercial_planner', 'Acme Events', 'We run concerts', 'Chair', '+49 40 1234567')"); check("anyone can request commercial planner access", err is None, str(err))
+    _, err = s.call("select public.request_organizer_access('commercial_planner', %s, '', 'Chair', '+49 40 1234567')", ["x"]); check("request needs a real organization name", err is not None)
     s.user(rq_tum)
-    s.call("select public.request_organizer_access('organizer', 'TUM Robotics', '')")
+    s.call("select public.request_organizer_access('organizer', 'TUM Robotics', '', 'Chair', '+49 40 1234567')")
     s.user(org_tum)
-    _, err = s.call("select public.request_organizer_access('organizer', 'Already one', '')"); check("an existing organizer cannot request again", err is not None and "already_organizer" in err, str(err))
+    _, err = s.call("select public.request_organizer_access('organizer', 'Already one', '', 'Chair', '+49 40 1234567')"); check("an existing organizer cannot request again", err is not None and "already_organizer" in err, str(err))
     s.user(rq_haw)
     for label, q in (("insert", "insert into public.organizer_requests (user_id, requested_role, organization_name) values (%s, 'organizer', 'Hack')"),
                      ("update", "update public.organizer_requests set status = 'approved'"),
@@ -514,7 +514,7 @@ def run(s: Sim, tag: str) -> None:
     s.postgres()
     check("a rejected user stays a student", s.scalar("select role::text from public.profiles where id = %s", [rq_pub]) == "student")
     s.user(rq_pub)
-    _, err = s.call("select public.request_organizer_access('commercial_planner', 'Acme Events', 'Second try')"); check("after a rejection the user may apply again", err is None, str(err))
+    _, err = s.call("select public.request_organizer_access('commercial_planner', 'Acme Events', 'Second try', 'Chair', '+49 40 1234567')"); check("after a rejection the user may apply again", err is None, str(err))
     s.postgres()
     s.c.execute("update public.profiles set role = 'tenant_admin' where id = %s", [rq_tum])
     s.user(p_admin)
@@ -629,6 +629,60 @@ def run(s: Sim, tag: str) -> None:
     check("organizer list still has no students", stu_tum not in names)
     check("organizer_profiles has the organization name column", "organization_name" in {r[0] for r in s.rows("select column_name from information_schema.columns where table_name='organizer_profiles'")})
 
+    print("\n[21] Own events and organizer verification")
+    s.user(org_tum)
+    _, err = s.call("select public.register_for_event(%s)", [ev_tum]); check("an organizer cannot register for their own event", err is not None and "own_event" in err, str(err))
+    s.user(stu_tum)
+    _, err = s.call("select public.register_for_event(%s)", [ev_tum]); check("a student can still register for that event", err is None, str(err))
+    vf = mk_user(f"vf-{tag}@haw-hamburg.de")
+    vf2 = mk_user(f"vf2-{tag}@haw-hamburg.de")
+    def doc_upload(uid, folder, name, mime="application/pdf"):
+        s.user(uid)
+        return s.call("insert into storage.objects (bucket_id, name, owner, metadata) values ('organizer-docs', %s, %s, %s)",
+                      [f"{folder}/{name}", uid, json.dumps({"mimetype": mime})])
+    _, err = doc_upload(vf, vf, "doc-1.pdf"); check("an applicant can upload a document into own folder", err is None, str(err))
+    _, err = doc_upload(vf, vf, "doc-2.jpg"); check("an applicant can upload a second document", err is None, str(err))
+    _, err = doc_upload(vf, vf2, "doc-1.pdf"); check("cannot upload a document into someone else's folder", err is not None, "uploaded")
+    _, err = doc_upload(vf, vf, "evil.html"); check("document names other than doc-N.pdf/jpg/png are refused", err is not None, "uploaded")
+    _, err = doc_upload(org_tum, org_tum, "doc-1.pdf"); check("an organizer (not applying) cannot upload documents", err is not None, "uploaded")
+    s.anon()
+    _, err = s.call("insert into storage.objects (bucket_id, name) values ('organizer-docs', %s)", [f"{vf}/doc-9.pdf"]); check("anonymous cannot upload documents", err is not None)
+    for i in range(3, 9):
+        doc_upload(vf2, vf2, f"doc-{i}.pdf")
+    _, err = doc_upload(vf2, vf2, "doc-9.pdf"); check("at most 6 documents per person", err is not None, "7th upload accepted")
+    s.user(vf)
+    good = [f"{vf}/doc-1.pdf", f"{vf}/doc-2.jpg"]
+    q = "select public.request_organizer_access('organizer', 'HAW Chess', 'Hi', %s, %s, %s, %s::text[])"
+    for label, args in (("no phone", ["Chair", "", None, []]), ("phone with letters", ["Chair", "call me", None, []]),
+                        ("no position", ["", "+49 89 123456", None, []]),
+                        ("javascript: website", ["Chair", "+49 89 123456", "javascript:alert(1)", []]),
+                        ("someone else's document", ["Chair", "+49 89 123456", None, [f"{vf2}/doc-3.pdf"]]),
+                        ("a document that was never uploaded", ["Chair", "+49 89 123456", None, [f"{vf}/doc-7.pdf"]]),
+                        ("a document path with traversal", ["Chair", "+49 89 123456", None, [f"{vf}/../doc-1.pdf"]]),
+                        ("4 documents", ["Chair", "+49 89 123456", None, good + [f"{vf}/doc-3.pdf", f"{vf}/doc-4.pdf"]]),
+                        ("the same document twice", ["Chair", "+49 89 123456", None, [good[0], good[0]]])):
+        _, err = s.call(q, args); check(f"application refused: {label}", err is not None, "accepted")
+    _, err = s.call(q, ["Chair of the chess club", "+49 89 123456", "https://chess.example.org", good])
+    check("an application with phone, website and 2 documents is accepted", err is None, str(err))
+    s.user(vf2)
+    check("another student cannot see the applicant's documents",
+          s.scalar("select count(*) from storage.objects where bucket_id='organizer-docs' and name = any(%s)", [good]) == 0)
+    s.affects_nothing("another student cannot delete the applicant's documents",
+                      "delete from storage.objects where bucket_id='organizer-docs' and name = %s", [good[0]])
+    s.user(t_admin)
+    check("the university admin can see the documents", s.scalar("select count(*) from storage.objects where bucket_id='organizer-docs' and name = any(%s)", [good]) == 2)
+    row = s.rows("select phone, applicant_position, website_url from public.organizer_requests where user_id = %s", [vf])
+    check("the admin sees phone, position and website", row and row[0] == ("+49 89 123456", "Chair of the chess club", "https://chess.example.org"), str(row))
+    s.affects_nothing("documents of a PENDING request cannot be deleted by the admin",
+                      "delete from storage.objects where bucket_id='organizer-docs' and name = %s", [good[0]])
+    s.user(rq_haw)
+    check("an organizer of the same university cannot see the documents",
+          s.scalar("select count(*) from storage.objects where bucket_id='organizer-docs' and name = any(%s)", [good]) == 0)
+    s.postgres()
+    b = s.rows("select public, file_size_limit, allowed_mime_types from storage.buckets where id='organizer-docs'")[0]
+    check("document bucket is PRIVATE, 5 MB, PDF/JPG/PNG only",
+          b[0] is False and b[1] is not None and b[1] <= 5_242_880 and set(b[2] or []) <= {"application/pdf", "image/jpeg", "image/png"}, str(b))
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
@@ -638,7 +692,7 @@ def run(s: Sim, tag: str) -> None:
                           "register_for_event", "cancel_registration", "check_in_ticket", "submit_review", "admin_set_role",
                           "is_verified_publisher", "user_tenant", "request_organizer_access",
                           "review_organizer_request", "admin_list_users", "delete_my_account",
-                          "may_have_avatar", "can_have_avatar", "categories_ok"},
+                          "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")

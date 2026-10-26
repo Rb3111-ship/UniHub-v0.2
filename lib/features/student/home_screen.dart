@@ -574,9 +574,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     ThemeData theme,
     AppState appState,
   ) {
-    final isRegistered = appState.isRegistered(event.id);
+    // Own events and existing registrations show a greyed-out label instead.
+    final own = appState.isOwnEvent(event);
+    final isRegistered = appState.isRegistered(event.id) || own;
     final l10n = AppLocalizations.of(context)!;
-    final ctaText = isRegistered
+    final ctaText = own
+        ? l10n.ctaOwnEvent
+        : isRegistered
         ? (appState.isWaitlisted(event.id) ? l10n.ctaWaitlisted : l10n.ctaRegistered)
         : (event.requiresQrCode ? l10n.ctaRegister : l10n.ctaRsvp);
 

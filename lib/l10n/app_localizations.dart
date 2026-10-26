@@ -2371,6 +2371,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wrong email? Start again'**
   String get authChangeEmail;
+
+  /// No description provided for @registerOwnEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'You organize this event, so you cannot register for it.'**
+  String get registerOwnEvent;
+
+  /// No description provided for @ownEventHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR EVENT'**
+  String get ownEventHeadline;
+
+  /// No description provided for @ownEventBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage it in organizer view.'**
+  String get ownEventBody;
+
+  /// No description provided for @ctaOwnEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your event'**
+  String get ctaOwnEvent;
+
+  /// No description provided for @applyIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us who you are. An admin checks every request and may call you before approving it.'**
+  String get applyIntro;
+
+  /// No description provided for @applyTypeSection.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to publish?'**
+  String get applyTypeSection;
+
+  /// No description provided for @applyAboutSection.
+  ///
+  /// In en, this message translates to:
+  /// **'You and your organization'**
+  String get applyAboutSection;
+
+  /// No description provided for @applyPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Your position'**
+  String get applyPosition;
+
+  /// No description provided for @applyPositionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Chair of the film club, event manager'**
+  String get applyPositionHint;
+
+  /// No description provided for @applyPositionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your position.'**
+  String get applyPositionRequired;
+
+  /// No description provided for @applyWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Website of the organization (optional)'**
+  String get applyWebsite;
+
+  /// No description provided for @applyContactSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get applyContactSection;
+
+  /// No description provided for @applyContactHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only admins see it. We use it to confirm the request is really from you.'**
+  String get applyContactHint;
+
+  /// No description provided for @applyPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get applyPhone;
+
+  /// No description provided for @applyPhoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a phone number.'**
+  String get applyPhoneRequired;
+
+  /// No description provided for @applyDocsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Proof (optional, up to 3 files)'**
+  String get applyDocsSection;
+
+  /// No description provided for @applyDocsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For example a letter from your university, a club registration or a reference. PDF, JPG or PNG, up to 5 MB each. Only admins can open them, and they are deleted after the decision.'**
+  String get applyDocsHint;
+
+  /// No description provided for @applyDocAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add document'**
+  String get applyDocAdd;
+
+  /// No description provided for @applyDocRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get applyDocRemove;
+
+  /// No description provided for @applyDocTooBig.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is larger than 5 MB.'**
+  String get applyDocTooBig;
+
+  /// No description provided for @applyDocWrongType.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose a PDF, JPG or PNG file.'**
+  String get applyDocWrongType;
+
+  /// No description provided for @applyDocFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The document could not be uploaded. Please try again.'**
+  String get applyDocFailed;
+
+  /// No description provided for @applyMessageSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything else?'**
+  String get applyMessageSection;
+
+  /// No description provided for @applyConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'An admin may call me and look at my documents to verify this request.'**
+  String get applyConsent;
+
+  /// No description provided for @applyConsentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm this to send the request.'**
+  String get applyConsentRequired;
+
+  /// No description provided for @adminDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Document {number}'**
+  String adminDocument(int number);
+
+  /// No description provided for @adminDocFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The document could not be opened.'**
+  String get adminDocFailed;
+
+  /// No description provided for @adminDocsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents were deleted after the decision.'**
+  String get adminDocsDeleted;
+
+  /// No description provided for @adminNoVerificationDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent before phone numbers were required: ask for details by email.'**
+  String get adminNoVerificationDetails;
 }
 
 class _AppLocalizationsDelegate

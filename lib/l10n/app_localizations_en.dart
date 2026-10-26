@@ -1242,4 +1242,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authChangeEmail => 'Wrong email? Start again';
+
+  @override
+  String get registerOwnEvent =>
+      'You organize this event, so you cannot register for it.';
+
+  @override
+  String get ownEventHeadline => 'YOUR EVENT';
+
+  @override
+  String get ownEventBody => 'Manage it in organizer view.';
+
+  @override
+  String get ctaOwnEvent => 'Your event';
+
+  @override
+  String get applyIntro =>
+      'Tell us who you are. An admin checks every request and may call you before approving it.';
+
+  @override
+  String get applyTypeSection => 'What do you want to publish?';
+
+  @override
+  String get applyAboutSection => 'You and your organization';
+
+  @override
+  String get applyPosition => 'Your position';
+
+  @override
+  String get applyPositionHint => 'e.g. Chair of the film club, event manager';
+
+  @override
+  String get applyPositionRequired => 'Please enter your position.';
+
+  @override
+  String get applyWebsite => 'Website of the organization (optional)';
+
+  @override
+  String get applyContactSection => 'Phone number';
+
+  @override
+  String get applyContactHint =>
+      'Only admins see it. We use it to confirm the request is really from you.';
+
+  @override
+  String get applyPhone => 'Phone number';
+
+  @override
+  String get applyPhoneRequired => 'Please enter a phone number.';
+
+  @override
+  String get applyDocsSection => 'Proof (optional, up to 3 files)';
+
+  @override
+  String get applyDocsHint =>
+      'For example a letter from your university, a club registration or a reference. PDF, JPG or PNG, up to 5 MB each. Only admins can open them, and they are deleted after the decision.';
+
+  @override
+  String get applyDocAdd => 'Add document';
+
+  @override
+  String get applyDocRemove => 'Remove';
+
+  @override
+  String get applyDocTooBig => 'This file is larger than 5 MB.';
+
+  @override
+  String get applyDocWrongType => 'Please choose a PDF, JPG or PNG file.';
+
+  @override
+  String get applyDocFailed =>
+      'The document could not be uploaded. Please try again.';
+
+  @override
+  String get applyMessageSection => 'Anything else?';
+
+  @override
+  String get applyConsent =>
+      'An admin may call me and look at my documents to verify this request.';
+
+  @override
+  String get applyConsentRequired => 'Please confirm this to send the request.';
+
+  @override
+  String adminDocument(int number) {
+    return 'Document $number';
+  }
+
+  @override
+  String get adminDocFailed => 'The document could not be opened.';
+
+  @override
+  String get adminDocsDeleted => 'Documents were deleted after the decision.';
+
+  @override
+  String get adminNoVerificationDetails =>
+      'Sent before phone numbers were required: ask for details by email.';
 }

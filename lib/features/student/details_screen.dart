@@ -335,11 +335,15 @@ class EventDetailsScreen extends StatelessWidget {
     final isRegistered = appState.isRegistered(event.id);
     final waitlisted = appState.isWaitlisted(event.id);
     final closed = event.isCancelled || event.endDate.isBefore(DateTime.now());
+    final own = appState.isOwnEvent(event);
     final locale = Localizations.localeOf(context).toString();
 
     final String headline;
     final String subline;
-    if (isRegistered) {
+    if (own) {
+      headline = l10n.ownEventHeadline;
+      subline = l10n.ownEventBody;
+    } else if (isRegistered) {
       headline = waitlisted ? l10n.detailsWaitlistedLabel : l10n.detailsTicketReserved;
       subline = waitlisted ? l10n.detailsWaitlistBody : l10n.detailsSeeTickets;
     } else {
@@ -348,7 +352,9 @@ class EventDetailsScreen extends StatelessWidget {
           : l10n.detailsFree;
       subline = event.requiresQrCode ? l10n.detailsQrRequired : l10n.detailsOpenAdmission;
     }
-    final ctaText = closed && !isRegistered
+    final ctaText = own
+        ? l10n.ctaOwnEvent
+        : closed && !isRegistered
         ? l10n.ctaUnavailable
         : isRegistered
             ? (waitlisted ? l10n.ctaWaitlisted : l10n.ctaRegistered)
@@ -388,10 +394,10 @@ class EventDetailsScreen extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             ElevatedButton(
-              onPressed: isRegistered || closed ? null : () => registerWithFeedback(context, appState, event),
+              onPressed: own || isRegistered || closed ? null : () => registerWithFeedback(context, appState, event),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isRegistered || closed ? theme.colorScheme.surfaceContainer : brandColor,
-                foregroundColor: isRegistered || closed ? theme.colorScheme.onSurfaceVariant : Colors.white,
+                backgroundColor: own || isRegistered || closed ? theme.colorScheme.surfaceContainer : brandColor,
+                foregroundColor: own || isRegistered || closed ? theme.colorScheme.onSurfaceVariant : Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),

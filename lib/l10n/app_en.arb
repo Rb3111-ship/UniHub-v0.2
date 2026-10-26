@@ -533,5 +533,41 @@
     }
   },
   "authConfirmFirst": "Please confirm your email first. We sent you a new code.",
-  "authChangeEmail": "Wrong email? Start again"
+  "authChangeEmail": "Wrong email? Start again",
+  "registerOwnEvent": "You organize this event, so you cannot register for it.",
+  "ownEventHeadline": "YOUR EVENT",
+  "ownEventBody": "Manage it in organizer view.",
+  "ctaOwnEvent": "Your event",
+  "applyIntro": "Tell us who you are. An admin checks every request and may call you before approving it.",
+  "applyTypeSection": "What do you want to publish?",
+  "applyAboutSection": "You and your organization",
+  "applyPosition": "Your position",
+  "applyPositionHint": "e.g. Chair of the film club, event manager",
+  "applyPositionRequired": "Please enter your position.",
+  "applyWebsite": "Website of the organization (optional)",
+  "applyContactSection": "Phone number",
+  "applyContactHint": "Only admins see it. We use it to confirm the request is really from you.",
+  "applyPhone": "Phone number",
+  "applyPhoneRequired": "Please enter a phone number.",
+  "applyDocsSection": "Proof (optional, up to 3 files)",
+  "applyDocsHint": "For example a letter from your university, a club registration or a reference. PDF, JPG or PNG, up to 5 MB each. Only admins can open them, and they are deleted after the decision.",
+  "applyDocAdd": "Add document",
+  "applyDocRemove": "Remove",
+  "applyDocTooBig": "This file is larger than 5 MB.",
+  "applyDocWrongType": "Please choose a PDF, JPG or PNG file.",
+  "applyDocFailed": "The document could not be uploaded. Please try again.",
+  "applyMessageSection": "Anything else?",
+  "applyConsent": "An admin may call me and look at my documents to verify this request.",
+  "applyConsentRequired": "Please confirm this to send the request.",
+  "adminDocument": "Document {number}",
+  "@adminDocument": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "adminDocFailed": "The document could not be opened.",
+  "adminDocsDeleted": "Documents were deleted after the decision.",
+  "adminNoVerificationDetails": "Sent before phone numbers were required: ask for details by email."
 }

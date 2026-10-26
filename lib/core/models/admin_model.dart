@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// A user's request to become an organizer / commercial planner.
 class OrganizerRequest {
   final String id;
@@ -10,6 +12,11 @@ class OrganizerRequest {
   final String status; // pending | approved | rejected
   final String? reviewNote;
   final DateTime createdAt;
+  // Verification details (requests from before v0.2.5 may not have them).
+  final String? position;
+  final String? phone;
+  final String? website;
+  final List<String> documents; // paths in the private organizer-docs bucket
 
   const OrganizerRequest({
     required this.id,
@@ -22,6 +29,10 @@ class OrganizerRequest {
     required this.status,
     required this.reviewNote,
     required this.createdAt,
+    this.position,
+    this.phone,
+    this.website,
+    this.documents = const [],
   });
 
   factory OrganizerRequest.fromRow(Map<String, dynamic> row) {
@@ -37,11 +48,59 @@ class OrganizerRequest {
       status: row['status'] as String,
       reviewNote: row['review_note'] as String?,
       createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
+      position: row['applicant_position'] as String?,
+      phone: row['phone'] as String?,
+      website: row['website_url'] as String?,
+      documents: [for (final d in (row['documents'] as List?) ?? const []) d as String],
     );
   }
 
   bool get isPending => status == 'pending';
   bool get isCommercial => requestedRole == 'commercial_planner';
+}
+
+/// A file the applicant attached as proof (school reference, club registration...).
+class ApplicationDocument {
+  static const maxBytes = 5 * 1024 * 1024;
+  static const extensions = ['pdf', 'jpg', 'jpeg', 'png'];
+
+  final String name;
+  final Uint8List bytes;
+
+  const ApplicationDocument(this.name, this.bytes);
+
+  /// pdf, jpg or png (the only names the storage accepts).
+  String get extension {
+    final e = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+    return e == 'jpeg' ? 'jpg' : e;
+  }
+
+  String get contentType => switch (extension) {
+        'pdf' => 'application/pdf',
+        'png' => 'image/png',
+        _ => 'image/jpeg',
+      };
+}
+
+/// Everything a student sends when asking to become an organizer.
+class OrganizerApplication {
+  final String role; // organizer | commercial_planner
+  final String organization;
+  final String position;
+  final String phone;
+  final String? website;
+  final String message;
+  final List<ApplicationDocument> documents;
+
+  const OrganizerApplication({
+    required this.role,
+    required this.organization,
+    required this.position,
+    required this.phone,
+    this.website,
+    this.message = '',
+    this.documents = const [],
+  });
 }
 
 /// A row of the admin user list.
