@@ -8,6 +8,7 @@ import '../models/event_host.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
 import '../models/admin_model.dart';
+import '../services/community_repository.dart';
 import '../models/dashboard_model.dart';
 import '../models/registration_model.dart';
 import '../services/account_repository.dart';
@@ -50,6 +51,7 @@ class AppState extends ChangeNotifier {
       _registrationRepository = RegistrationRepository(c, _domainForSlug);
       _insightsRepository = InsightsRepository(c);
       _accountRepository = AccountRepository(c);
+      _communityRepository = CommunityRepository(c);
       // Real accounts start empty; registrations/tickets/reviews move to the
       // database in a later step.
       _registeredEventIds.clear();
@@ -73,6 +75,9 @@ class AppState extends ChangeNotifier {
   RegistrationRepository? _registrationRepository;
   InsightsRepository? _insightsRepository;
   AccountRepository? _accountRepository;
+  CommunityRepository? _communityRepository;
+  Set<String> _favoriteIds = {};
+  List<EventReport> _reports = [];
   String _dbRole = 'student';
   OrganizerRequest? _myRequest;
   List<OrganizerRequest> _requests = [];
@@ -154,6 +159,8 @@ class AppState extends ChangeNotifier {
       _myRequest = null;
       _requests = [];
       _adminUsers = [];
+      _favoriteIds = {};
+      _reports = [];
       _events = [];
       _registrations = [];
       _ratings = {};
@@ -232,10 +239,78 @@ class AppState extends ChangeNotifier {
       refreshEvents();
       refreshRegistrations();
       refreshMyReviews();
+      refreshFavorites();
       if (_dbRole != 'student') refreshDashboard();
       if (_dbRole == 'student') refreshMyRequest();
-      if (isAdmin) refreshRequests();
+      if (isAdmin) {
+        refreshRequests();
+        refreshReports();
+      }
     }
+  }
+
+  // ---- favourites ----------------------------------------------------------
+
+  bool isFavorite(String eventId) => _favoriteIds.contains(eventId);
+  int get favoriteCount => _favoriteIds.length;
+
+  Future<void> refreshFavorites() async {
+    final repo = _communityRepository;
+    if (repo == null) return;
+    try {
+      _favoriteIds = await repo.fetchFavoriteIds();
+      notifyListeners();
+    } catch (_) {
+      // Shown again on the next refresh.
+    }
+  }
+
+  /// Saves or un-saves an event. The heart changes at once and flips back if
+  /// the server refuses.
+  Future<void> toggleFavorite(String eventId) async {
+    final saved = !_favoriteIds.contains(eventId);
+    saved ? _favoriteIds.add(eventId) : _favoriteIds.remove(eventId);
+    notifyListeners();
+    final repo = _communityRepository;
+    if (repo == null) return; // demo mode: kept on this device only
+    try {
+      saved ? await repo.addFavorite(eventId) : await repo.removeFavorite(eventId);
+    } catch (_) {
+      saved ? _favoriteIds.remove(eventId) : _favoriteIds.add(eventId);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  // ---- reports ---------------------------------------------------------------
+
+  Future<void> reportEvent(String eventId, String reason, String details) =>
+      _communityRepository!.reportEvent(eventId, reason, details);
+
+  List<EventReport> get eventReports => List.unmodifiable(_reports);
+  int get openReportCount => _reports.where((r) => r.isOpen).length;
+
+  Future<void> refreshReports() async {
+    final repo = _communityRepository;
+    if (repo == null || !isAdmin) return;
+    try {
+      // An admin's own reports are visible to them as the reporter; only show
+      // the ones they may act on.
+      final me = currentUserId;
+      _reports = (await repo.fetchReports().timeout(_requestTimeout))
+          .where((r) => r.reporterId != me || isPlatformAdmin)
+          .toList();
+      notifyListeners();
+    } catch (_) {
+      _adminError = true;
+      notifyListeners();
+    }
+  }
+
+  Future<void> resolveReport(String id, bool remove, String? note) async {
+    await _communityRepository!.resolveReport(id, remove, note);
+    await refreshReports();
+    if (remove) refreshEvents();
   }
 
   Future<void> signIn(String email, String password) async {

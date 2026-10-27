@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
 import '../../core/models/admin_model.dart';
 import '../../core/utils/open_link.dart';
+import '../student/community_actions.dart' show reportReasonLabel;
 
 /// Approve organizer requests and manage user roles.
 /// What each admin may actually do is enforced by the database
@@ -26,6 +28,7 @@ class _AdminScreenState extends State<AdminScreen> {
       if (!mounted) return;
       final appState = context.read<AppState>();
       appState.refreshRequests();
+      appState.refreshReports();
       appState.refreshUsers('');
     });
   }
@@ -114,6 +117,123 @@ class _AdminScreenState extends State<AdminScreen> {
     return onTap == null ? line : InkWell(onTap: onTap, child: line);
   }
 
+  Future<void> _resolve(AppState appState, EventReport r, bool remove) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final note = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(remove ? l10n.adminRemoveEvent : l10n.adminDismissReport),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(remove ? l10n.adminRemoveEventBody(r.eventTitle) : l10n.adminDismissReportBody),
+          if (remove)
+            TextField(
+              controller: note,
+              maxLength: 500,
+              maxLines: 2,
+              decoration: InputDecoration(hintText: l10n.adminRemoveNoteHint),
+            ),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
+          FilledButton(
+            style: remove ? FilledButton.styleFrom(backgroundColor: Colors.red) : null,
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(remove ? l10n.adminRemoveEvent : l10n.adminDismissReport),
+          ),
+        ],
+      ),
+    );
+    final text = note.text.trim();
+    // Controllers are left to the garbage collector: the dialog may still be animating closed.
+    if (ok != true) return;
+    try {
+      await appState.resolveReport(r.id, remove, text.isEmpty ? null : text);
+      messenger.showSnackBar(SnackBar(content: Text(remove ? l10n.adminEventRemoved : l10n.adminReportDismissed)));
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
+    }
+  }
+
+  Widget _reportsList(AppState appState, AppLocalizations l10n, ThemeData theme) {
+    final list = appState.eventReports;
+    return RefreshIndicator(
+      onRefresh: appState.refreshReports,
+      child: list.isEmpty
+          ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
+              Padding(padding: const EdgeInsets.all(48), child: Center(child: Text(l10n.adminNoReports))),
+            ])
+          : ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: list.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, i) => _reportCard(appState, list[i], l10n, theme),
+            ),
+    );
+  }
+
+  Widget _reportCard(AppState appState, EventReport r, AppLocalizations l10n, ThemeData theme) {
+    final locale = Localizations.localeOf(context).toString();
+    // How many open reports the same event has (shown on every card of that event).
+    final sameEvent = appState.eventReports.where((x) => x.eventId == r.eventId && x.isOpen).length;
+    final (statusText, statusColor) = switch (r.status) {
+      'removed' => (l10n.reportStatusRemoved, Colors.red),
+      'dismissed' => (l10n.reportStatusDismissed, Colors.grey),
+      _ => (l10n.reportStatusOpen, Colors.orange),
+    };
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Expanded(child: Text(r.eventTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
+              ),
+            ]),
+            if (r.eventStart != null)
+              Text(DateFormat.yMMMEd(locale).add_Hm().format(r.eventStart!),
+                  style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+            const SizedBox(height: 8),
+            Row(children: [
+              const Icon(Icons.flag_rounded, size: 16, color: Colors.red),
+              const SizedBox(width: 6),
+              Text(reportReasonLabel(l10n, r.reason), style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (r.isOpen && sameEvent > 1) ...[
+                const SizedBox(width: 8),
+                Text(l10n.adminReportCount(sameEvent), style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
+              ],
+            ]),
+            if (r.details.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(r.details),
+            ],
+            Text(DateFormat.yMMMd(locale).add_Hm().format(r.createdAt),
+                style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary)),
+            if (r.isOpen) ...[
+              const SizedBox(height: 12),
+              Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
+                OutlinedButton(onPressed: () => _resolve(appState, r, false), child: Text(l10n.adminDismissReport)),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: () => _resolve(appState, r, true),
+                  child: Text(l10n.adminRemoveEvent),
+                ),
+              ]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _changeRole(AppState appState, AdminUser u, String role) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
@@ -131,17 +251,19 @@ class _AdminScreenState extends State<AdminScreen> {
     final theme = Theme.of(context);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.tabAdmin),
           bottom: TabBar(tabs: [
             Tab(text: '${l10n.adminRequests}${appState.pendingRequestCount > 0 ? ' (${appState.pendingRequestCount})' : ''}'),
+            Tab(text: '${l10n.adminReports}${appState.openReportCount > 0 ? ' (${appState.openReportCount})' : ''}'),
             Tab(text: l10n.adminUsers),
           ]),
         ),
         body: TabBarView(children: [
           _requests(appState, l10n, theme),
+          _reportsList(appState, l10n, theme),
           _users(appState, l10n, theme),
         ]),
       ),

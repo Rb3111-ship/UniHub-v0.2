@@ -2545,6 +2545,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sent before phone numbers were required: ask for details by email.'**
   String get adminNoVerificationDetails;
+
+  /// No description provided for @favoriteAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Save event'**
+  String get favoriteAdd;
+
+  /// No description provided for @favoriteRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from saved'**
+  String get favoriteRemove;
+
+  /// No description provided for @favoriteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save. Please try again.'**
+  String get favoriteFailed;
+
+  /// No description provided for @favoriteGuestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to save events and find them again later.'**
+  String get favoriteGuestBody;
+
+  /// No description provided for @savedShowOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Show saved events'**
+  String get savedShowOnly;
+
+  /// No description provided for @savedShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all events'**
+  String get savedShowAll;
+
+  /// No description provided for @savedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved events here yet. Tap the heart on an event to save it.'**
+  String get savedEmpty;
+
+  /// No description provided for @addToCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to calendar'**
+  String get addToCalendar;
+
+  /// No description provided for @reportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report event'**
+  String get reportTitle;
+
+  /// No description provided for @reportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Why should an admin check this event? Your name is not shown to the organizer.'**
+  String get reportBody;
+
+  /// No description provided for @reportReasonSpam.
+  ///
+  /// In en, this message translates to:
+  /// **'Spam or advertising'**
+  String get reportReasonSpam;
+
+  /// No description provided for @reportReasonInappropriate.
+  ///
+  /// In en, this message translates to:
+  /// **'Offensive or inappropriate'**
+  String get reportReasonInappropriate;
+
+  /// No description provided for @reportReasonMisleading.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong or misleading information'**
+  String get reportReasonMisleading;
+
+  /// No description provided for @reportReasonScam.
+  ///
+  /// In en, this message translates to:
+  /// **'Scam or fake event'**
+  String get reportReasonScam;
+
+  /// No description provided for @reportReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get reportReasonOther;
+
+  /// No description provided for @reportDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details (optional)'**
+  String get reportDetails;
+
+  /// No description provided for @reportSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send report'**
+  String get reportSend;
+
+  /// No description provided for @reportSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you. An admin will look at it.'**
+  String get reportSent;
+
+  /// No description provided for @reportAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'You already reported this event.'**
+  String get reportAlready;
+
+  /// No description provided for @reportTooMany.
+  ///
+  /// In en, this message translates to:
+  /// **'You sent many reports today. Please try again tomorrow.'**
+  String get reportTooMany;
+
+  /// No description provided for @reportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The report could not be sent. Please try again.'**
+  String get reportFailed;
+
+  /// No description provided for @detailsModeratedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This event was removed by a moderator.'**
+  String get detailsModeratedBody;
+
+  /// No description provided for @adminReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get adminReports;
+
+  /// No description provided for @adminNoReports.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports.'**
+  String get adminNoReports;
+
+  /// No description provided for @reportStatusOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get reportStatusOpen;
+
+  /// No description provided for @reportStatusDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismissed'**
+  String get reportStatusDismissed;
+
+  /// No description provided for @reportStatusRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Event removed'**
+  String get reportStatusRemoved;
+
+  /// No description provided for @adminDismissReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get adminDismissReport;
+
+  /// No description provided for @adminRemoveEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove event'**
+  String get adminRemoveEvent;
+
+  /// No description provided for @adminDismissReportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The event stays online. Only this report is closed.'**
+  String get adminDismissReportBody;
+
+  /// No description provided for @adminRemoveEventBody.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" will be cancelled for everyone and its tickets stop working. This cannot be undone.'**
+  String adminRemoveEventBody(String title);
+
+  /// No description provided for @adminRemoveNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason shown on the event page (optional)'**
+  String get adminRemoveNoteHint;
+
+  /// No description provided for @adminEventRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Event removed.'**
+  String get adminEventRemoved;
+
+  /// No description provided for @adminReportDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Report dismissed.'**
+  String get adminReportDismissed;
+
+  /// No description provided for @adminReportCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} reports'**
+  String adminReportCount(int count);
 }
 
 class _AppLocalizationsDelegate

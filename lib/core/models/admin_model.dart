@@ -133,3 +133,51 @@ class AdminUser {
         createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
       );
 }
+
+/// A student's report about an event, as seen by admins.
+class EventReport {
+  static const reasons = ['spam', 'inappropriate', 'misleading', 'scam', 'other'];
+
+  final String id;
+  final String eventId;
+  final String reporterId;
+  final String eventTitle;
+  final DateTime? eventStart;
+  final String eventStatus;
+  final String reason;
+  final String details;
+  final String status; // open | dismissed | removed
+  final DateTime createdAt;
+
+  const EventReport({
+    required this.id,
+    required this.eventId,
+    required this.reporterId,
+    required this.eventTitle,
+    required this.eventStart,
+    required this.eventStatus,
+    required this.reason,
+    required this.details,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory EventReport.fromRow(Map<String, dynamic> row) {
+    final event = row['events'] as Map?;
+    final start = event?['starts_at'] as String?;
+    return EventReport(
+      id: row['id'] as String,
+      eventId: row['event_id'] as String,
+      reporterId: row['reporter_id'] as String,
+      eventTitle: (event?['title'] as String?) ?? '',
+      eventStart: start == null ? null : DateTime.parse(start).toLocal(),
+      eventStatus: (event?['status'] as String?) ?? '',
+      reason: row['reason'] as String,
+      details: (row['details'] as String?) ?? '',
+      status: row['status'] as String,
+      createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
+    );
+  }
+
+  bool get isOpen => status == 'open';
+}

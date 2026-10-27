@@ -569,5 +569,54 @@
   },
   "adminDocFailed": "The document could not be opened.",
   "adminDocsDeleted": "Documents were deleted after the decision.",
-  "adminNoVerificationDetails": "Sent before phone numbers were required: ask for details by email."
+  "adminNoVerificationDetails": "Sent before phone numbers were required: ask for details by email.",
+  "favoriteAdd": "Save event",
+  "favoriteRemove": "Remove from saved",
+  "favoriteFailed": "Could not save. Please try again.",
+  "favoriteGuestBody": "Sign in to save events and find them again later.",
+  "savedShowOnly": "Show saved events",
+  "savedShowAll": "Show all events",
+  "savedEmpty": "No saved events here yet. Tap the heart on an event to save it.",
+  "addToCalendar": "Add to calendar",
+  "reportTitle": "Report event",
+  "reportBody": "Why should an admin check this event? Your name is not shown to the organizer.",
+  "reportReasonSpam": "Spam or advertising",
+  "reportReasonInappropriate": "Offensive or inappropriate",
+  "reportReasonMisleading": "Wrong or misleading information",
+  "reportReasonScam": "Scam or fake event",
+  "reportReasonOther": "Something else",
+  "reportDetails": "Details (optional)",
+  "reportSend": "Send report",
+  "reportSent": "Thank you. An admin will look at it.",
+  "reportAlready": "You already reported this event.",
+  "reportTooMany": "You sent many reports today. Please try again tomorrow.",
+  "reportFailed": "The report could not be sent. Please try again.",
+  "detailsModeratedBody": "This event was removed by a moderator.",
+  "adminReports": "Reports",
+  "adminNoReports": "No reports.",
+  "reportStatusOpen": "Open",
+  "reportStatusDismissed": "Dismissed",
+  "reportStatusRemoved": "Event removed",
+  "adminDismissReport": "Dismiss",
+  "adminRemoveEvent": "Remove event",
+  "adminDismissReportBody": "The event stays online. Only this report is closed.",
+  "adminRemoveEventBody": "\"{title}\" will be cancelled for everyone and its tickets stop working. This cannot be undone.",
+  "@adminRemoveEventBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "adminRemoveNoteHint": "Reason shown on the event page (optional)",
+  "adminEventRemoved": "Event removed.",
+  "adminReportDismissed": "Report dismissed.",
+  "adminReportCount": "{count} reports",
+  "@adminReportCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

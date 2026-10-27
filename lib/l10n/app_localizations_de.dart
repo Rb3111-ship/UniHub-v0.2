@@ -1363,4 +1363,122 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get adminNoVerificationDetails =>
       'Gesendet, bevor Telefonnummern Pflicht waren: Details per E-Mail erfragen.';
+
+  @override
+  String get favoriteAdd => 'Event merken';
+
+  @override
+  String get favoriteRemove => 'Nicht mehr merken';
+
+  @override
+  String get favoriteFailed =>
+      'Speichern fehlgeschlagen. Bitte versuche es erneut.';
+
+  @override
+  String get favoriteGuestBody =>
+      'Melde dich an, um Events zu merken und später wiederzufinden.';
+
+  @override
+  String get savedShowOnly => 'Gemerkte Events zeigen';
+
+  @override
+  String get savedShowAll => 'Alle Events zeigen';
+
+  @override
+  String get savedEmpty =>
+      'Hier sind noch keine gemerkten Events. Tippe auf das Herz eines Events.';
+
+  @override
+  String get addToCalendar => 'Zum Kalender hinzufügen';
+
+  @override
+  String get reportTitle => 'Event melden';
+
+  @override
+  String get reportBody =>
+      'Warum sollte ein Admin dieses Event prüfen? Dein Name wird dem Veranstalter nicht angezeigt.';
+
+  @override
+  String get reportReasonSpam => 'Spam oder Werbung';
+
+  @override
+  String get reportReasonInappropriate => 'Beleidigend oder unangemessen';
+
+  @override
+  String get reportReasonMisleading => 'Falsche oder irreführende Angaben';
+
+  @override
+  String get reportReasonScam => 'Betrug oder Fake-Event';
+
+  @override
+  String get reportReasonOther => 'Etwas anderes';
+
+  @override
+  String get reportDetails => 'Details (optional)';
+
+  @override
+  String get reportSend => 'Meldung senden';
+
+  @override
+  String get reportSent => 'Danke. Ein Admin sieht es sich an.';
+
+  @override
+  String get reportAlready => 'Du hast dieses Event bereits gemeldet.';
+
+  @override
+  String get reportTooMany =>
+      'Du hast heute viele Meldungen gesendet. Bitte versuche es morgen erneut.';
+
+  @override
+  String get reportFailed =>
+      'Die Meldung konnte nicht gesendet werden. Bitte versuche es erneut.';
+
+  @override
+  String get detailsModeratedBody =>
+      'Dieses Event wurde von einem Moderator entfernt.';
+
+  @override
+  String get adminReports => 'Meldungen';
+
+  @override
+  String get adminNoReports => 'Keine Meldungen.';
+
+  @override
+  String get reportStatusOpen => 'Offen';
+
+  @override
+  String get reportStatusDismissed => 'Abgelehnt';
+
+  @override
+  String get reportStatusRemoved => 'Event entfernt';
+
+  @override
+  String get adminDismissReport => 'Ablehnen';
+
+  @override
+  String get adminRemoveEvent => 'Event entfernen';
+
+  @override
+  String get adminDismissReportBody =>
+      'Das Event bleibt online. Nur diese Meldung wird geschlossen.';
+
+  @override
+  String adminRemoveEventBody(String title) {
+    return '\"$title\" wird für alle abgesagt und die Tickets werden ungültig. Das kann nicht rückgängig gemacht werden.';
+  }
+
+  @override
+  String get adminRemoveNoteHint =>
+      'Grund, der auf der Event-Seite steht (optional)';
+
+  @override
+  String get adminEventRemoved => 'Event entfernt.';
+
+  @override
+  String get adminReportDismissed => 'Meldung abgelehnt.';
+
+  @override
+  String adminReportCount(int count) {
+    return '$count Meldungen';
+  }
 }

@@ -7,10 +7,12 @@ import '../../../core/auth/user_role.dart';
 import '../../../core/models/categories.dart';
 import '../../../core/models/event_host.dart';
 import '../../../core/models/event_model.dart';
+import '../../../core/utils/add_to_calendar.dart';
 import '../../../core/utils/open_link.dart';
 import '../../../core/widgets/event_image.dart';
 import '../../../core/widgets/poster_viewer.dart';
 import '../../../core/widgets/wallpaper.dart';
+import 'community_actions.dart';
 import 'register_action.dart';
 
 class EventDetailsScreen extends StatelessWidget {
@@ -61,6 +63,23 @@ class EventDetailsScreen extends StatelessWidget {
                             tooltip: l10n.posterShowFull,
                             icon: const Icon(Icons.open_in_full_rounded, color: Colors.white),
                             onPressed: () => showPoster(context, event.imageUrl!, 'event-image-${event.id}'),
+                          ),
+                        if (appState.usesBackend && !appState.isGuest) FavoriteButton(event: event),
+                        // Reporting: not for your own events, and only while the event is live.
+                        if (appState.usesBackend && !appState.isGuest && !appState.isOwnEvent(event) && !event.isCancelled)
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                            onSelected: (_) => reportEventDialog(context, appState, event),
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                value: 'report',
+                                child: Row(children: [
+                                  const Icon(Icons.flag_outlined, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(l10n.reportTitle),
+                                ]),
+                              ),
+                            ],
                           ),
                       ],
                       flexibleSpace: FlexibleSpaceBar(
@@ -165,7 +184,16 @@ class EventDetailsScreen extends StatelessWidget {
                               ),
                             ],
                           ),
-                          if (event.isCancelled) ...[
+                          if (event.isModerated) ...[
+                            const SizedBox(height: 12),
+                            _notice(
+                                context,
+                                Icons.gpp_bad_outlined,
+                                (event.moderationNote ?? '').isEmpty
+                                    ? l10n.detailsModeratedBody
+                                    : '${l10n.detailsModeratedBody} ${event.moderationNote}',
+                                Colors.red),
+                          ] else if (event.isCancelled) ...[
                             const SizedBox(height: 12),
                             _notice(context, Icons.event_busy_rounded, l10n.detailsCancelledBody, Colors.red),
                           ] else if (event.endDate.isBefore(DateTime.now())) ...[
@@ -210,6 +238,21 @@ class EventDetailsScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+                          if (!event.isCancelled && event.endDate.isAfter(DateTime.now()))
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: OutlinedButton.icon(
+                                onPressed: () => addToCalendar(context, event),
+                                icon: const Icon(Icons.event_available_rounded),
+                                label: Text(l10n.addToCalendar),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: brandColor,
+                                  side: BorderSide(color: brandColor.withOpacity(0.6)),
+                                  backgroundColor: theme.colorScheme.surface.withOpacity(0.7),
+                                  minimumSize: const Size(double.infinity, 46),
+                                ),
+                              ),
+                            ),
                           if (event.organizerId != null) _HostCard(organizerId: event.organizerId!),
                           if (event.hasContact) _ContactCard(event: event, color: brandColor),
                           const SizedBox(height: 24),

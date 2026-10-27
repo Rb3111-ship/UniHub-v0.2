@@ -7,6 +7,7 @@ import '../../../core/models/categories.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/models/event_search.dart';
 import '../../../core/widgets/event_image.dart';
+import 'community_actions.dart';
 import 'details_screen.dart';
 import 'register_action.dart';
 
@@ -20,6 +21,7 @@ class StudentHomeScreen extends StatefulWidget {
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   final _searchController = TextEditingController();
   bool _searching = false;
+  bool _savedOnly = false;
 
   @override
   void dispose() {
@@ -114,6 +116,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final filteredEvents = appState.events
         .where((e) => matchesCategory(e.categories, selected))
         .where((e) => matchesSearch(e, query, appState.hostOf(e.organizerId), localizations))
+        .where((e) => !_savedOnly || appState.isFavorite(e.id))
         .toList();
 
     // Split events by official status
@@ -157,6 +160,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         appBar: AppBar(
           title: titleWidget,
           actions: [
+            if (!guest && !_searching)
+              IconButton(
+                tooltip: _savedOnly ? localizations.savedShowAll : localizations.savedShowOnly,
+                isSelected: _savedOnly,
+                icon: Icon(_savedOnly ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    color: _savedOnly ? Colors.redAccent : null),
+                onPressed: () => setState(() => _savedOnly = !_savedOnly),
+              ),
             IconButton(
               tooltip: _searching ? localizations.searchClose : localizations.searchOpen,
               icon: Icon(_searching ? Icons.close_rounded : Icons.search_rounded),
@@ -299,7 +310,11 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey.shade400),
                   const SizedBox(height: 12),
                   Text(
-                    _searchController.text.trim().isNotEmpty ? l10n.searchNoResults : l10n.eventsEmptyCategory,
+                    _searchController.text.trim().isNotEmpty
+                        ? l10n.searchNoResults
+                        : _savedOnly
+                            ? l10n.savedEmpty
+                            : l10n.eventsEmptyCategory,
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
                   ),
@@ -417,6 +432,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                             ),
                           ),
                         ),
+                        Positioned(top: 8, right: 8, child: FavoriteButton(event: event, onImage: true)),
                         // Floating Date Badge (Top-Left)
                         Positioned(
                           top: 12,

@@ -86,6 +86,19 @@ class _FakeBackend {
         body = single ? row : [row];
       } else if (path.endsWith('/events') && req.method == 'GET') {
         body = [_publicEvent];
+      } else if (path.endsWith('/event_reports') && req.method == 'GET') {
+        body = [
+          {
+            'id': '44444444-4444-4444-4444-444444444444',
+            'event_id': '22222222-2222-2222-2222-222222222222',
+            'reporter_id': '55555555-5555-5555-5555-555555555555',
+            'reason': 'spam',
+            'details': 'Only advertising',
+            'status': 'open',
+            'created_at': '2026-10-27T10:00:00Z',
+            'events': {'title': 'Open Air Concert', 'starts_at': '2026-11-01T18:00:00Z', 'status': 'published'},
+          },
+        ];
       } else if (path.endsWith('/organizer_profiles')) {
         final host = {
           'id': _uid,
@@ -379,6 +392,59 @@ void main() {
     expect(find.text('club.example.org'), findsOneWidget);
     expect(find.text('club@example.org'), findsOneWidget);
     expect(find.text('YOUR EVENT'), findsOneWidget);
+    await _finish(tester);
+  });
+
+  testWidgets('saving an event, the saved filter, calendar button', (tester) async {
+    backend.role = 'student';
+    final state = await launchSignedIn(tester);
+    await tester.tap(find.text('Public Events'));
+    await _settle(tester, rounds: 6);
+
+    // Saved filter with nothing saved yet.
+    await tester.tap(find.byTooltip('Show saved events'));
+    await _settle(tester, rounds: 3);
+    expect(find.text('Open Air Concert'), findsNothing);
+    expect(find.textContaining('No saved events'), findsOneWidget);
+    await tester.tap(find.byTooltip('Show all events'));
+    await _settle(tester, rounds: 3);
+
+    // The heart on the card saves it (sent to the server) and the filter then finds it.
+    await tester.tap(find.byTooltip('Save event'));
+    await _settle(tester, rounds: 4);
+    expect(state.isFavorite('22222222-2222-2222-2222-222222222222'), isTrue);
+    expect(backend.requests, contains('POST /rest/v1/favorites'));
+    await tester.tap(find.byTooltip('Show saved events'));
+    await _settle(tester, rounds: 3);
+    expect(find.text('Open Air Concert'), findsOneWidget);
+
+    // Event page: calendar button; no report menu on your own event.
+    await tester.tap(find.text('Open Air Concert'));
+    await _settle(tester, rounds: 8);
+    expect(find.text('Add to calendar'), findsOneWidget);
+    expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+    expect(find.byTooltip('Remove from saved'), findsWidgets); // page + the card underneath
+    await _finish(tester);
+  });
+
+  testWidgets('admin sees reports and can remove the event', (tester) async {
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.admin_panel_settings_outlined));
+    await _settle(tester);
+    await tester.tap(find.text('Reports (1)'));
+    await _settle(tester, rounds: 12); // let the tab finish sliding in
+    expect(find.text('Spam or advertising'), findsOneWidget);
+    expect(find.text('Only advertising'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Remove event'));
+    await _settle(tester, rounds: 3);
+    expect(find.textContaining('will be cancelled for everyone'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, 'Advertising');
+    await tester.tap(find.widgetWithText(FilledButton, 'Remove event').last);
+    await _settle(tester, rounds: 6);
+    final body = backend.bodies['/rest/v1/rpc/resolve_report'] ?? '';
+    expect(body, contains('"p_remove":true'));
+    expect(body, contains('"p_note":"Advertising"'));
+    await _settle(tester, rounds: 6); // removing reloads the feed; let it finish
     await _finish(tester);
   });
 

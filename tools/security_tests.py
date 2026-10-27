@@ -683,6 +683,85 @@ def run(s: Sim, tag: str) -> None:
     check("document bucket is PRIVATE, 5 MB, PDF/JPG/PNG only",
           b[0] is False and b[1] is not None and b[1] <= 5_242_880 and set(b[2] or []) <= {"application/pdf", "image/jpeg", "image/png"}, str(b))
 
+    print("\n[22] Favourites")
+    fav1 = mk_user(f"fav1-{tag}@tum.de")
+    fav2 = mk_user(f"fav2-{tag}@tum.de")
+    ev_fav = mk_event(org_tum, tum, "Fav TUM")
+    ev_fav_haw = mk_event(rq_haw, haw, "Fav HAW only")
+    s.user(fav1)
+    _, err = s.call("insert into public.favorites (event_id) values (%s)", [ev_fav]); check("a student can save an event", err is None, str(err))
+    _, err = s.call("insert into public.favorites (event_id) values (%s)", [ev_fav]); check("saving twice is refused", err is not None, "accepted")
+    _, err = s.call("insert into public.favorites (event_id) values (%s)", [ev_fav_haw]); check("cannot save another university's event", err is not None, "accepted")
+    _, err = s.call("insert into public.favorites (user_id, event_id) values (%s, %s)", [fav2, ev_pub]); check("cannot save an event for someone else", err is not None, "accepted")
+    s.fails("cannot change a saved event", "update public.favorites set event_id = %s", [ev_pub], contains="permission denied")
+    s.user(fav2)
+    check("other users do not see my saved events", s.scalar("select count(*) from public.favorites") == 0)
+    s.affects_nothing("other users cannot delete my saved events", "delete from public.favorites where event_id = %s", [ev_fav])
+    s.anon()
+    s.fails("anonymous cannot read saved events", "select * from public.favorites", contains="permission denied")
+    s.user(fav1)
+    _, err = s.call("delete from public.favorites where event_id = %s", [ev_fav]); check("a student can un-save an event", err is None and s.scalar("select count(*) from public.favorites") == 0, str(err))
+
+    print("\n[23] Reporting and moderation")
+    rp1 = mk_user(f"rp1-{tag}@haw-hamburg.de")
+    rp2 = mk_user(f"rp2-{tag}@haw-hamburg.de")
+    rp_tum = mk_user(f"rp3-{tag}@tum.de")
+    ev_rep = mk_event(rq_haw, haw, "Report me HAW")
+    ev_rep2 = mk_event(rq_haw, haw, "Report me too")
+    ev_rep_pub = mk_event(commercial, None, "Public to report")
+    s.user(rp1)
+    _, err = s.call("select public.report_event(%s, 'spam', 'Looks like an ad')", [ev_rep]); check("a student can report an event", err is None, str(err))
+    _, err = s.call("select public.report_event(%s, 'spam', '')", [ev_rep]); check("the same person cannot report the same event twice", err is not None and "already_reported" in err, str(err))
+    _, err = s.call("select public.report_event(%s, 'nonsense', '')", [ev_rep2]); check("unknown report reasons are refused", err is not None, "accepted")
+    _, err = s.call("select public.report_event(%s, 'other', %s)", [ev_rep2, "x" * 501]); check("report details are limited to 500 characters", err is not None, "accepted")
+    _, err = s.call("select public.report_event(%s, 'scam', '')", [ev_fav]); check("cannot report another university's event", err is not None and "event_not_available" in err, str(err))
+    s.fails("cannot insert reports directly", "insert into public.event_reports (event_id, reporter_id, reason) values (%s, %s, 'spam')", [ev_rep, rp1], contains="permission denied")
+    s.fails("cannot change reports directly", "update public.event_reports set status = 'dismissed'", contains="permission denied")
+    s.user(rq_haw)
+    _, err = s.call("select public.report_event(%s, 'spam', '')", [ev_rep]); check("an organizer cannot report their own event", err is not None and "own_event" in err, str(err))
+    check("the organizer cannot see reports about their event", s.scalar("select count(*) from public.event_reports") == 0)
+    s.user(rp2)
+    check("other students cannot see someone's report", s.scalar("select count(*) from public.event_reports") == 0)
+    s.call("select public.report_event(%s, 'misleading', '')", [ev_rep])
+    s.call("select public.report_event(%s, 'other', 'Rude text')", [ev_rep_pub])
+    s.anon()
+    s.fails("anonymous cannot report", "select public.report_event(%s, 'spam', '')", [ev_rep_pub], contains="permission denied")
+    s.fails("anonymous cannot read reports", "select * from public.event_reports", contains="permission denied")
+    s.user(rp_tum)
+    for i in range(10):
+        e = mk_event(commercial, None, f"Flood {i}")
+        s.user(rp_tum); s.call("select public.report_event(%s, 'spam', '')", [e])
+    _, err = s.call("select public.report_event(%s, 'spam', '')", [ev_rep_pub]); check("at most 10 reports per person per day", err is not None and "too_many_reports" in err, str(err))
+
+    s.postgres()
+    rid = lambda uid, ev: s.scalar("select id from public.event_reports where reporter_id = %s and event_id = %s", [uid, ev])
+    r1, r2, r_pub = rid(rp1, ev_rep), rid(rp2, ev_rep), rid(rp2, ev_rep_pub)
+    s.user(t_admin)
+    seen = {r[0] for r in s.rows("select id from public.event_reports")}
+    check("the university admin sees reports about THEIR university's events only", r1 in seen and r2 in seen and r_pub not in seen, str(len(seen)))
+    for who, label in ((rp1, "a student"), (rq_haw, "the event's organizer"), (org_tum, "another organizer")):
+        s.user(who)
+        _, err = s.call("select public.resolve_report(%s, true)", [r1]); check(f"{label} cannot resolve reports", err is not None and "not_authorized" in err, str(err))
+    s.user(t_admin)
+    _, err = s.call("select public.resolve_report(%s, true)", [r_pub]); check("a university admin cannot moderate public events", err is not None and "not_authorized" in err, str(err))
+    _, err = s.call("select public.resolve_report(%s, false)", [r2]); check("the university admin can dismiss a report", err is None, str(err))
+    _, err = s.call("select public.resolve_report(%s, false)", [r2]); check("a report cannot be resolved twice", err is not None and "already_reviewed" in err, str(err))
+    _, err = s.call("select public.resolve_report(%s, true, 'Advertising')", [r1]); check("the university admin can remove the reported event", err is None, str(err))
+    s.postgres()
+    row = s.rows("select status::text, moderated_at is not null, moderation_note from public.events where id = %s", [ev_rep])[0]
+    check("a removed event is cancelled and marked as moderated", row == ("cancelled", True, "Advertising"), str(row))
+    check("its open reports are closed", s.scalar("select count(*) from public.event_reports where event_id = %s and status = 'open'", [ev_rep]) == 0)
+    s.user(rq_haw)
+    _, err = s.call("update public.events set status = 'published' where id = %s", [ev_rep]); check("the organizer cannot bring a removed event back", err is not None, "re-published")
+    s.affects_nothing("the organizer cannot clear the moderation mark", "update public.events set moderated_at = null where id = %s", [ev_rep])
+    _, err = s.call("insert into public.events (organizer_id,tenant_id,title,location,starts_at,ends_at,status,moderated_at,moderation_note) "
+                    "values (%s,%s,'Fake','Hall',now()+interval '1 d',now()+interval '2 d','published',now(),'fake') returning moderated_at", [rq_haw, haw])
+    s.postgres()
+    check("a new event can never arrive with a moderation mark",
+          s.scalar("select count(*) from public.events where title = 'Fake' and organizer_id = %s and moderated_at is not null", [rq_haw]) == 0)
+    s.user(p_admin)
+    _, err = s.call("select public.resolve_report(%s, true)", [r_pub]); check("the platform admin can moderate public events", err is None, str(err))
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
@@ -692,7 +771,8 @@ def run(s: Sim, tag: str) -> None:
                           "register_for_event", "cancel_registration", "check_in_ticket", "submit_review", "admin_set_role",
                           "is_verified_publisher", "user_tenant", "request_organizer_access",
                           "review_organizer_request", "admin_list_users", "delete_my_account",
-                          "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count"},
+                          "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count",
+                          "can_moderate_event", "report_event", "resolve_report"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")
@@ -711,6 +791,8 @@ def run(s: Sim, tag: str) -> None:
         "event_rating_stats": (set(["SELECT"]), set(["SELECT"])), "event_stats": (set(), set(["SELECT"])),
         "organizer_profiles": (set(["SELECT"]), set(["SELECT"])),
         "organizer_requests": (set(), set(["SELECT"])),
+        "favorites": (set(), set(["SELECT", "INSERT", "DELETE"])),
+        "event_reports": (set(), set(["SELECT"])),
     }
     grants = {}
     for table, grantee, priv in s.rows("select table_name, grantee, privilege_type from information_schema.role_table_grants "

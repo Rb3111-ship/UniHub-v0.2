@@ -1338,4 +1338,118 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get adminNoVerificationDetails =>
       'Sent before phone numbers were required: ask for details by email.';
+
+  @override
+  String get favoriteAdd => 'Save event';
+
+  @override
+  String get favoriteRemove => 'Remove from saved';
+
+  @override
+  String get favoriteFailed => 'Could not save. Please try again.';
+
+  @override
+  String get favoriteGuestBody =>
+      'Sign in to save events and find them again later.';
+
+  @override
+  String get savedShowOnly => 'Show saved events';
+
+  @override
+  String get savedShowAll => 'Show all events';
+
+  @override
+  String get savedEmpty =>
+      'No saved events here yet. Tap the heart on an event to save it.';
+
+  @override
+  String get addToCalendar => 'Add to calendar';
+
+  @override
+  String get reportTitle => 'Report event';
+
+  @override
+  String get reportBody =>
+      'Why should an admin check this event? Your name is not shown to the organizer.';
+
+  @override
+  String get reportReasonSpam => 'Spam or advertising';
+
+  @override
+  String get reportReasonInappropriate => 'Offensive or inappropriate';
+
+  @override
+  String get reportReasonMisleading => 'Wrong or misleading information';
+
+  @override
+  String get reportReasonScam => 'Scam or fake event';
+
+  @override
+  String get reportReasonOther => 'Something else';
+
+  @override
+  String get reportDetails => 'Details (optional)';
+
+  @override
+  String get reportSend => 'Send report';
+
+  @override
+  String get reportSent => 'Thank you. An admin will look at it.';
+
+  @override
+  String get reportAlready => 'You already reported this event.';
+
+  @override
+  String get reportTooMany =>
+      'You sent many reports today. Please try again tomorrow.';
+
+  @override
+  String get reportFailed => 'The report could not be sent. Please try again.';
+
+  @override
+  String get detailsModeratedBody => 'This event was removed by a moderator.';
+
+  @override
+  String get adminReports => 'Reports';
+
+  @override
+  String get adminNoReports => 'No reports.';
+
+  @override
+  String get reportStatusOpen => 'Open';
+
+  @override
+  String get reportStatusDismissed => 'Dismissed';
+
+  @override
+  String get reportStatusRemoved => 'Event removed';
+
+  @override
+  String get adminDismissReport => 'Dismiss';
+
+  @override
+  String get adminRemoveEvent => 'Remove event';
+
+  @override
+  String get adminDismissReportBody =>
+      'The event stays online. Only this report is closed.';
+
+  @override
+  String adminRemoveEventBody(String title) {
+    return '\"$title\" will be cancelled for everyone and its tickets stop working. This cannot be undone.';
+  }
+
+  @override
+  String get adminRemoveNoteHint => 'Reason shown on the event page (optional)';
+
+  @override
+  String get adminEventRemoved => 'Event removed.';
+
+  @override
+  String get adminReportDismissed => 'Report dismissed.';
+
+  @override
+  String adminReportCount(int count) {
+    return '$count reports';
+  }
 }

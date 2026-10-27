@@ -21,6 +21,9 @@ class Event {
   final String? contactEmail;
   final String? contactPhone;
   final String? websiteUrl;
+  // Set when an admin removed the event after reports.
+  final DateTime? moderatedAt;
+  final String? moderationNote;
 
   const Event({
     required this.id,
@@ -44,7 +47,11 @@ class Event {
     this.contactEmail,
     this.contactPhone,
     this.websiteUrl,
+    this.moderatedAt,
+    this.moderationNote,
   }) : _endDate = endDate;
+
+  bool get isModerated => moderatedAt != null;
 
   bool get hasContact => contactEmail != null || contactPhone != null || websiteUrl != null;
 
@@ -80,6 +87,8 @@ class Event {
       contactEmail: row['contact_email'] as String?,
       contactPhone: row['contact_phone'] as String?,
       websiteUrl: row['website_url'] as String?,
+      moderatedAt: row['moderated_at'] == null ? null : DateTime.parse(row['moderated_at'] as String).toLocal(),
+      moderationNote: row['moderation_note'] as String?,
     );
   }
 
@@ -130,6 +139,8 @@ class Event {
       contactEmail: contactEmail ?? this.contactEmail,
       contactPhone: contactPhone ?? this.contactPhone,
       websiteUrl: websiteUrl ?? this.websiteUrl,
+      moderatedAt: moderatedAt,
+      moderationNote: moderationNote,
     );
   }
 }
