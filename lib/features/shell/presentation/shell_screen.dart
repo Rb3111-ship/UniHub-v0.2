@@ -1,11 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
+import '../../../core/services/push_service.dart';
 import '../../../core/widgets/wallpaper.dart';
 import '../../student/home_screen.dart';
 import '../../student/tickets_screen.dart';
 import '../../student/profile_screen.dart';
+import '../../student/notifications_screen.dart';
 import '../../planner/dashboard_screen.dart';
 import '../../planner/create_event_screen.dart';
 import '../../planner/qr_scanner_screen.dart';
@@ -22,6 +25,41 @@ class _ShellScreenState extends State<ShellScreen> {
   // Track indexes for both student and planner view modes separately
   int _studentIndex = 0;
   int _plannerIndex = 0;
+  StreamSubscription<PushMessage>? _pushSub;
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    final appState = context.read<AppState>();
+    _pushSub = appState.pushMessages.listen(_onPush);
+    // Coming back to the app: pick up notifications that arrived meanwhile.
+    _lifecycle = AppLifecycleListener(onResume: appState.refreshNotifications);
+  }
+
+  @override
+  void dispose() {
+    _pushSub?.cancel();
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  void _onPush(PushMessage m) {
+    if (!mounted) return;
+    final eventId = m.eventId;
+    if (m.opened) {
+      if (eventId != null) openNotificationEvent(context, eventId);
+      return;
+    }
+    // Phones do not show push messages while the app is open, so show it here.
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(m.body.isEmpty ? m.title : '${m.title}: ${m.body}'),
+      action: eventId == null
+          ? null
+          : SnackBarAction(label: l10n.notificationsView, onPressed: () => openNotificationEvent(context, eventId)),
+    ));
+  }
 
   final List<Widget> _studentScreens = const [
     StudentHomeScreen(),
@@ -89,6 +127,7 @@ class _ShellScreenState extends State<ShellScreen> {
                   ),
                   const SizedBox(width: 12),
                   const Spacer(),
+                  if (appState.usesBackend) const NotificationBell(),
                   Flexible(flex: 3, child: _buildProfileSwitcher(context, appState)),
                 ],
               ),

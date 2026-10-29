@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/core/auth/user_role.dart';
 import 'package:uni_events_app/core/widgets/wallpaper.dart';
+import 'package:uni_events_app/features/student/details_screen.dart';
 import 'package:uni_events_app/main.dart';
 
 /// Runs the real app against a tiny fake Supabase server on this machine,
@@ -86,6 +87,27 @@ class _FakeBackend {
         body = single ? row : [row];
       } else if (path.endsWith('/events') && req.method == 'GET') {
         body = [_publicEvent];
+      } else if (path.endsWith('/notifications') && req.method == 'GET') {
+        body = [
+          {
+            'id': 2,
+            'kind': 'reminder',
+            'event_id': '22222222-2222-2222-2222-222222222222',
+            'event_title': 'Open Air Concert',
+            'created_at': '2026-10-29T08:00:00Z',
+            'read_at': null,
+            'events': {'starts_at': _publicEvent['starts_at']},
+          },
+          {
+            'id': 1,
+            'kind': 'request_approved',
+            'event_id': null,
+            'event_title': null,
+            'created_at': '2026-10-28T08:00:00Z',
+            'read_at': '2026-10-28T09:00:00Z',
+            'events': null,
+          },
+        ];
       } else if (path.endsWith('/event_reports') && req.method == 'GET') {
         body = [
           {
@@ -203,6 +225,7 @@ void main() {
     await _settle(tester, rounds: 3);
 
     // The language is picked from a list, so more languages can be added later.
+    await tester.scrollUntilVisible(find.text('Language'), 200, scrollable: find.byType(Scrollable).last);
     await tester.tap(find.text('Language'));
     await _settle(tester, rounds: 3);
     expect(find.text('English'), findsWidgets);
@@ -218,6 +241,43 @@ void main() {
     await _settle(tester, rounds: 3);
     expect(state.themeMode, ThemeMode.dark);
     expect(Theme.of(tester.element(find.byType(Scaffold).first)).brightness, Brightness.dark);
+    await _finish(tester);
+  });
+
+  testWidgets('notification bell: unread count, list, mark all read, open the event', (tester) async {
+    final state = await launchSignedIn(tester);
+    expect(state.unreadNotificationCount, 1);
+    expect(find.descendant(of: find.byType(Badge), matching: find.text('1')), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Notifications'));
+    await _settle(tester, rounds: 4);
+    expect(find.text('Reminder'), findsOneWidget);
+    expect(find.textContaining('Open Air Concert starts on'), findsOneWidget);
+    expect(find.text('Application approved'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Mark all as read'));
+    await _settle(tester, rounds: 3);
+    expect(state.unreadNotificationCount, 0);
+    expect(backend.requests, contains('PATCH /rest/v1/notifications'));
+    expect(backend.bodies['/rest/v1/notifications'], contains('read_at'));
+
+    await tester.tap(find.text('Reminder'));
+    await _settle(tester, rounds: 4);
+    expect(find.byType(EventDetailsScreen), findsOneWidget);
+    await _finish(tester);
+  });
+
+  testWidgets('notification settings are saved to the profile', (tester) async {
+    final state = await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await _settle(tester, rounds: 3);
+    await tester.scrollUntilVisible(find.text('Event reminders'), 200, scrollable: find.byType(Scrollable).last);
+    expect(find.textContaining("aren't available on this device"), findsOneWidget); // no Firebase in tests
+    await tester.tap(find.text('Event reminders'));
+    await _settle(tester, rounds: 3);
+    expect(state.notifyReminders, isFalse);
+    expect(backend.requests, contains('PATCH /rest/v1/profiles'));
+    expect(jsonDecode(backend.bodies['/rest/v1/profiles']!), {'notify_reminders': false});
     await _finish(tester);
   });
 

@@ -1452,4 +1452,109 @@ class AppLocalizationsEn extends AppLocalizations {
   String adminReportCount(int count) {
     return '$count reports';
   }
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsEmpty =>
+      'No notifications yet. We\'ll let you know when an event you registered for changes.';
+
+  @override
+  String get notificationsMarkAllRead => 'Mark all as read';
+
+  @override
+  String get notificationsView => 'View';
+
+  @override
+  String get notificationsEventGone => 'This event is no longer available.';
+
+  @override
+  String get notifEventCancelledTitle => 'Event cancelled';
+
+  @override
+  String notifEventCancelledBody(String title) {
+    return '$title has been cancelled.';
+  }
+
+  @override
+  String get notifEventChangedTitle => 'Event updated';
+
+  @override
+  String notifEventChangedBody(String title) {
+    return '$title: the time or place has changed.';
+  }
+
+  @override
+  String get notifWaitlistTitle => 'You got a spot!';
+
+  @override
+  String notifWaitlistBody(String title) {
+    return 'You\'re now registered for $title. Your ticket is ready.';
+  }
+
+  @override
+  String get notifReminderTitle => 'Reminder';
+
+  @override
+  String notifReminderBody(String title, String when) {
+    return '$title starts $when.';
+  }
+
+  @override
+  String get notifRequestApprovedTitle => 'Application approved';
+
+  @override
+  String get notifRequestApprovedBody =>
+      'You can now publish events on UniHub.';
+
+  @override
+  String get notifRequestRejectedTitle => 'Application not approved';
+
+  @override
+  String get notifRequestRejectedBody => 'See your profile for details.';
+
+  @override
+  String get notifEventRemovedTitle => 'Event removed';
+
+  @override
+  String notifEventRemovedBody(String title) {
+    return '$title was removed after a report.';
+  }
+
+  @override
+  String get notifSettingsTitle => 'Notifications';
+
+  @override
+  String get notifRemindersLabel => 'Event reminders';
+
+  @override
+  String get notifRemindersHint =>
+      'A reminder in the 24 hours before events you registered for';
+
+  @override
+  String get notifUpdatesLabel => 'Event updates';
+
+  @override
+  String get notifUpdatesHint =>
+      'Cancellations, new times or places, and waitlist spots';
+
+  @override
+  String get notifAccountHint =>
+      'Messages about your account, like the result of an organizer application, are always sent.';
+
+  @override
+  String get notifPushOn => 'Push messages are on for this device.';
+
+  @override
+  String get notifPushBlocked =>
+      'Notifications are blocked for UniHub. Allow them in your phone\'s settings to get push messages.';
+
+  @override
+  String get notifPushUnavailable =>
+      'Push messages aren\'t available on this device yet. You\'ll still see everything in the notification list.';
+
+  @override
+  String get notifSaveFailed =>
+      'Couldn\'t save the setting. Check your connection.';
 }

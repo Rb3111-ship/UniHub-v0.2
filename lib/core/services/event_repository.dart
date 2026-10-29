@@ -10,6 +10,9 @@ abstract class EventRepository {
   /// Row Level Security decides what the signed-in user may see.
   Future<List<Event>> fetchUpcoming();
 
+  /// One event by id, any status the user may see (null if hidden or gone).
+  Future<Event?> fetchById(String id);
+
   /// Publishes [event]. [tenantId] is null for public (commercial) events.
   Future<Event> create(Event event, {required String? tenantId});
 
@@ -54,6 +57,12 @@ class SupabaseEventRepository implements EventRepository {
         .gte('ends_at', DateTime.now().toUtc().toIso8601String())
         .order('starts_at');
     return rows.map<Event>(_fromRow).toList();
+  }
+
+  @override
+  Future<Event?> fetchById(String id) async {
+    final row = await _client.from('events').select(_select).eq('id', id).maybeSingle();
+    return row == null ? null : _fromRow(row);
   }
 
   @override
@@ -216,6 +225,14 @@ class MockEventRepository implements EventRepository {
 
   @override
   Future<List<Event>> fetchUpcoming() async => all;
+
+  @override
+  Future<Event?> fetchById(String id) async {
+    for (final e in _events) {
+      if (e.id == id) return e;
+    }
+    return null;
+  }
 
   @override
   Future<Event> create(Event event, {required String? tenantId}) async {

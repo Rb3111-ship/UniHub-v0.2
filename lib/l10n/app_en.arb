@@ -618,5 +618,72 @@
         "type": "int"
       }
     }
-  }
+  },
+  "notificationsTitle": "Notifications",
+  "notificationsEmpty": "No notifications yet. We'll let you know when an event you registered for changes.",
+  "notificationsMarkAllRead": "Mark all as read",
+  "notificationsView": "View",
+  "notificationsEventGone": "This event is no longer available.",
+  "notifEventCancelledTitle": "Event cancelled",
+  "notifEventCancelledBody": "{title} has been cancelled.",
+  "@notifEventCancelledBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "notifEventChangedTitle": "Event updated",
+  "notifEventChangedBody": "{title}: the time or place has changed.",
+  "@notifEventChangedBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "notifWaitlistTitle": "You got a spot!",
+  "notifWaitlistBody": "You're now registered for {title}. Your ticket is ready.",
+  "@notifWaitlistBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "notifReminderTitle": "Reminder",
+  "notifReminderBody": "{title} starts {when}.",
+  "@notifReminderBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "notifRequestApprovedTitle": "Application approved",
+  "notifRequestApprovedBody": "You can now publish events on UniHub.",
+  "notifRequestRejectedTitle": "Application not approved",
+  "notifRequestRejectedBody": "See your profile for details.",
+  "notifEventRemovedTitle": "Event removed",
+  "notifEventRemovedBody": "{title} was removed after a report.",
+  "@notifEventRemovedBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "notifSettingsTitle": "Notifications",
+  "notifRemindersLabel": "Event reminders",
+  "notifRemindersHint": "A reminder in the 24 hours before events you registered for",
+  "notifUpdatesLabel": "Event updates",
+  "notifUpdatesHint": "Cancellations, new times or places, and waitlist spots",
+  "notifAccountHint": "Messages about your account, like the result of an organizer application, are always sent.",
+  "notifPushOn": "Push messages are on for this device.",
+  "notifPushBlocked": "Notifications are blocked for UniHub. Allow them in your phone's settings to get push messages.",
+  "notifPushUnavailable": "Push messages aren't available on this device yet. You'll still see everything in the notification list.",
+  "notifSaveFailed": "Couldn't save the setting. Check your connection."
 }

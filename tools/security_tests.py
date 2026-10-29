@@ -772,6 +772,117 @@ def run(s: Sim, tag: str) -> None:
     s.user(p_admin)
     _, err = s.call("select public.resolve_report(%s, true)", [r_pub]); check("the platform admin can moderate public events", err is None, str(err))
 
+    print("\n[24] Notifications and push devices")
+    n1, n2, n3 = (mk_user(f"n{i}-{tag}@tum.de") for i in (1, 2, 3))
+    def notes(uid, kind=None):
+        s.postgres()
+        q = "select count(*) from public.notifications where user_id = %s" + (" and kind = %s" if kind else "")
+        return s.scalar(q, [uid, kind] if kind else [uid])
+    ev_n = mk_event(org_tum, tum, "Notify me", capacity=1)
+    for u in (n1, n2):
+        s.user(u); s.call("select public.register_for_event(%s)", [ev_n])
+    s.user(n1); s.call("select public.cancel_registration(%s)", [ev_n])
+    check("a waitlisted student is told when they get a spot", notes(n2, "waitlist_promoted") == 1)
+    s.user(org_tum); s.call("update public.events set location = 'New hall' where id = %s", [ev_n])
+    check("registered students are told when the place changes", notes(n2, "event_changed") == 1)
+    check("students who cancelled are not told", notes(n1, "event_changed") == 0)
+    s.user(org_tum); s.call("update public.events set starts_at = starts_at + interval '1 hour' where id = %s", [ev_n])
+    check("quick repeated edits send one message, not one per save", notes(n2, "event_changed") == 1)
+    s.user(org_tum); s.call("update public.events set description = 'typo fixed' where id = %s", [ev_n])
+    check("editing only the description sends nothing", notes(n2) == 2)
+    s.user(n3)
+    _, err = s.call("update public.profiles set notify_updates = false where id = %s", [n3]); check("a user can turn off event updates", err is None, str(err))
+    s.affects_nothing("a user cannot change someone else's notification settings", "update public.profiles set notify_updates = false where id = %s", [n2])
+    s.call("select public.register_for_event(%s)", [ev_n])  # waitlisted
+    s.user(org_tum); s.call("update public.events set status = 'cancelled' where id = %s", [ev_n])
+    check("registered students are told when an event is cancelled", notes(n2, "event_cancelled") == 1)
+    check("students who turned off updates are not told", notes(n3) == 0)
+    check("the organizer gets no message about their own cancellation", notes(org_tum, "event_cancelled") == 0)
+    check("an organizer is told when their event is removed after a report", notes(rq_haw, "event_removed") >= 1)
+    check("an applicant is told when their application is approved", notes(rq_haw, "request_approved") >= 1)
+    check("an applicant is told when their application is rejected", notes(rq_pub, "request_rejected") >= 1)
+
+    n4, n5, n6 = (mk_user(f"n{i}-{tag}@tum.de") for i in (4, 5, 6))
+    ev_soon = mk_event(org_tum, tum, "Remind me", start="now() + interval '5 hours'", end="now() + interval '7 hours'")
+    ev_later = mk_event(org_tum, tum, "Not yet", start="now() + interval '3 days'", end="now() + interval '3 days 2 hours'")
+    for u in (n4, n5, n6):
+        for e in (ev_soon, ev_later):
+            s.user(u); s.call("select public.register_for_event(%s)", [e])
+    s.postgres()
+    c.execute("update public.registrations set created_at = now() - interval '2 hours' where user_id = any(%s)", [[n4, n6]])
+    c.execute("update public.profiles set notify_reminders = false where id = %s", [n6])
+    s.scalar("select public.queue_event_reminders()")
+    check("registered students get a reminder in the 24 hours before an event", notes(n4, "reminder") == 1)
+    check("no reminder right after registering", notes(n5, "reminder") == 0)
+    check("no reminder when reminders are turned off", notes(n6, "reminder") == 0)
+    check("no reminder for events more than a day away", s.scalar("select count(*) from public.notifications where event_id = %s", [ev_later]) == 0)
+    s.scalar("select public.queue_event_reminders()")
+    check("each event is reminded only once", notes(n4, "reminder") == 1)
+
+    s.user(n3)
+    check("users see only their own notifications", s.scalar("select count(*) from public.notifications") == 0)
+    s.user(n2)
+    check("a user sees their own notifications", s.scalar("select count(*) from public.notifications") == notes(n2))
+    s.user(n2)
+    s.fails("users cannot create notifications", "insert into public.notifications (user_id, kind) values (%s, 'request_approved')", [n2], contains="permission denied")
+    s.fails("users cannot change what a notification says", "update public.notifications set kind = 'reminder'", contains="permission denied")
+    s.fails("users cannot change the push state", "update public.notifications set push_state = 'pending'", contains="permission denied")
+    _, err = s.call("update public.notifications set read_at = now() where user_id = %s", [n2]); check("a user can mark their notifications as read", err is None, str(err))
+    s.user(n1)
+    s.affects_nothing("cannot mark someone else's notifications as read", "update public.notifications set read_at = now() where user_id = %s", [n2])
+    s.affects_nothing("cannot delete someone else's notifications", "delete from public.notifications where user_id = %s", [n2])
+    s.anon()
+    s.fails("anonymous cannot read notifications", "select * from public.notifications", contains="permission denied")
+
+    tok = f"fcm-{tag}-" + "x" * 40
+    s.user(n1)
+    _, err = s.call("select public.register_push_token(%s, 'android')", [tok]); check("a user can register their phone for push", err is None, str(err))
+    s.fails("users cannot read the device list", "select * from public.push_tokens", contains="permission denied")
+    s.fails("users cannot write the device list directly", "insert into public.push_tokens (token, user_id, platform) values (%s, %s, 'web')", [tok + "y", n2], contains="permission denied")
+    _, err = s.call("select public.register_push_token(%s, 'fridge')", [tok + "2"]); check("unknown device types are refused", err is not None, "accepted")
+    _, err = s.call("select public.register_push_token('short', 'web')"); check("malformed device tokens are refused", err is not None, "accepted")
+    s.user(n2); s.call("select public.unregister_push_token(%s)", [tok])
+    s.postgres()
+    check("a user cannot remove someone else's device", s.scalar("select user_id from public.push_tokens where token = %s", [tok]) == n1)
+    s.user(n2); s.call("select public.register_push_token(%s, 'android')", [tok])
+    s.postgres()
+    check("a device belongs to whoever signed in on it last", s.scalar("select user_id from public.push_tokens where token = %s", [tok]) == n2)
+    for i in range(12):
+        s.user(n1); s.call("select public.register_push_token(%s, 'web')", [f"{tok}-{i:02d}"])
+    s.postgres()
+    check("at most 10 devices per account", s.scalar("select count(*) from public.push_tokens where user_id = %s", [n1]) == 10)
+    s.anon()
+    s.fails("anonymous cannot register a device", "select public.register_push_token(%s, 'web')", [tok + "z"], contains="permission denied")
+    for fn, q, args in (("claim_push_batch", "select * from public.claim_push_batch(10)", None),
+                        ("finish_push", "select public.finish_push(%s::bigint[], 'sent')", [[1]]),
+                        ("push_targets", "select * from public.push_targets(%s::uuid[])", [[n2]]),
+                        ("forget_push_tokens", "select public.forget_push_tokens(%s::text[])", [[tok]]),
+                        ("push_secret_ok", "select public.push_secret_ok('x')", None),
+                        ("kick_push", "select public.kick_push()", None),
+                        ("retry_push", "select public.retry_push()", None),
+                        ("queue_event_reminders", "select public.queue_event_reminders()", None),
+                        ("notify_event_attendees", "select public.notify_event_attendees(%s, 'reminder', null)", [ev_soon])):
+        s.user(n1)
+        s.fails(f"a user cannot call the server-only function {fn}", q, args, contains="permission denied")
+    s.user(n1)
+    s.fails("users cannot read Vault secrets", "select * from vault.decrypted_secrets", contains="permission denied")
+    s.postgres()
+    c.execute("set local role service_role")
+    claimed = s.rows("select id, user_id, kind from public.claim_push_batch(500)")
+    mine = [r for r in claimed if r[1] == n2]
+    check("the push server can claim pending notifications", len(mine) == 3, str(len(mine)))
+    c.execute("set local role service_role")
+    check("claimed notifications are not handed out twice", s.rows("select id from public.claim_push_batch(500)") == [])
+    c.execute("set local role service_role")
+    s.c.execute("select public.finish_push(%s::bigint[], 'sent')", [[r[0] for r in mine]])
+    s.postgres()
+    check("sent notifications are marked as sent", s.scalar("select count(*) from public.notifications where user_id = %s and push_state <> 'sent'", [n2]) == 0)
+    s.postgres()
+    c.execute("set local role service_role")
+    targets = s.rows("select user_id, token, platform, locale from public.push_targets(%s::uuid[])", [[n2]])
+    check("the push server finds the user's devices and language", targets == [(n2, tok, "android", "en")], str(targets))
+    s.postgres()
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
@@ -782,7 +893,8 @@ def run(s: Sim, tag: str) -> None:
                           "is_verified_publisher", "user_tenant", "request_organizer_access",
                           "review_organizer_request", "admin_list_users", "delete_my_account",
                           "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count",
-                          "can_moderate_event", "report_event", "resolve_report"},
+                          "can_moderate_event", "report_event", "resolve_report",
+                          "register_push_token", "unregister_push_token"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")
@@ -802,6 +914,7 @@ def run(s: Sim, tag: str) -> None:
         "organizer_requests": (set(), set(["SELECT"])),
         "favorites": (set(), set(["SELECT", "INSERT", "DELETE"])),
         "event_reports": (set(), set(["SELECT"])),
+        "notifications": (set(), set(["SELECT", "DELETE"])),
     }
     grants = {}
     for table, grantee, priv in s.rows("select table_name, grantee, privilege_type from information_schema.role_table_grants "

@@ -2755,6 +2755,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} reports'**
   String adminReportCount(int count);
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet. We\'ll let you know when an event you registered for changes.'**
+  String get notificationsEmpty;
+
+  /// No description provided for @notificationsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get notificationsMarkAllRead;
+
+  /// No description provided for @notificationsView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get notificationsView;
+
+  /// No description provided for @notificationsEventGone.
+  ///
+  /// In en, this message translates to:
+  /// **'This event is no longer available.'**
+  String get notificationsEventGone;
+
+  /// No description provided for @notifEventCancelledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event cancelled'**
+  String get notifEventCancelledTitle;
+
+  /// No description provided for @notifEventCancelledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} has been cancelled.'**
+  String notifEventCancelledBody(String title);
+
+  /// No description provided for @notifEventChangedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event updated'**
+  String get notifEventChangedTitle;
+
+  /// No description provided for @notifEventChangedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: the time or place has changed.'**
+  String notifEventChangedBody(String title);
+
+  /// No description provided for @notifWaitlistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You got a spot!'**
+  String get notifWaitlistTitle;
+
+  /// No description provided for @notifWaitlistBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re now registered for {title}. Your ticket is ready.'**
+  String notifWaitlistBody(String title);
+
+  /// No description provided for @notifReminderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder'**
+  String get notifReminderTitle;
+
+  /// No description provided for @notifReminderBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} starts {when}.'**
+  String notifReminderBody(String title, String when);
+
+  /// No description provided for @notifRequestApprovedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Application approved'**
+  String get notifRequestApprovedTitle;
+
+  /// No description provided for @notifRequestApprovedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can now publish events on UniHub.'**
+  String get notifRequestApprovedBody;
+
+  /// No description provided for @notifRequestRejectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Application not approved'**
+  String get notifRequestRejectedTitle;
+
+  /// No description provided for @notifRequestRejectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'See your profile for details.'**
+  String get notifRequestRejectedBody;
+
+  /// No description provided for @notifEventRemovedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event removed'**
+  String get notifEventRemovedTitle;
+
+  /// No description provided for @notifEventRemovedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} was removed after a report.'**
+  String notifEventRemovedBody(String title);
+
+  /// No description provided for @notifSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifSettingsTitle;
+
+  /// No description provided for @notifRemindersLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Event reminders'**
+  String get notifRemindersLabel;
+
+  /// No description provided for @notifRemindersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A reminder in the 24 hours before events you registered for'**
+  String get notifRemindersHint;
+
+  /// No description provided for @notifUpdatesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Event updates'**
+  String get notifUpdatesLabel;
+
+  /// No description provided for @notifUpdatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancellations, new times or places, and waitlist spots'**
+  String get notifUpdatesHint;
+
+  /// No description provided for @notifAccountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages about your account, like the result of an organizer application, are always sent.'**
+  String get notifAccountHint;
+
+  /// No description provided for @notifPushOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Push messages are on for this device.'**
+  String get notifPushOn;
+
+  /// No description provided for @notifPushBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are blocked for UniHub. Allow them in your phone\'s settings to get push messages.'**
+  String get notifPushBlocked;
+
+  /// No description provided for @notifPushUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Push messages aren\'t available on this device yet. You\'ll still see everything in the notification list.'**
+  String get notifPushUnavailable;
+
+  /// No description provided for @notifSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the setting. Check your connection.'**
+  String get notifSaveFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -1481,4 +1481,109 @@ class AppLocalizationsDe extends AppLocalizations {
   String adminReportCount(int count) {
     return '$count Meldungen';
   }
+
+  @override
+  String get notificationsTitle => 'Benachrichtigungen';
+
+  @override
+  String get notificationsEmpty =>
+      'Noch keine Benachrichtigungen. Wir melden uns, wenn sich ein Event ändert, für das du angemeldet bist.';
+
+  @override
+  String get notificationsMarkAllRead => 'Alle als gelesen markieren';
+
+  @override
+  String get notificationsView => 'Ansehen';
+
+  @override
+  String get notificationsEventGone => 'Dieses Event ist nicht mehr verfügbar.';
+
+  @override
+  String get notifEventCancelledTitle => 'Event abgesagt';
+
+  @override
+  String notifEventCancelledBody(String title) {
+    return '$title wurde abgesagt.';
+  }
+
+  @override
+  String get notifEventChangedTitle => 'Event geändert';
+
+  @override
+  String notifEventChangedBody(String title) {
+    return '$title: Zeit oder Ort hat sich geändert.';
+  }
+
+  @override
+  String get notifWaitlistTitle => 'Du hast einen Platz!';
+
+  @override
+  String notifWaitlistBody(String title) {
+    return 'Du bist jetzt für $title angemeldet. Dein Ticket ist bereit.';
+  }
+
+  @override
+  String get notifReminderTitle => 'Erinnerung';
+
+  @override
+  String notifReminderBody(String title, String when) {
+    return '$title beginnt $when.';
+  }
+
+  @override
+  String get notifRequestApprovedTitle => 'Bewerbung angenommen';
+
+  @override
+  String get notifRequestApprovedBody =>
+      'Du kannst jetzt Events auf UniHub veröffentlichen.';
+
+  @override
+  String get notifRequestRejectedTitle => 'Bewerbung nicht angenommen';
+
+  @override
+  String get notifRequestRejectedBody => 'Details findest du in deinem Profil.';
+
+  @override
+  String get notifEventRemovedTitle => 'Event entfernt';
+
+  @override
+  String notifEventRemovedBody(String title) {
+    return '$title wurde nach einer Meldung entfernt.';
+  }
+
+  @override
+  String get notifSettingsTitle => 'Benachrichtigungen';
+
+  @override
+  String get notifRemindersLabel => 'Erinnerungen an Events';
+
+  @override
+  String get notifRemindersHint =>
+      'Eine Erinnerung in den 24 Stunden vor deinen angemeldeten Events';
+
+  @override
+  String get notifUpdatesLabel => 'Änderungen an Events';
+
+  @override
+  String get notifUpdatesHint =>
+      'Absagen, neue Zeiten oder Orte und Plätze von der Warteliste';
+
+  @override
+  String get notifAccountHint =>
+      'Nachrichten zu deinem Konto, z. B. das Ergebnis einer Organisator-Bewerbung, bekommst du immer.';
+
+  @override
+  String get notifPushOn => 'Push-Nachrichten sind auf diesem Gerät aktiv.';
+
+  @override
+  String get notifPushBlocked =>
+      'Benachrichtigungen für UniHub sind blockiert. Erlaube sie in den Einstellungen deines Handys, um Push-Nachrichten zu bekommen.';
+
+  @override
+  String get notifPushUnavailable =>
+      'Push-Nachrichten sind auf diesem Gerät noch nicht verfügbar. In der Benachrichtigungsliste siehst du trotzdem alles.';
+
+  @override
+  String get notifSaveFailed =>
+      'Die Einstellung konnte nicht gespeichert werden. Prüfe deine Verbindung.';
 }

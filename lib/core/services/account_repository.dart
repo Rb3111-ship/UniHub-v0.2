@@ -92,7 +92,8 @@ class AccountRepository {
     final user = _client.auth.currentUser!;
     final profile = await _client
         .from('profiles')
-        .select('display_name, role, locale, organizer_verified, created_at, tenants(name_en)')
+        .select('display_name, role, locale, organizer_verified, notify_reminders, notify_updates, created_at, '
+            'tenants(name_en)')
         .eq('id', _uid)
         .maybeSingle();
     final registrations = await _client
@@ -105,6 +106,16 @@ class AccountRepository {
         .from('organizer_requests')
         .select('requested_role, organization_name, applicant_position, phone, website_url, message, documents, status, created_at')
         .eq('user_id', _uid);
+    final favorites = await _client.from('favorites').select('created_at, events(title, starts_at)').eq('user_id', _uid);
+    final reports = await _client
+        .from('event_reports')
+        .select('reason, details, status, created_at, events(title)')
+        .eq('reporter_id', _uid);
+    final notifications = await _client
+        .from('notifications')
+        .select('kind, event_title, created_at, read_at')
+        .eq('user_id', _uid)
+        .order('created_at');
     return const JsonEncoder.withIndent('  ').convert({
       'exported_at': DateTime.now().toUtc().toIso8601String(),
       'account': {'email': user.email, 'created_at': user.createdAt},
@@ -112,6 +123,9 @@ class AccountRepository {
       'registrations': registrations,
       'reviews': reviews,
       'organizer_requests': requests,
+      'saved_events': favorites,
+      'event_reports': reports,
+      'notifications': notifications,
     });
   }
 

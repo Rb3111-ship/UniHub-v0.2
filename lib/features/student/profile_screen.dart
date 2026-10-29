@@ -7,6 +7,7 @@ import '../../../core/utils/image_type.dart';
 import '../../../core/widgets/language_picker.dart';
 import '../../../core/widgets/wallpaper.dart';
 import 'account_section.dart';
+import 'notifications_screen.dart';
 import 'privacy_screen.dart';
 
 class StudentProfileScreen extends StatelessWidget {
@@ -28,6 +29,10 @@ class StudentProfileScreen extends StatelessWidget {
           if (appState.usesBackend) ...[
             const AccountSection(),
             const SizedBox(height: 12),
+            _sectionTitle(context, l10n.notifSettingsTitle),
+            const SizedBox(height: 8),
+            const NotificationSettingsCard(),
+            const SizedBox(height: 24),
           ],
 
           _sectionTitle(context, l10n.prefSection),

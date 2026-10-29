@@ -8,7 +8,10 @@ import '../models/event_host.dart';
 import '../models/event_model.dart';
 import '../models/review_model.dart';
 import '../models/admin_model.dart';
+import '../models/notification_model.dart';
 import '../services/community_repository.dart';
+import '../services/notification_repository.dart';
+import '../services/push_service.dart';
 import '../models/dashboard_model.dart';
 import '../models/registration_model.dart';
 import '../services/account_repository.dart';
@@ -40,7 +43,8 @@ class MockProfile {
 class AppState extends ChangeNotifier {
   /// [client] null = offline mock mode (tests, demos): no sign-in, fake profiles.
   /// With a client, the signed-in user's profile drives role, tenant and name.
-  AppState({SupabaseClient? client}) : _client = client {
+  /// [push] is only passed by the real app; tests and demos run without Firebase.
+  AppState({SupabaseClient? client, PushService? push}) : _client = client, _push = push {
     final c = client;
     if (c == null) {
       final mock = MockEventRepository();
@@ -52,6 +56,9 @@ class AppState extends ChangeNotifier {
       _insightsRepository = InsightsRepository(c);
       _accountRepository = AccountRepository(c);
       _communityRepository = CommunityRepository(c);
+      _notificationRepository = NotificationRepository(c);
+      // A message arriving while the app is open is also a new inbox entry.
+      _pushSub = push?.messages.listen((_) => refreshNotifications());
       // Real accounts start empty; registrations/tickets/reviews move to the
       // database in a later step.
       _registeredEventIds.clear();
@@ -76,6 +83,13 @@ class AppState extends ChangeNotifier {
   InsightsRepository? _insightsRepository;
   AccountRepository? _accountRepository;
   CommunityRepository? _communityRepository;
+  NotificationRepository? _notificationRepository;
+  final PushService? _push;
+  StreamSubscription<PushMessage>? _pushSub;
+  List<AppNotification> _notifications = [];
+  bool _notifyReminders = true;
+  bool _notifyUpdates = true;
+  PushStatus _pushStatus = PushStatus.unavailable;
   Set<String> _favoriteIds = {};
   List<EventReport> _reports = [];
   String _dbRole = 'student';
@@ -136,6 +150,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     _authSub?.cancel();
+    _pushSub?.cancel();
     super.dispose();
   }
 
@@ -161,6 +176,9 @@ class AppState extends ChangeNotifier {
       _adminUsers = [];
       _favoriteIds = {};
       _reports = [];
+      _notifications = [];
+      _notifyReminders = true;
+      _notifyUpdates = true;
       _events = [];
       _registrations = [];
       _ratings = {};
@@ -190,7 +208,8 @@ class AppState extends ChangeNotifier {
     try {
       final row = await c
           .from('profiles')
-          .select('display_name, role, tenant_id, locale, avatar_path, organizer_verified, tenants(slug)')
+          .select('display_name, role, tenant_id, locale, avatar_path, organizer_verified, '
+              'notify_reminders, notify_updates, tenants(slug)')
           .eq('id', user.id)
           .single();
       final slug = ((row['tenants'] as Map?)?['slug'] as String?)?.toUpperCase();
@@ -200,6 +219,8 @@ class AppState extends ChangeNotifier {
       _tenantId = row['tenant_id'] as String?;
       _avatarPath = row['avatar_path'] as String?;
       _organizerVerified = row['organizer_verified'] as bool? ?? false;
+      _notifyReminders = row['notify_reminders'] as bool? ?? true;
+      _notifyUpdates = row['notify_updates'] as bool? ?? true;
       final savedLocale = row['locale'] as String?;
       if (firstLoad && AppLocalizations.supportedLocales.any((l) => l.languageCode == savedLocale)) {
         _currentLocale = Locale(savedLocale!);
@@ -240,12 +261,88 @@ class AppState extends ChangeNotifier {
       refreshRegistrations();
       refreshMyReviews();
       refreshFavorites();
+      refreshNotifications();
+      if (_pushStartedFor != user.id) _startPush(); // once per sign-in
       if (_dbRole != 'student') refreshDashboard();
       if (_dbRole == 'student') refreshMyRequest();
       if (isAdmin) {
         refreshRequests();
         refreshReports();
       }
+    }
+  }
+
+  // ---- notifications ---------------------------------------------------------
+
+  List<AppNotification> get notifications => List.unmodifiable(_notifications);
+  int get unreadNotificationCount => _notifications.where((n) => !n.isRead).length;
+  bool get notifyReminders => _notifyReminders;
+  bool get notifyUpdates => _notifyUpdates;
+  PushStatus get pushStatus => _pushStatus;
+
+  /// Push messages received while the app is open, or tapped in the phone's list.
+  Stream<PushMessage> get pushMessages => _push?.messages ?? const Stream.empty();
+
+  String? _pushStartedFor;
+
+  Future<void> _startPush() async {
+    final push = _push;
+    final repo = _notificationRepository;
+    if (push == null || repo == null) return;
+    _pushStartedFor = currentUserId;
+    _pushStatus = await push.start((token) => repo.registerDevice(token, PushService.platformName));
+    notifyListeners();
+  }
+
+  Future<void> refreshNotifications() async {
+    final repo = _notificationRepository;
+    if (repo == null || _session == null) return;
+    try {
+      _notifications = await repo.fetch().timeout(_requestTimeout);
+      notifyListeners();
+    } catch (_) {
+      // Shown again on the next refresh.
+    }
+  }
+
+  Future<void> markNotificationsRead([List<int>? ids]) async {
+    final targets = ids ?? [for (final n in _notifications) if (!n.isRead) n.id];
+    if (targets.isEmpty) return;
+    _notifications = [for (final n in _notifications) targets.contains(n.id) ? n.markedRead() : n];
+    notifyListeners();
+    try {
+      await _notificationRepository?.markRead(targets);
+    } catch (_) {
+      // Only the read marker is lost; the next refresh shows the server's state.
+    }
+  }
+
+  /// Turns reminders or event updates on/off. Flips back if the server refuses.
+  Future<void> setNotificationSettings({bool? reminders, bool? updates}) async {
+    final before = (_notifyReminders, _notifyUpdates);
+    _notifyReminders = reminders ?? _notifyReminders;
+    _notifyUpdates = updates ?? _notifyUpdates;
+    notifyListeners();
+    try {
+      await _notificationRepository?.saveSettings(reminders: reminders, updates: updates);
+    } catch (_) {
+      _notifyReminders = before.$1;
+      _notifyUpdates = before.$2;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// The event a notification points to: from the feed or tickets if loaded,
+  /// otherwise from the server (null if it is no longer visible).
+  Future<Event?> eventById(String id) async {
+    for (final e in [..._events, ...registeredEvents, ..._managedEvents]) {
+      if (e.id == id) return e;
+    }
+    try {
+      return await _eventRepository.fetchById(id).timeout(_requestTimeout);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -345,6 +442,9 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    final repo = _notificationRepository;
+    if (repo != null) await _push?.stop(repo.unregisterDevice);
+    _pushStartedFor = null;
     await _client?.auth.signOut();
   }
 

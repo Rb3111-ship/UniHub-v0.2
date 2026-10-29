@@ -6,6 +6,7 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import 'app/config/env.dart';
 import 'app/config/theme.dart';
 import 'core/auth/user_role.dart';
+import 'core/services/push_service.dart';
 import 'features/auth/auth_gate.dart';
 
 void main() {
@@ -49,7 +50,7 @@ class _BootstrapState extends State<_Bootstrap> {
   Widget build(BuildContext context) {
     if (_ready) {
       return ChangeNotifierProvider(
-        create: (_) => AppState(client: Supabase.instance.client),
+        create: (_) => AppState(client: Supabase.instance.client, push: PushService()),
         child: const UniEventsApp(),
       );
     }
