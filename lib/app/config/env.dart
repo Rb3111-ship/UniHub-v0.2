@@ -24,10 +24,10 @@ class Env {
   // from the Firebase console. Empty = push is off and only the in-app list works.
   // NEVER put the Firebase service account key here: that one lives only in
   // Supabase (Edge Functions > Secrets).
-  static const firebaseProjectId = String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: '');
-  static const firebaseSenderId = String.fromEnvironment('FIREBASE_SENDER_ID', defaultValue: '');
-  static const firebaseAndroidApiKey = String.fromEnvironment('FIREBASE_ANDROID_API_KEY', defaultValue: '');
-  static const firebaseAndroidAppId = String.fromEnvironment('FIREBASE_ANDROID_APP_ID', defaultValue: '');
+  static const firebaseProjectId = String.fromEnvironment('FIREBASE_PROJECT_ID', defaultValue: 'unihub-2e148');
+  static const firebaseSenderId = String.fromEnvironment('FIREBASE_SENDER_ID', defaultValue: '891981028457');
+  static const firebaseAndroidApiKey = String.fromEnvironment('FIREBASE_ANDROID_API_KEY', defaultValue: 'AIzaSyB4SROQaQ8e8MsM3z5QF5WT8KqBqczl7KE');
+  static const firebaseAndroidAppId = String.fromEnvironment('FIREBASE_ANDROID_APP_ID', defaultValue: '1:891981028457:android:502f4e8ea1f355d16396f8');
   static const firebaseWebApiKey = String.fromEnvironment('FIREBASE_WEB_API_KEY', defaultValue: '');
   static const firebaseWebAppId = String.fromEnvironment('FIREBASE_WEB_APP_ID', defaultValue: '');
   static const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY', defaultValue: '');
