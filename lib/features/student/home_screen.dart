@@ -598,7 +598,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         ? l10n.ctaOwnEvent
         : isRegistered
         ? (appState.isWaitlisted(event.id) ? l10n.ctaWaitlisted : l10n.ctaRegistered)
-        : (event.requiresQrCode ? l10n.ctaRegister : l10n.ctaRsvp);
+        : l10n.ctaRegister;
 
     return ElevatedButton(
       onPressed: isRegistered

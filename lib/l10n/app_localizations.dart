@@ -443,7 +443,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardTotalRsvps.
   ///
   /// In en, this message translates to:
-  /// **'Total RSVPs'**
+  /// **'Total registrations'**
   String get dashboardTotalRsvps;
 
   /// No description provided for @dashboardTotalCheckins.
@@ -1709,7 +1709,7 @@ abstract class AppLocalizations {
   /// No description provided for @detailsOpenAdmission.
   ///
   /// In en, this message translates to:
-  /// **'Open admission - RSVP so the organizer can plan'**
+  /// **'Open admission - register so the organizer can plan'**
   String get detailsOpenAdmission;
 
   /// No description provided for @detailsSeeTickets.
@@ -1753,12 +1753,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Register'**
   String get ctaRegister;
-
-  /// No description provided for @ctaRsvp.
-  ///
-  /// In en, this message translates to:
-  /// **'RSVP'**
-  String get ctaRsvp;
 
   /// No description provided for @ctaRegistered.
   ///
@@ -2903,7 +2897,7 @@ abstract class AppLocalizations {
   /// No description provided for @notifAccountHint.
   ///
   /// In en, this message translates to:
-  /// **'Messages about your account, like the result of an organizer application, are always sent.'**
+  /// **'Messages about your account and \"Are you still coming?\" questions are always sent, because your seat may depend on them.'**
   String get notifAccountHint;
 
   /// No description provided for @notifPushOn.
@@ -2929,6 +2923,247 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save the setting. Check your connection.'**
   String get notifSaveFailed;
+
+  /// No description provided for @confirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you still coming?'**
+  String get confirmTitle;
+
+  /// No description provided for @confirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Please let the organizer know. If you can\'t make it, free your seat so someone else can come.'**
+  String get confirmBody;
+
+  /// No description provided for @confirmReleaseWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Seats that aren\'t confirmed 24 hours before the start may go to people on the waitlist.'**
+  String get confirmReleaseWarning;
+
+  /// No description provided for @confirmYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, I\'m coming'**
+  String get confirmYes;
+
+  /// No description provided for @confirmNo.
+  ///
+  /// In en, this message translates to:
+  /// **'I can\'t come'**
+  String get confirmNo;
+
+  /// No description provided for @confirmDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks! Your seat is confirmed.'**
+  String get confirmDone;
+
+  /// No description provided for @confirmedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get confirmedBadge;
+
+  /// No description provided for @confirmFreeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Free your seat?'**
+  String get confirmFreeTitle;
+
+  /// No description provided for @confirmFreeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your registration for {title} will be cancelled and the seat goes to the next person waiting.'**
+  String confirmFreeBody(Object title);
+
+  /// No description provided for @confirmFreeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Free seat'**
+  String get confirmFreeAction;
+
+  /// No description provided for @confirmFreed.
+  ///
+  /// In en, this message translates to:
+  /// **'Seat freed. Thanks for letting us know!'**
+  String get confirmFreed;
+
+  /// No description provided for @confirmFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn\'t work. Please try again.'**
+  String get confirmFailed;
+
+  /// No description provided for @notifConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Still coming?'**
+  String get notifConfirmTitle;
+
+  /// No description provided for @notifConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: please confirm your seat or free it for someone else.'**
+  String notifConfirmBody(Object title);
+
+  /// No description provided for @notifSeatReleasedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Seat released'**
+  String get notifSeatReleasedTitle;
+
+  /// No description provided for @notifSeatReleasedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You didn\'t confirm your seat for {title}, so it went to the waitlist.'**
+  String notifSeatReleasedBody(Object title);
+
+  /// No description provided for @fieldReleaseUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Free unconfirmed seats'**
+  String get fieldReleaseUnconfirmed;
+
+  /// No description provided for @fieldReleaseUnconfirmedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'About 3 days before, attendees are asked if they\'re still coming. 24 hours before the start, seats of people who didn\'t answer go to the waitlist (only if someone is waiting).'**
+  String get fieldReleaseUnconfirmedHint;
+
+  /// No description provided for @insightsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Event statistics'**
+  String get insightsTitle;
+
+  /// No description provided for @insightsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get insightsOpen;
+
+  /// No description provided for @insightsTapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap an event to see its statistics.'**
+  String get insightsTapHint;
+
+  /// No description provided for @insightsOverviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered, confirmed and came'**
+  String get insightsOverviewTitle;
+
+  /// No description provided for @legendRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered'**
+  String get legendRegistered;
+
+  /// No description provided for @legendConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get legendConfirmed;
+
+  /// No description provided for @legendCame.
+  ///
+  /// In en, this message translates to:
+  /// **'Came'**
+  String get legendCame;
+
+  /// No description provided for @insightsCameUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Open events have no door scan, so \'came\' is only known for ticket events.'**
+  String get insightsCameUnknown;
+
+  /// No description provided for @insightsRatingTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Average stars per event'**
+  String get insightsRatingTrend;
+
+  /// No description provided for @insightsNoRatings.
+  ///
+  /// In en, this message translates to:
+  /// **'No ratings yet'**
+  String get insightsNoRatings;
+
+  /// No description provided for @insightsSignups.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-ups per day'**
+  String get insightsSignups;
+
+  /// No description provided for @insightsNoSignups.
+  ///
+  /// In en, this message translates to:
+  /// **'No sign-ups yet'**
+  String get insightsNoSignups;
+
+  /// No description provided for @insightsStars.
+  ///
+  /// In en, this message translates to:
+  /// **'Ratings'**
+  String get insightsStars;
+
+  /// No description provided for @insightsAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'{avg} average from {count} ratings'**
+  String insightsAverage(Object avg, Object count);
+
+  /// No description provided for @insightsVerifiedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} verified by door scan'**
+  String insightsVerifiedNote(Object count);
+
+  /// No description provided for @insightsAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance'**
+  String get insightsAttendance;
+
+  /// No description provided for @insightsConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance check'**
+  String get insightsConfirmation;
+
+  /// No description provided for @insightsConfirmationLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{asked} asked · {confirmed} confirmed · {declined} can\'t come · {released} seats freed'**
+  String insightsConfirmationLine(
+      Object asked, Object confirmed, Object declined, Object released);
+
+  /// No description provided for @insightsNotAskedYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendees are asked about 3 days before the event.'**
+  String get insightsNotAskedYet;
+
+  /// No description provided for @statNoShow.
+  ///
+  /// In en, this message translates to:
+  /// **'No-show'**
+  String get statNoShow;
+
+  /// No description provided for @statWaitlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Waitlist'**
+  String get statWaitlist;
+
+  /// No description provided for @statCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get statCancelled;
 }
 
 class _AppLocalizationsDelegate

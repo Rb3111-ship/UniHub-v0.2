@@ -183,7 +183,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardPrivateFeedback => 'Private Internal Feedback';
 
   @override
-  String get dashboardTotalRsvps => 'Total RSVPs';
+  String get dashboardTotalRsvps => 'Total registrations';
 
   @override
   String get dashboardTotalCheckins => 'Total Check-ins';
@@ -889,7 +889,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get detailsOpenAdmission =>
-      'Open admission - RSVP so the organizer can plan';
+      'Open admission - register so the organizer can plan';
 
   @override
   String get detailsSeeTickets => 'Your entry QR code is in My Tickets';
@@ -913,9 +913,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ctaRegister => 'Register';
-
-  @override
-  String get ctaRsvp => 'RSVP';
 
   @override
   String get ctaRegistered => 'Registered';
@@ -1541,7 +1538,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notifAccountHint =>
-      'Messages about your account, like the result of an organizer application, are always sent.';
+      'Messages about your account and \"Are you still coming?\" questions are always sent, because your seat may depend on them.';
 
   @override
   String get notifPushOn => 'Push messages are on for this device.';
@@ -1557,4 +1554,142 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notifSaveFailed =>
       'Couldn\'t save the setting. Check your connection.';
+
+  @override
+  String get confirmTitle => 'Are you still coming?';
+
+  @override
+  String get confirmBody =>
+      'Please let the organizer know. If you can\'t make it, free your seat so someone else can come.';
+
+  @override
+  String get confirmReleaseWarning =>
+      'Seats that aren\'t confirmed 24 hours before the start may go to people on the waitlist.';
+
+  @override
+  String get confirmYes => 'Yes, I\'m coming';
+
+  @override
+  String get confirmNo => 'I can\'t come';
+
+  @override
+  String get confirmDone => 'Thanks! Your seat is confirmed.';
+
+  @override
+  String get confirmedBadge => 'Confirmed';
+
+  @override
+  String get confirmFreeTitle => 'Free your seat?';
+
+  @override
+  String confirmFreeBody(Object title) {
+    return 'Your registration for $title will be cancelled and the seat goes to the next person waiting.';
+  }
+
+  @override
+  String get confirmFreeAction => 'Free seat';
+
+  @override
+  String get confirmFreed => 'Seat freed. Thanks for letting us know!';
+
+  @override
+  String get confirmFailed => 'That didn\'t work. Please try again.';
+
+  @override
+  String get notifConfirmTitle => 'Still coming?';
+
+  @override
+  String notifConfirmBody(Object title) {
+    return '$title: please confirm your seat or free it for someone else.';
+  }
+
+  @override
+  String get notifSeatReleasedTitle => 'Seat released';
+
+  @override
+  String notifSeatReleasedBody(Object title) {
+    return 'You didn\'t confirm your seat for $title, so it went to the waitlist.';
+  }
+
+  @override
+  String get fieldReleaseUnconfirmed => 'Free unconfirmed seats';
+
+  @override
+  String get fieldReleaseUnconfirmedHint =>
+      'About 3 days before, attendees are asked if they\'re still coming. 24 hours before the start, seats of people who didn\'t answer go to the waitlist (only if someone is waiting).';
+
+  @override
+  String get insightsTitle => 'Event statistics';
+
+  @override
+  String get insightsOpen => 'Statistics';
+
+  @override
+  String get insightsTapHint => 'Tap an event to see its statistics.';
+
+  @override
+  String get insightsOverviewTitle => 'Registered, confirmed and came';
+
+  @override
+  String get legendRegistered => 'Registered';
+
+  @override
+  String get legendConfirmed => 'Confirmed';
+
+  @override
+  String get legendCame => 'Came';
+
+  @override
+  String get insightsCameUnknown =>
+      'Open events have no door scan, so \'came\' is only known for ticket events.';
+
+  @override
+  String get insightsRatingTrend => 'Average stars per event';
+
+  @override
+  String get insightsNoRatings => 'No ratings yet';
+
+  @override
+  String get insightsSignups => 'Sign-ups per day';
+
+  @override
+  String get insightsNoSignups => 'No sign-ups yet';
+
+  @override
+  String get insightsStars => 'Ratings';
+
+  @override
+  String insightsAverage(Object avg, Object count) {
+    return '$avg average from $count ratings';
+  }
+
+  @override
+  String insightsVerifiedNote(Object count) {
+    return '$count verified by door scan';
+  }
+
+  @override
+  String get insightsAttendance => 'Attendance';
+
+  @override
+  String get insightsConfirmation => 'Attendance check';
+
+  @override
+  String insightsConfirmationLine(
+      Object asked, Object confirmed, Object declined, Object released) {
+    return '$asked asked · $confirmed confirmed · $declined can\'t come · $released seats freed';
+  }
+
+  @override
+  String get insightsNotAskedYet =>
+      'Attendees are asked about 3 days before the event.';
+
+  @override
+  String get statNoShow => 'No-show';
+
+  @override
+  String get statWaitlist => 'Waitlist';
+
+  @override
+  String get statCancelled => 'Cancelled';
 }

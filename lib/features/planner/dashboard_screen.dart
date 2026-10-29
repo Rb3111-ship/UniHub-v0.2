@@ -4,7 +4,9 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/review_model.dart';
 import '../../../core/models/dashboard_model.dart';
+import 'charts.dart';
 import 'create_event_screen.dart';
+import 'event_insights_screen.dart';
 
 class PlannerDashboardScreen extends StatelessWidget {
   const PlannerDashboardScreen({super.key});
@@ -118,8 +120,14 @@ class PlannerDashboardScreen extends StatelessWidget {
     }
     return [
       _buildQuickStats(context, appState, l10n),
+      ..._overviewCharts(context, d, l10n),
       const SizedBox(height: 24),
       _buildSectionTitle(context, l10n.dashboardAttendanceByEvent),
+      if (d.stats.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(l10n.insightsTapHint, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+        ),
       const SizedBox(height: 12),
       if (d.stats.isEmpty)
         _buildEmptyFeedback(theme, l10n.dashboardNoEventsYet)
@@ -139,6 +147,69 @@ class PlannerDashboardScreen extends StatelessWidget {
       _buildFeedbackSection(context, appState, l10n),
       const SizedBox(height: 40),
     ];
+  }
+
+  /// Simple graphs: registered / confirmed / came for recent events, and the
+  /// average stars of past events.
+  List<Widget> _overviewCharts(BuildContext context, DashboardData d, AppLocalizations l10n) {
+    final recent = d.stats.where((s) => s.status != 'draft').take(6).toList();
+    if (recent.isEmpty) return const [];
+    final rated = d.stats.where((s) => s.averageRating != null).take(8).toList().reversed.toList();
+    final max = recent.fold<int>(1, (m, s) => s.registered > m ? s.registered : m);
+    final anyOpen = recent.any((s) => !s.requiresQr);
+    Widget card(String title, List<Widget> children) => Card(
+          margin: const EdgeInsets.only(top: 16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              const SizedBox(height: 10),
+              ...children,
+            ]),
+          ),
+        );
+    return [
+      card(l10n.insightsOverviewTitle, [
+        ChartLegend(items: [
+          (l10n.legendRegistered, registeredColor),
+          (l10n.legendConfirmed, confirmedColor),
+          (l10n.legendCame, cameColor),
+        ]),
+        const SizedBox(height: 8),
+        for (final s in recent)
+          InkWell(
+            onTap: () => _openInsights(context, s),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                HBar(value: s.registered, max: max, color: registeredColor, height: 8),
+                HBar(value: s.confirmed, max: max, color: confirmedColor, height: 8),
+                if (s.requiresQr) HBar(value: s.checkedIn, max: max, color: cameColor, height: 8),
+              ]),
+            ),
+          ),
+        if (anyOpen) Text(l10n.insightsCameUnknown, style: const TextStyle(fontSize: 11)),
+      ]),
+      card(l10n.insightsRatingTrend, [
+        if (rated.isEmpty)
+          Text(l10n.insightsNoRatings)
+        else
+          VBars(
+            values: [for (final s in rated) s.averageRating!],
+            labels: [for (final s in rated) '${s.startsAt.day}.${s.startsAt.month}.'],
+            maxValue: 5,
+            color: Colors.amber.shade700,
+            valueText: (v) => v.toStringAsFixed(1),
+            height: 130,
+          ),
+      ]),
+    ];
+  }
+
+  void _openInsights(BuildContext context, EventStat stat) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => EventInsightsScreen(stat: stat)));
   }
 
   String _scanText(ScanEntry e, AppLocalizations l10n) {
@@ -168,7 +239,10 @@ class PlannerDashboardScreen extends StatelessWidget {
         : l10n.dashboardSeatsLine(stat.registered, stat.capacity!, stat.checkedIn);
     return Card(
       margin: EdgeInsets.zero,
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _openInsights(context, stat),
+        child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,6 +306,7 @@ class PlannerDashboardScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

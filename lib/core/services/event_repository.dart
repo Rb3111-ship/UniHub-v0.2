@@ -90,6 +90,7 @@ class SupabaseEventRepository implements EventRepository {
           'contact_email': event.contactEmail,
           'contact_phone': event.contactPhone,
           'website_url': event.websiteUrl,
+          'release_unconfirmed': event.releaseUnconfirmed,
           'status': 'published',
         })
         .select(_select)
@@ -115,6 +116,7 @@ class SupabaseEventRepository implements EventRepository {
           'contact_email': event.contactEmail,
           'contact_phone': event.contactPhone,
           'website_url': event.websiteUrl,
+          'release_unconfirmed': event.releaseUnconfirmed,
         })
         .eq('id', event.id)
         .select(_select)

@@ -51,6 +51,12 @@ function text(row: Row, locale: string): { title: string; body: string } {
     case "event_removed":
       return de ? { title: "Event entfernt", body: `${t} wurde nach einer Meldung entfernt.` }
                 : { title: "Event removed", body: `${t} was removed after a report.` };
+    case "confirm_attendance":
+      return de ? { title: "Kommst du noch?", body: `${t}: Bitte bestätige deinen Platz oder gib ihn frei.` }
+                : { title: "Still coming?", body: `${t}: please confirm your seat or free it for someone else.` };
+    case "seat_released":
+      return de ? { title: "Platz freigegeben", body: `Du hast deinen Platz für ${t} nicht bestätigt, er ging an die Warteliste.` }
+                : { title: "Seat released", body: `You didn't confirm your seat for ${t}, so it went to the waitlist.` };
     default:
       return { title: "UniHub", body: t };
   }

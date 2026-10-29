@@ -29,7 +29,8 @@ class RegistrationRepository {
     if (uid == null) return [];
     final rows = await _client
         .from('registrations')
-        .select('id, status, events(*, tenants(slug)), tickets(code, ticket_number, checked_in_at, voided_at)')
+        .select('id, status, confirm_asked_at, confirmed_at, events(*, tenants(slug)), '
+            'tickets(code, ticket_number, checked_in_at, voided_at)')
         .eq('user_id', uid)
         .neq('status', 'cancelled');
 
@@ -50,6 +51,8 @@ class RegistrationRepository {
             ? null
             : DateTime.parse(ticket!['checked_in_at'] as String).toLocal(),
         ticketVoided: ticket?['voided_at'] != null,
+        confirmAskedAt: _time(row['confirm_asked_at']),
+        confirmedAt: _time(row['confirmed_at']),
       ));
     }
     result.sort((a, b) => a.event.date.compareTo(b.event.date));
@@ -60,6 +63,13 @@ class RegistrationRepository {
   Future<RegistrationStatus> register(String eventId) async {
     final row = await _client.rpc('register_for_event', params: {'p_event_id': eventId});
     return Registration.parseStatus((row as Map<String, dynamic>)['status'] as String);
+  }
+
+  static DateTime? _time(Object? v) => v == null ? null : DateTime.parse(v as String).toLocal();
+
+  /// "Yes, I'm still coming."
+  Future<void> confirm(String eventId) async {
+    await _client.rpc('confirm_attendance', params: {'p_event_id': eventId});
   }
 
   Future<void> cancel(String eventId) async {

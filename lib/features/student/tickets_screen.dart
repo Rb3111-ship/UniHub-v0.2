@@ -7,6 +7,7 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/models/registration_model.dart';
+import 'attendance_confirm_card.dart';
 import 'register_action.dart';
 import 'review_screen.dart';
 
@@ -89,7 +90,26 @@ class StudentTicketsScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final event = registeredEvents[index];
           final ticketId = appState.getTicketId(event.id);
-          return _buildTicket(context, event, ticketId, appState);
+          final ticket = _buildTicket(context, event, ticketId, appState);
+          final reg = appState.registrationFor(event.id);
+          if (reg == null || !(reg.needsConfirmation || (reg.isConfirmed && event.date.isAfter(DateTime.now())))) {
+            return ticket;
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (reg.needsConfirmation)
+                AttendanceConfirmCard(registration: reg)
+              else
+                Chip(
+                  avatar: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+                  label: Text(localizations.confirmedBadge),
+                  visualDensity: VisualDensity.compact,
+                ),
+              const SizedBox(height: 8),
+              ticket,
+            ],
+          );
         },
       ),
       ),
@@ -109,7 +129,7 @@ class StudentTicketsScreen extends StatelessWidget {
       return _buildWaitlistCard(context, event, appState);
     }
     final isScanned = appState.isTicketScanned(ticketId);
-    
+
     // Dynamic color matching event's tenant
     final brandColor = appState.getUniversityColor(event.universityDomain);
     final qrPayload = appState.qrPayload(event.id);
@@ -124,8 +144,8 @@ class StudentTicketsScreen extends StatelessWidget {
         color: theme.cardTheme.color ?? Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isScanned 
-              ? Colors.green.withOpacity(0.5) 
+          color: isScanned
+              ? Colors.green.withOpacity(0.5)
               : (event.isUniversityOfficial ? brandColor.withOpacity(0.6) : theme.colorScheme.outlineVariant.withOpacity(0.5)),
           width: event.isUniversityOfficial ? 2.0 : 1.0,
         ),
@@ -168,7 +188,7 @@ class StudentTicketsScreen extends StatelessWidget {
                         ),
                       ),
                       Icon(
-                        Icons.confirmation_number_outlined, 
+                        Icons.confirmation_number_outlined,
                         color: isScanned ? Colors.green : Colors.grey,
                       ),
                     ],

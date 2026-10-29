@@ -287,6 +287,8 @@ def run(s: Sim, tag: str) -> None:
     check("first person gets the seat", r1 == "registered", str(r1))
     check("next people are waitlisted (never over capacity)", (r2, r3) == ("waitlisted", "waitlisted"), f"{r2},{r3}")
     s.postgres()
+    # All of this runs in one transaction (same now()), so make the queue order explicit.
+    c.execute("update public.registrations set created_at = now() - interval '1 minute' where event_id = %s and user_id = %s", [ev_cap, stu_haw])
     check("waitlisted users have NO ticket", s.scalar("select count(*) from public.tickets where event_id=%s", [ev_cap]) == 1)
     s.postgres(); old_code = code_of(stu_tum, ev_cap)
     s.user(stu_tum); s.call("select public.cancel_registration(%s)", [ev_cap])
@@ -883,6 +885,90 @@ def run(s: Sim, tag: str) -> None:
     check("the push server finds the user's devices and language", targets == [(n2, tok, "android", "en")], str(targets))
     s.postgres()
 
+    print("\n[25] 'Are you still coming?' checks and organizer statistics")
+    a1, a2, a3, w1, late_reg = (mk_user(f"a{i}-{tag}@tum.de") for i in range(1, 6))
+    in2d = dict(start="now() + interval '2 days'", end="now() + interval '2 days 2 hours'")
+    ev_rel = mk_event(org_tum, tum, "Release on", capacity=2, **in2d)
+    ev_keep = mk_event(org_tum, tum, "Release off", capacity=1, **in2d)
+    ev_far = mk_event(org_tum, tum, "Far away", start="now() + interval '5 days'", end="now() + interval '5 days 2 hours'")
+    s.user(org_tum)
+    _, err = s.call("update public.events set release_unconfirmed = true where id = %s", [ev_rel])
+    check("an organizer can switch on 'free unconfirmed seats' for their event", err is None, str(err))
+    s.user(org_haw)
+    s.affects_nothing("another organizer cannot change that setting", "update public.events set release_unconfirmed = false where id = %s", [ev_rel])
+    for u, evs in ((a1, (ev_rel, ev_far)), (a2, (ev_rel, ev_keep)), (w1, (ev_rel, ev_keep)), (late_reg, (ev_far,))):
+        for e in evs:
+            s.user(u); s.call("select public.register_for_event(%s)", [e])
+    s.postgres()
+    c.execute("update public.registrations set created_at = now() - interval '1 day' where user_id = any(%s)", [[a1, a2, w1]])
+    s.user(org_tum); s.call("select public.register_for_event(%s)", [ev_far])
+    s.user(late_reg); s.call("select public.register_for_event(%s)", [ev_rel])  # waitlisted, registered just now
+    s.postgres()
+    s.scalar("select public.process_attendance_checks()")
+    check("seat holders are asked about 3 days before the event", notes(a1, "confirm_attendance") == 1 and notes(a2, "confirm_attendance") == 2)
+    check("people on the waitlist are not asked", s.scalar("select confirm_asked_at from public.registrations where user_id = %s and event_id = %s", [w1, ev_rel]) is None)
+    check("events further away are not asked yet", s.scalar("select count(*) from public.notifications where event_id = %s and kind = 'confirm_attendance'", [ev_far]) == 0)
+    s.scalar("select public.process_attendance_checks()")
+    check("each person is asked only once", notes(a1, "confirm_attendance") == 1)
+
+    s.user(a1)
+    at, err = s.call("select public.confirm_attendance(%s)", [ev_rel])
+    check("a student can answer 'yes, I'm coming'", err is None and at is not None, str(err))
+    s.fails("a student cannot set the confirmation directly", "update public.registrations set confirmed_at = now() where user_id = %s", [a1], contains="permission denied")
+    s.user(stu_pub)
+    _, err = s.call("select public.confirm_attendance(%s)", [ev_rel]); check("confirming without a seat is refused", err is not None and "not_registered" in err, str(err))
+    s.user(w1)
+    _, err = s.call("select public.confirm_attendance(%s)", [ev_rel]); check("people on the waitlist cannot confirm a seat they do not have", err is not None, "accepted")
+    s.anon()
+    s.fails("anonymous cannot confirm", "select public.confirm_attendance(%s)", [ev_rel], contains="permission denied")
+    s.user(a1)
+    s.fails("a user cannot run the attendance job", "select public.process_attendance_checks()", contains="permission denied")
+
+    # 20 hours before the start, nobody answered for 13 hours.
+    s.postgres()
+    c.execute("update public.events set starts_at = now() + interval '20 hours', ends_at = now() + interval '22 hours' where id = any(%s)", [[ev_rel, ev_keep]])
+    c.execute("update public.registrations set confirm_asked_at = now() - interval '13 hours' where confirm_asked_at is not null")
+    s.scalar("select public.process_attendance_checks()")
+    status = lambda u, e: s.scalar("select status::text from public.registrations where user_id = %s and event_id = %s", [u, e])
+    check("an unconfirmed seat is freed when the organizer chose that and people are waiting", status(a2, ev_rel) == "cancelled")
+    check("...and the student is told why", notes(a2, "seat_released") == 1)
+    check("...and the first person waiting gets the seat and a ticket", status(w1, ev_rel) == "registered" and code_of(w1, ev_rel) is not None)
+    check("...with a voided ticket for the freed seat", s.scalar("select voided_at is not null from public.tickets where user_id = %s and event_id = %s", [a2, ev_rel]))
+    check("confirmed seats are never freed", status(a1, ev_rel) == "registered")
+    check("only as many seats are freed as people are waiting", status(late_reg, ev_rel) == "waitlisted"
+          and s.scalar("select count(*) from public.registrations where event_id = %s and released_at is not null", [ev_rel]) == 1)
+    check("events without the setting keep unconfirmed seats", status(a2, ev_keep) == "registered" and status(w1, ev_keep) == "waitlisted")
+
+    a4 = mk_user(f"a6-{tag}@tum.de")
+    ev_nowait = mk_event(org_tum, tum, "Nobody waiting", capacity=5, **in2d)
+    s.postgres(); c.execute("update public.events set release_unconfirmed = true where id = %s", [ev_nowait])
+    s.user(a4); s.call("select public.register_for_event(%s)", [ev_nowait])
+    s.postgres()
+    c.execute("update public.registrations set created_at = now() - interval '1 day' where user_id = %s", [a4])
+    s.scalar("select public.process_attendance_checks()")
+    c.execute("update public.events set starts_at = now() + interval '20 hours', ends_at = now() + interval '22 hours' where id = %s", [ev_nowait])
+    c.execute("update public.registrations set confirm_asked_at = now() - interval '13 hours' where user_id = %s", [a4])
+    s.scalar("select public.process_attendance_checks()")
+    check("no seat is freed when nobody is waiting", status(a4, ev_nowait) == "registered")
+
+    s.user(org_tum)
+    row = s.rows("select registered, waitlisted, confirmed, cancelled, released, requires_qr, release_unconfirmed from public.event_stats where event_id = %s", [ev_rel])
+    check("organizer statistics show confirmed, cancelled and freed seats", row == [(2, 1, 1, 1, 1, True, True)], str(row))
+    ins, err = s.call("select public.event_insights(%s)", [ev_rel])
+    check("an organizer gets the sign-ups per day and star counts of their event",
+          err is None and sum(d["count"] for d in ins["signups"]) == 4 and ins["stars"] == [0, 0, 0, 0, 0] and ins["asked"] >= 2, str(err or ins))
+    for who, uid in (("a student", a1), ("another organizer", org_haw)):
+        s.user(uid)
+        _, err = s.call("select public.event_insights(%s)", [ev_rel])
+        check(f"{who} cannot read an event's statistics", err is not None and "not_authorized" in err, str(err))
+    s.anon()
+    s.fails("anonymous cannot read event statistics", "select public.event_insights(%s)", [ev_rel], contains="permission denied")
+    s.postgres()
+    s.user(a2); s.call("select public.register_for_event(%s)", [ev_rel])
+    s.postgres()
+    check("registering again starts a fresh confirmation", s.scalar(
+        "select released_at is null and confirm_asked_at is null and confirmed_at is null from public.registrations where user_id = %s and event_id = %s", [a2, ev_rel]))
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
@@ -894,7 +980,7 @@ def run(s: Sim, tag: str) -> None:
                           "review_organizer_request", "admin_list_users", "delete_my_account",
                           "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count",
                           "can_moderate_event", "report_event", "resolve_report",
-                          "register_push_token", "unregister_push_token"},
+                          "register_push_token", "unregister_push_token", "confirm_attendance", "event_insights"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")

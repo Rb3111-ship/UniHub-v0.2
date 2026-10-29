@@ -98,7 +98,8 @@ class AccountRepository {
         .maybeSingle();
     final registrations = await _client
         .from('registrations')
-        .select('status, created_at, events(title, starts_at, location), tickets(ticket_number, checked_in_at)')
+        .select('status, created_at, confirm_asked_at, confirmed_at, released_at, '
+            'events(title, starts_at, location), tickets(ticket_number, checked_in_at)')
         .eq('user_id', _uid);
     final reviews =
         await _client.from('reviews').select('rating, comment, is_verified, created_at, events(title)').eq('user_id', _uid);

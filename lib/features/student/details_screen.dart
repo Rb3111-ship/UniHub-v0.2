@@ -12,6 +12,7 @@ import '../../../core/utils/open_link.dart';
 import '../../../core/widgets/event_image.dart';
 import '../../../core/widgets/poster_viewer.dart';
 import '../../../core/widgets/wallpaper.dart';
+import 'attendance_confirm_card.dart';
 import 'community_actions.dart';
 import 'register_action.dart';
 
@@ -137,6 +138,10 @@ class EventDetailsScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16.0),
                       sliver: SliverList(
                         delegate: SliverChildListDelegate([
+                          if (appState.registrationFor(event.id)?.needsConfirmation ?? false) ...[
+                            AttendanceConfirmCard(registration: appState.registrationFor(event.id)!),
+                            const SizedBox(height: 16),
+                          ],
                           Row(
                             children: [
                               Container(
@@ -401,7 +406,7 @@ class EventDetailsScreen extends StatelessWidget {
         ? l10n.ctaUnavailable
         : isRegistered
             ? (waitlisted ? l10n.ctaWaitlisted : l10n.ctaRegistered)
-            : (event.requiresQrCode ? l10n.ctaRegister : l10n.ctaRsvp);
+            : l10n.ctaRegister;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

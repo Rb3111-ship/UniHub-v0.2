@@ -793,6 +793,18 @@ class AppState extends ChangeNotifier {
   bool isWaitlisted(String eventId) =>
       registrationFor(eventId)?.status == RegistrationStatus.waitlisted;
 
+  /// Seats the user was asked to confirm and has not answered for yet.
+  List<Registration> get pendingConfirmations =>
+      _registrations.where((r) => r.needsConfirmation).toList();
+
+  /// "Yes, I'm still coming." Throws PostgrestException on refusal.
+  Future<void> confirmAttendance(String eventId) async {
+    final repo = _registrationRepository;
+    if (repo == null) return;
+    await repo.confirm(eventId);
+    await refreshRegistrations();
+  }
+
   Future<void> refreshRegistrations() async {
     final repo = _registrationRepository;
     if (repo == null) return;
@@ -1099,6 +1111,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     refreshDashboard();
   }
+  /// Statistics page of one managed event. Throws on network or permission errors.
+  Future<EventInsights> loadEventInsights(String eventId) async {
+    final repo = _insightsRepository;
+    if (repo == null) return const EventInsights();
+    return repo.fetchEventInsights(eventId).timeout(_requestTimeout);
+  }
+
   List<({Review review, String eventTitle})> get feedback => _feedback;
   bool get dashboardLoading => _dashboardLoading;
   bool get dashboardError => _dashboardError;

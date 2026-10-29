@@ -46,6 +46,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
 
   bool _requiresQr = true;
   bool _allowReviews = true;
+  bool _releaseUnconfirmed = false;
   bool _unlimited = false;
   bool _busy = false;
 
@@ -78,6 +79,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
       _endDate = e.endDate;
       _requiresQr = e.requiresQrCode;
       _allowReviews = e.allowReviews;
+      _releaseUnconfirmed = e.releaseUnconfirmed;
       _unlimited = e.capacity == null;
       _capacity = (e.capacity ?? 100).clamp(1, 1000).toDouble();
       _imagePath = e.imagePath;
@@ -240,6 +242,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         isUniversityOfficial: original.isUniversityOfficial,
         requiresQrCode: _requiresQr,
         allowReviews: _allowReviews,
+        releaseUnconfirmed: !_unlimited && _releaseUnconfirmed,
         categories: _categoriesForSave(),
         capacity: _unlimited ? null : _capacity.round(),
         priceCents: original.priceCents,
@@ -576,6 +579,20 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                 value: _allowReviews,
                 onChanged: (val) => setState(() => _allowReviews = val),
               ),
+
+              // Seats of people who don't confirm go to the waitlist (limited seats only).
+              if (!_unlimited)
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: appState.getActiveTenantColor(),
+                  title: Text(
+                    localizations.fieldReleaseUnconfirmed,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(localizations.fieldReleaseUnconfirmedHint, style: const TextStyle(fontSize: 12)),
+                  value: _releaseUnconfirmed,
+                  onChanged: (val) => setState(() => _releaseUnconfirmed = val),
+                ),
               const SizedBox(height: 16),
 
               // Description
@@ -633,6 +650,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       isUniversityOfficial: isOfficial,
                       requiresQrCode: _requiresQr,
                       allowReviews: _allowReviews,
+                      releaseUnconfirmed: !_unlimited && _releaseUnconfirmed,
                       categories: _categoriesForSave(),
                       capacity: _unlimited ? null : _capacity.round(),
                       endDate: _endDate,
@@ -678,6 +696,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                     setState(() {
                       _requiresQr = true;
                       _allowReviews = true;
+                      _releaseUnconfirmed = false;
                       _selectedCategories.clear();
                       _selectedCategories.add('Sports');
                       _capacity = 100;
@@ -995,7 +1014,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                               backgroundColor: isOfficial ? universityColor : theme.colorScheme.primary,
                               foregroundColor: Colors.white,
                             ),
-                            child: Text(_requiresQr ? localizations.ctaRegister : localizations.ctaRsvp),
+                            child: Text(localizations.ctaRegister),
                           ),
                         ],
                       ),

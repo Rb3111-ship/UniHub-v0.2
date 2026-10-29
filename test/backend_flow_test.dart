@@ -64,6 +64,7 @@ class _FakeBackend {
   final requests = <String>[];
   final bodies = <String, String>{}; // last request body per path
   String role = 'platform_admin';
+  bool askConfirm = false; // the student has a seat they were asked to confirm
 
   Future<void> start() async {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -108,6 +109,51 @@ class _FakeBackend {
             'events': null,
           },
         ];
+      } else if (path.endsWith('/registrations') && req.method == 'GET' && askConfirm) {
+        body = [
+          {
+            'id': '66666666-6666-6666-6666-666666666666',
+            'status': 'registered',
+            'confirm_asked_at': DateTime.now().toUtc().toIso8601String(),
+            'confirmed_at': null,
+            'events': _publicEvent,
+            'tickets': {'code': 'abc', 'ticket_number': 7, 'checked_in_at': null, 'voided_at': null},
+          },
+        ];
+      } else if (path.endsWith('/rpc/confirm_attendance')) {
+        body = DateTime.now().toUtc().toIso8601String();
+      } else if (path.endsWith('/event_stats') && req.method == 'GET') {
+        body = [
+          {
+            'event_id': '22222222-2222-2222-2222-222222222222',
+            'title': 'Open Air Concert',
+            'capacity': 100,
+            'registered': 40,
+            'waitlisted': 3,
+            'checked_in': 31,
+            'starts_at': '2026-10-01T18:00:00Z',
+            'ends_at': '2026-10-01T20:00:00Z',
+            'status': 'published',
+            'avg_rating': 4.5,
+            'review_count': 2,
+            'confirmed': 35,
+            'cancelled': 4,
+            'released': 1,
+            'requires_qr': true,
+            'release_unconfirmed': true,
+          },
+        ];
+      } else if (path.endsWith('/rpc/event_insights')) {
+        body = {
+          'signups': [
+            {'day': '2026-09-20', 'count': 25},
+            {'day': '2026-09-23', 'count': 15},
+          ],
+          'stars': [0, 0, 0, 1, 1],
+          'stars_verified': 2,
+          'asked': 38,
+          'declined': 3,
+        };
       } else if (path.endsWith('/event_reports') && req.method == 'GET') {
         body = [
           {
@@ -264,6 +310,38 @@ void main() {
     await tester.tap(find.text('Reminder'));
     await _settle(tester, rounds: 4);
     expect(find.byType(EventDetailsScreen), findsOneWidget);
+    await _finish(tester);
+  });
+
+  testWidgets('a student asked "still coming?" confirms on the tickets tab', (tester) async {
+    backend.role = 'student';
+    backend.askConfirm = true;
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.confirmation_number_outlined));
+    await _settle(tester, rounds: 4);
+    expect(find.text('Are you still coming?'), findsOneWidget);
+    expect(find.textContaining('may go to people on the waitlist'), findsNothing); // organizer did not opt in
+    await tester.tap(find.text("Yes, I'm coming"));
+    await _settle(tester, rounds: 4);
+    expect(backend.requests, contains('POST /rest/v1/rpc/confirm_attendance'));
+    expect(backend.bodies['/rest/v1/rpc/confirm_attendance'], contains('22222222-2222-2222-2222-222222222222'));
+    await _finish(tester);
+  });
+
+  testWidgets('organizer dashboard graphs and the event statistics page', (tester) async {
+    await launchSignedIn(tester);
+    expect(find.text('Registered, confirmed and came'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Average stars per event'), 200, scrollable: find.byType(Scrollable).first);
+    expect(find.text('4.5'), findsOneWidget);
+    await tester.tap(find.text('Open Air Concert').first);
+    await _settle(tester, rounds: 4);
+    expect(find.text('Event statistics'), findsOneWidget);
+    expect(find.text('40/100'), findsOneWidget);
+    expect(find.text('23%'), findsOneWidget); // 9 of 40 seat holders did not come
+    expect(find.textContaining('38 asked'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('4.5 average from 2 ratings'), 200, scrollable: find.byType(Scrollable).last);
+    expect(find.text('Sign-ups per day'), findsOneWidget);
+    expect(backend.requests, contains('POST /rest/v1/rpc/event_insights'));
     await _finish(tester);
   });
 

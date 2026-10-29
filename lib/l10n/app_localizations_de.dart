@@ -185,7 +185,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get dashboardPrivateFeedback => 'Privates internes Feedback';
 
   @override
-  String get dashboardTotalRsvps => 'Zusagen gesamt';
+  String get dashboardTotalRsvps => 'Anmeldungen gesamt';
 
   @override
   String get dashboardTotalCheckins => 'Check-ins gesamt';
@@ -908,7 +908,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get detailsOpenAdmission =>
-      'Freier Einlass - sag zu, damit der Veranstalter planen kann';
+      'Freier Einlass - melde dich an, damit der Veranstalter planen kann';
 
   @override
   String get detailsSeeTickets =>
@@ -933,9 +933,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get ctaRegister => 'Anmelden';
-
-  @override
-  String get ctaRsvp => 'Zusagen';
 
   @override
   String get ctaRegistered => 'Angemeldet';
@@ -1570,7 +1567,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get notifAccountHint =>
-      'Nachrichten zu deinem Konto, z. B. das Ergebnis einer Organisator-Bewerbung, bekommst du immer.';
+      'Nachrichten zu deinem Konto und „Kommst du noch?“-Fragen bekommst du immer, weil dein Platz davon abhängen kann.';
 
   @override
   String get notifPushOn => 'Push-Nachrichten sind auf diesem Gerät aktiv.';
@@ -1586,4 +1583,144 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get notifSaveFailed =>
       'Die Einstellung konnte nicht gespeichert werden. Prüfe deine Verbindung.';
+
+  @override
+  String get confirmTitle => 'Kommst du noch?';
+
+  @override
+  String get confirmBody =>
+      'Gib dem Veranstalter kurz Bescheid. Wenn du nicht kannst, gib deinen Platz frei, damit jemand anderes kommen kann.';
+
+  @override
+  String get confirmReleaseWarning =>
+      'Plätze, die 24 Stunden vor Beginn nicht bestätigt sind, können an die Warteliste gehen.';
+
+  @override
+  String get confirmYes => 'Ja, ich komme';
+
+  @override
+  String get confirmNo => 'Ich kann nicht';
+
+  @override
+  String get confirmDone => 'Danke! Dein Platz ist bestätigt.';
+
+  @override
+  String get confirmedBadge => 'Bestätigt';
+
+  @override
+  String get confirmFreeTitle => 'Platz freigeben?';
+
+  @override
+  String confirmFreeBody(Object title) {
+    return 'Deine Anmeldung für $title wird storniert und der Platz geht an die nächste Person auf der Warteliste.';
+  }
+
+  @override
+  String get confirmFreeAction => 'Platz freigeben';
+
+  @override
+  String get confirmFreed => 'Platz freigegeben. Danke für deine Rückmeldung!';
+
+  @override
+  String get confirmFailed =>
+      'Das hat nicht geklappt. Bitte versuche es erneut.';
+
+  @override
+  String get notifConfirmTitle => 'Kommst du noch?';
+
+  @override
+  String notifConfirmBody(Object title) {
+    return '$title: Bitte bestätige deinen Platz oder gib ihn frei.';
+  }
+
+  @override
+  String get notifSeatReleasedTitle => 'Platz freigegeben';
+
+  @override
+  String notifSeatReleasedBody(Object title) {
+    return 'Du hast deinen Platz für $title nicht bestätigt, er ging an die Warteliste.';
+  }
+
+  @override
+  String get fieldReleaseUnconfirmed => 'Unbestätigte Plätze freigeben';
+
+  @override
+  String get fieldReleaseUnconfirmedHint =>
+      'Etwa 3 Tage vorher werden Teilnehmende gefragt, ob sie noch kommen. 24 Stunden vor Beginn gehen die Plätze derer, die nicht geantwortet haben, an die Warteliste (nur wenn jemand wartet).';
+
+  @override
+  String get insightsTitle => 'Event-Statistik';
+
+  @override
+  String get insightsOpen => 'Statistik';
+
+  @override
+  String get insightsTapHint =>
+      'Tippe auf ein Event, um seine Statistik zu sehen.';
+
+  @override
+  String get insightsOverviewTitle => 'Angemeldet, bestätigt und gekommen';
+
+  @override
+  String get legendRegistered => 'Angemeldet';
+
+  @override
+  String get legendConfirmed => 'Bestätigt';
+
+  @override
+  String get legendCame => 'Gekommen';
+
+  @override
+  String get insightsCameUnknown =>
+      'Offene Events haben keinen Einlass-Scan, daher ist „gekommen“ nur bei Ticket-Events bekannt.';
+
+  @override
+  String get insightsRatingTrend => 'Durchschnittliche Sterne pro Event';
+
+  @override
+  String get insightsNoRatings => 'Noch keine Bewertungen';
+
+  @override
+  String get insightsSignups => 'Anmeldungen pro Tag';
+
+  @override
+  String get insightsNoSignups => 'Noch keine Anmeldungen';
+
+  @override
+  String get insightsStars => 'Bewertungen';
+
+  @override
+  String insightsAverage(Object avg, Object count) {
+    return 'Ø $avg aus $count Bewertungen';
+  }
+
+  @override
+  String insightsVerifiedNote(Object count) {
+    return '$count durch Einlass-Scan bestätigt';
+  }
+
+  @override
+  String get insightsAttendance => 'Teilnahme';
+
+  @override
+  String get insightsConfirmation => 'Teilnahme-Abfrage';
+
+  @override
+  String insightsConfirmationLine(
+      Object asked, Object confirmed, Object declined, Object released) {
+    return '$asked gefragt · $confirmed bestätigt · $declined können nicht · $released Plätze freigegeben';
+  }
+
+  @override
+  String get insightsNotAskedYet =>
+      'Teilnehmende werden etwa 3 Tage vor dem Event gefragt.';
+
+  @override
+  String get statNoShow => 'Nicht erschienen';
+
+  @override
+  String get statWaitlist => 'Warteliste';
+
+  @override
+  String get statCancelled => 'Storniert';
 }

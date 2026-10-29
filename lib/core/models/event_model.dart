@@ -24,6 +24,8 @@ class Event {
   // Set when an admin removed the event after reports.
   final DateTime? moderatedAt;
   final String? moderationNote;
+  // Free seats of people who did not confirm, 24 h before the start, if others wait.
+  final bool releaseUnconfirmed;
 
   const Event({
     required this.id,
@@ -49,6 +51,7 @@ class Event {
     this.websiteUrl,
     this.moderatedAt,
     this.moderationNote,
+    this.releaseUnconfirmed = false,
   }) : _endDate = endDate;
 
   bool get isModerated => moderatedAt != null;
@@ -89,6 +92,7 @@ class Event {
       websiteUrl: row['website_url'] as String?,
       moderatedAt: row['moderated_at'] == null ? null : DateTime.parse(row['moderated_at'] as String).toLocal(),
       moderationNote: row['moderation_note'] as String?,
+      releaseUnconfirmed: (row['release_unconfirmed'] as bool?) ?? false,
     );
   }
 
@@ -116,6 +120,7 @@ class Event {
     String? contactEmail,
     String? contactPhone,
     String? websiteUrl,
+    bool? releaseUnconfirmed,
   }) {
     return Event(
       id: id ?? this.id,
@@ -141,6 +146,7 @@ class Event {
       websiteUrl: websiteUrl ?? this.websiteUrl,
       moderatedAt: moderatedAt,
       moderationNote: moderationNote,
+      releaseUnconfirmed: releaseUnconfirmed ?? this.releaseUnconfirmed,
     );
   }
 }

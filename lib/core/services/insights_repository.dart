@@ -53,6 +53,12 @@ class InsightsRepository {
     return rows.map<EventStat>(EventStat.fromRow).toList();
   }
 
+  /// Sign-ups per day and star counts for one event the current user manages.
+  Future<EventInsights> fetchEventInsights(String eventId) async {
+    final json = await _client.rpc('event_insights', params: {'p_event_id': eventId});
+    return EventInsights.fromJson(json as Map<String, dynamic>);
+  }
+
   /// Most recent door scans for events the current user manages.
   Future<List<ScanEntry>> fetchRecentScans({int limit = 15}) async {
     final rows = await _client

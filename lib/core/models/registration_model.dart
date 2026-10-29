@@ -14,6 +14,10 @@ class Registration {
   final DateTime? checkedInAt;
   final bool ticketVoided;
 
+  /// "Are you still coming?": when the user was asked and when they said yes.
+  final DateTime? confirmAskedAt;
+  final DateTime? confirmedAt;
+
   const Registration({
     required this.id,
     required this.event,
@@ -22,12 +26,23 @@ class Registration {
     this.ticketNumber,
     this.checkedInAt,
     this.ticketVoided = false,
+    this.confirmAskedAt,
+    this.confirmedAt,
   });
 
   bool get isActive => status != RegistrationStatus.cancelled;
   bool get hasValidTicket =>
       status == RegistrationStatus.registered && ticketCode != null && !ticketVoided;
   bool get isCheckedIn => checkedInAt != null;
+  bool get isConfirmed => confirmedAt != null;
+
+  /// Asked to confirm, has not answered yet, and the event is still ahead.
+  bool get needsConfirmation =>
+      status == RegistrationStatus.registered &&
+      confirmAskedAt != null &&
+      confirmedAt == null &&
+      !event.isCancelled &&
+      event.date.isAfter(DateTime.now());
 
   /// Human-readable ticket id, e.g. TKT-000042.
   String get displayTicketId =>

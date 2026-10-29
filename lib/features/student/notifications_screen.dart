@@ -18,6 +18,8 @@ import 'details_screen.dart';
     'request_approved' => (l10n.notifRequestApprovedTitle, l10n.notifRequestApprovedBody),
     'request_rejected' => (l10n.notifRequestRejectedTitle, l10n.notifRequestRejectedBody),
     'event_removed' => (l10n.notifEventRemovedTitle, l10n.notifEventRemovedBody(t)),
+    'confirm_attendance' => (l10n.notifConfirmTitle, l10n.notifConfirmBody(t)),
+    'seat_released' => (l10n.notifSeatReleasedTitle, l10n.notifSeatReleasedBody(t)),
     _ => (l10n.notificationsTitle, t),
   };
 }
@@ -37,6 +39,8 @@ IconData _icon(String kind) => switch (kind) {
       'reminder' => Icons.alarm_rounded,
       'request_approved' => Icons.verified_rounded,
       'request_rejected' => Icons.info_outline_rounded,
+      'confirm_attendance' => Icons.help_outline_rounded,
+      'seat_released' => Icons.event_seat_rounded,
       _ => Icons.notifications_rounded,
     };
 

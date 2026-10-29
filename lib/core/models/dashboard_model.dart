@@ -11,6 +11,10 @@ class EventStat {
   final String status; // draft | published | cancelled
   final double? averageRating; // verified reviews only
   final int reviewCount;
+  final int confirmed; // said "yes, I'm coming"
+  final int cancelled;
+  final int released; // seats freed because nobody answered
+  final bool requiresQr; // only then do we know who actually came
 
   const EventStat({
     required this.eventId,
@@ -24,6 +28,10 @@ class EventStat {
     required this.status,
     required this.averageRating,
     required this.reviewCount,
+    this.confirmed = 0,
+    this.cancelled = 0,
+    this.released = 0,
+    this.requiresQr = true,
   });
 
   factory EventStat.fromRow(Map<String, dynamic> row) => EventStat(
@@ -38,9 +46,18 @@ class EventStat {
         status: row['status'] as String,
         averageRating: (row['avg_rating'] as num?)?.toDouble(),
         reviewCount: (row['review_count'] as int?) ?? 0,
+        confirmed: (row['confirmed'] as int?) ?? 0,
+        cancelled: (row['cancelled'] as int?) ?? 0,
+        released: (row['released'] as int?) ?? 0,
+        requiresQr: (row['requires_qr'] as bool?) ?? true,
       );
 
   bool get isActive => status == 'published' && endsAt.isAfter(DateTime.now());
+  bool get hasStarted => startsAt.isBefore(DateTime.now());
+
+  /// Share of seat holders who did not come (ticket events that have started).
+  double? get noShowShare =>
+      requiresQr && hasStarted && registered > 0 ? ((registered - checkedIn) / registered).clamp(0.0, 1.0) : null;
 
   /// Share of registered people who showed up (0..1).
   double get attendanceShare => registered == 0 ? 0 : (checkedIn / registered).clamp(0.0, 1.0);
@@ -95,6 +112,47 @@ class DashboardData {
   /// Percentage 0..100 of registered people who were checked in.
   double get attendanceRate =>
       totalRegistered == 0 ? 0 : (totalCheckedIn / totalRegistered) * 100;
+}
+
+/// Extra numbers for one event's statistics page (`event_insights` database function).
+class EventInsights {
+  final Map<DateTime, int> signupsPerDay;
+  final List<int> stars; // index 0 = 1 star ... index 4 = 5 stars
+  final int verifiedReviews;
+  final int asked; // got the "are you still coming?" question
+  final int declined; // answered "I can't come"
+
+  const EventInsights({
+    this.signupsPerDay = const {},
+    this.stars = const [0, 0, 0, 0, 0],
+    this.verifiedReviews = 0,
+    this.asked = 0,
+    this.declined = 0,
+  });
+
+  factory EventInsights.fromJson(Map<String, dynamic> json) => EventInsights(
+        signupsPerDay: {
+          for (final d in (json['signups'] as List? ?? const []))
+            DateTime.parse((d as Map)['day'] as String): (d['count'] as num).toInt(),
+        },
+        stars: [for (final n in (json['stars'] as List? ?? const [0, 0, 0, 0, 0])) (n as num).toInt()],
+        verifiedReviews: (json['stars_verified'] as num?)?.toInt() ?? 0,
+        asked: (json['asked'] as num?)?.toInt() ?? 0,
+        declined: (json['declined'] as num?)?.toInt() ?? 0,
+      );
+
+  int get reviewCount => stars.fold(0, (a, b) => a + b);
+
+  /// Average over all reviews (verified and unverified), or null without reviews.
+  double? get averageStars {
+    final n = reviewCount;
+    if (n == 0) return null;
+    var sum = 0;
+    for (var i = 0; i < stars.length; i++) {
+      sum += (i + 1) * stars[i];
+    }
+    return sum / n;
+  }
 }
 
 /// Verified average rating of an event, as shown to students.
