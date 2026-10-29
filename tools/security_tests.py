@@ -434,6 +434,11 @@ def run(s: Sim, tag: str) -> None:
     _, err = s.call("insert into storage.objects (bucket_id, name) values ('event-images', %s)", [f"x/{tag}.png"]); check("anonymous cannot upload", err is not None)
     s.user(org_tum)
     s.affects_nothing("cannot delete another user's image", "delete from storage.objects where bucket_id='event-images' and name = %s", [f"{commercial}/{tag}.png"])
+    check("an organizer cannot list other people's posters", s.scalar("select count(*) from storage.objects where bucket_id='event-images' and name = %s", [f"{commercial}/{tag}.png"]) == 0)
+    s.user(commercial)
+    check("an organizer can list their own posters", s.scalar("select count(*) from storage.objects where bucket_id='event-images' and name = %s", [f"{commercial}/{tag}.png"]) == 1)
+    s.anon()
+    check("anonymous cannot list the poster bucket", s.scalar("select count(*) from storage.objects where bucket_id='event-images'") == 0)
     s.postgres()
     b = s.rows("select public, file_size_limit, allowed_mime_types from storage.buckets where id='event-images'")[0]
     check("bucket has a size limit and image-only types", b[1] is not None and b[1] <= 10_000_000 and set(b[2] or []) <= {"image/jpeg", "image/png", "image/webp"}, str(b))
@@ -578,6 +583,9 @@ def run(s: Sim, tag: str) -> None:
     _, err = s.call("insert into storage.objects (bucket_id, name) values ('avatars', %s)", [f"{org_haw}/avatar-3.png"]); check("anonymous cannot upload a photo", err is not None)
     s.user(org_tum)
     s.affects_nothing("cannot delete another user's photo", "delete from storage.objects where bucket_id='avatars' and name = %s", [f"{org_haw}/avatar-1.png"])
+    check("cannot list other people's photos", s.scalar("select count(*) from storage.objects where bucket_id='avatars' and name = %s", [f"{org_haw}/avatar-1.png"]) == 0)
+    s.anon()
+    check("anonymous cannot list the photo bucket", s.scalar("select count(*) from storage.objects where bucket_id='avatars'") == 0)
     s.user(org_haw)
     _, err = s.call("update public.profiles set avatar_path = %s where id = %s", [f"{org_haw}/avatar-1.png", org_haw]); check("organizer can set own photo path", err is None, str(err))
     for label, path in (("someone else's folder", f"{org_tum}/avatar-1.png"), ("not an avatar file name", f"{org_haw}/evil.svg"),
@@ -627,7 +635,9 @@ def run(s: Sim, tag: str) -> None:
     check("anyone can see organizer names (for the feed)", org_tum in names)
     check("organizer list shows platform admins who publish", p_admin in names)
     check("organizer list still has no students", stu_tum not in names)
-    check("organizer_profiles has the organization name column", "organization_name" in {r[0] for r in s.rows("select column_name from information_schema.columns where table_name='organizer_profiles'")})
+    op_cols = {r[0] for r in s.rows("select column_name from information_schema.columns where table_name='organizer_profiles'")}
+    check("organizer_profiles has the organization name column", "organization_name" in op_cols)
+    check("organizer list does not reveal roles (who is admin) or universities", not op_cols & {"role", "tenant_id"}, str(op_cols))
 
     print("\n[21] Own events and organizer verification")
     s.user(org_tum)
@@ -779,8 +789,7 @@ def run(s: Sim, tag: str) -> None:
     for name, a, au, secdef, cfg in funcs:
         check(f"function {name}: anon access is exactly as intended", a == (name in allowed_exec["anon"]))
         check(f"function {name}: signed-in access is exactly as intended", au == (name in allowed_exec["authenticated"]))
-        if secdef:
-            check(f"function {name}: SECURITY DEFINER has a fixed search_path", bool(cfg) and any("search_path" in x for x in cfg))
+        check(f"function {name}: has a fixed search_path", bool(cfg) and any("search_path" in x for x in cfg))
     expected = {  # table -> (anon privileges, authenticated privileges)
         "tenants": (set(["SELECT"]), set(["SELECT", "INSERT", "UPDATE", "DELETE"])),
         "tenant_domains": (set(), set(["SELECT", "INSERT", "UPDATE", "DELETE"])),
@@ -804,6 +813,10 @@ def run(s: Sim, tag: str) -> None:
     for t in {x for x, _ in grants} - set(expected):
         check(f"unexpected exposed object {t}", False)
     s.postgres()
+    for kind, acl in s.rows("select defaclobjtype, defaclacl::text from pg_default_acl where defaclrole = 'postgres'::regrole "
+                            "and defaclnamespace = 'public'::regnamespace"):
+        open_to = [g for g in ("anon=", "authenticated=") if g in acl] + (["everyone"] if acl.startswith("{=") or ",=" in acl else [])
+        check(f"new {dict(r='tables', S='sequences', f='functions').get(kind, kind)} are not public by default", not open_to, acl)
     unprotected = s.rows("select relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and not c.relrowsecurity")
     check("every public table has Row Level Security on", not unprotected, str(unprotected))
     views = s.rows("select c.relname, c.reloptions from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='v'")
