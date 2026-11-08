@@ -1692,4 +1692,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statCancelled => 'Cancelled';
+
+  @override
+  String homeGreeting(String name) {
+    return 'Hi $name';
+  }
+
+  @override
+  String get homeComingUp => 'Coming up';
+
+  @override
+  String seatsLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seats left',
+      one: '1 seat left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get seatsFull => 'Full · waitlist';
+
+  @override
+  String seatsTaken(int taken, int capacity) {
+    return '$taken of $capacity seats taken';
+  }
+
+  @override
+  String get detailsEntry => 'Entry';
+
+  @override
+  String get detailsFreeShort => 'Free';
 }

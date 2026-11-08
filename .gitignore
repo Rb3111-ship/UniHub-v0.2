@@ -56,3 +56,4 @@ android/.kotlin/
 android/app/google-services.json
 *firebase-adminsdk*.json
 *service-account*.json
+supabase/.temp/

@@ -3164,6 +3164,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancelled'**
   String get statCancelled;
+
+  /// No description provided for @homeGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi {name}'**
+  String homeGreeting(String name);
+
+  /// No description provided for @homeComingUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming up'**
+  String get homeComingUp;
+
+  /// No description provided for @seatsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 seat left} other{{count} seats left}}'**
+  String seatsLeft(int count);
+
+  /// No description provided for @seatsFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full · waitlist'**
+  String get seatsFull;
+
+  /// No description provided for @seatsTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'{taken} of {capacity} seats taken'**
+  String seatsTaken(int taken, int capacity);
+
+  /// No description provided for @detailsEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry'**
+  String get detailsEntry;
+
+  /// No description provided for @detailsFreeShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get detailsFreeShort;
 }
 
 class _AppLocalizationsDelegate

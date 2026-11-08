@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -6,10 +5,7 @@ import '../../../core/auth/user_role.dart';
 import '../../../core/models/categories.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/models/event_search.dart';
-import '../../../core/widgets/event_image.dart';
-import 'community_actions.dart';
-import 'details_screen.dart';
-import 'register_action.dart';
+import 'event_cards.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -143,13 +139,14 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 Text(
                   appState.getTenantDisplayName(),
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: appState.getActiveTenantColor(),
-                    fontWeight: FontWeight.bold,
+                    color: theme.brightness == Brightness.dark ? theme.colorScheme.secondary : appState.getActiveTenantColor(),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
                   ),
                 ),
               Text(
-                guest ? localizations.guestFeedTitle : localizations.studentHomeTitle,
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                guest ? localizations.guestFeedTitle : localizations.homeGreeting(_firstName(appState)),
+                style: theme.textTheme.headlineMedium?.copyWith(fontSize: 24),
               ),
             ],
           );
@@ -182,6 +179,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 SizedBox(
                   height: 44,
                   child: ListView.separated(
+                    key: const Key('categoryChips'),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     scrollDirection: Axis.horizontal,
                     itemCount: categories.length,
@@ -190,7 +188,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       final cat = categories[index];
                       final key = cat['key'] as String;
                       final isSelected = key == 'Other' ? (selected == 'Other' || customSelected) : selected == key;
-                      final activeColor = appState.getActiveTenantColor();
+                      final scheme = theme.colorScheme;
 
                       return ChoiceChip(
                         showCheckmark: false,
@@ -200,18 +198,19 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                             Icon(
                               cat['icon'] as IconData,
                               size: 16,
-                              color: isSelected ? Colors.white : activeColor,
+                              color: isSelected ? scheme.onPrimary : scheme.secondary,
                             ),
                             const SizedBox(width: 6),
                             Text(cat['label'] as String),
                           ],
                         ),
                         selected: isSelected,
-                        selectedColor: activeColor,
+                        selectedColor: scheme.primary,
+                        backgroundColor: theme.cardTheme.color,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : theme.colorScheme.onSurface.withOpacity(0.85),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          color: isSelected ? scheme.onPrimary : scheme.onSurface,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
                         ),
                         onSelected: (_) {
                           if (key == 'Other') {
@@ -228,10 +227,6 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 // Main Feeds TabBar
                 if (!guest)
                   TabBar(
-                    indicatorColor: appState.getActiveTenantColor(),
-                    labelColor: appState.getActiveTenantColor(),
-                    unselectedLabelColor: Colors.grey,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     tabs: [
                       Tab(
                         child: Row(
@@ -326,302 +321,44 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       );
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    // Responsive grid layout column configurations
-    final crossAxisCount = screenWidth >= 1100 ? 3 : (screenWidth >= 700 ? 2 : 1);
+    // The soonest event with a poster leads (or simply the soonest one).
+    final featured = events.take(5).firstWhere((e) => e.imageUrl != null, orElse: () => events.first);
+    final rest = [for (final e in events) if (e.id != featured.id) e];
+    final theme = Theme.of(context);
 
     return RefreshIndicator(
       onRefresh: appState.refreshEvents,
-      child: GridView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      itemCount: events.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: screenWidth >= 500 ? 1.25 : 1.35,
-      ),
-      itemBuilder: (context, index) {
-        final event = events[index];
-        return _buildEventTile(context, event, isOfficialFeed, appState);
-      },
-    ));
-  }
-
-  Widget _buildEventTile(
-    BuildContext context,
-    Event event,
-    bool isOfficialFeed,
-    AppState appState,
-  ) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    // Dynamic brand color
-    final universityColor = appState.getUniversityColor(event.universityDomain);
-    final isMatchingDomain = event.universityDomain == appState.getTenantDomain();
-
-    final dateBadgeMonth = _getMonthAbbreviation(event.date);
-    final dateBadgeDay = event.date.day.toString();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color?.withOpacity(isDark ? 0.65 : 0.85) ??
-               (isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.85)),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isOfficialFeed
-              ? (isMatchingDomain ? universityColor : universityColor.withOpacity(0.4))
-              : theme.colorScheme.onSurface.withOpacity(0.08),
-          width: isOfficialFeed && isMatchingDomain ? 2.0 : 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.15 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                if (appState.isGuest) {
-                  final l10n = AppLocalizations.of(context)!;
-                  askGuestToSignIn(context, appState, l10n.guestOpenTitle, l10n.guestOpenBody);
-                  return;
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => EventDetailsScreen(event: event)),
-                );
-              },
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Poster banner & floating date badge
-                  Expanded(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Hero(
-                          tag: 'event-image-${event.id}',
-                          child: ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(24),
-                              topRight: Radius.circular(24),
-                            ),
-                            child: EventImage(url: event.imageUrl, color: universityColor),
-                          ),
-                        ),
-                        // Shadow overlay for banner details
-                        Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.transparent, Colors.black.withOpacity(0.45)],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(top: 8, right: 8, child: FavoriteButton(event: event, onImage: true)),
-                        // Floating Date Badge (Top-Left)
-                        Positioned(
-                          top: 12,
-                          left: 12,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surface.withOpacity(0.85),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.08)),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      dateBadgeMonth,
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w900,
-                                        color: universityColor,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                    Text(
-                                      dateBadgeDay,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w900,
-                                        color: theme.colorScheme.onSurface,
-                                        height: 1.1,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Card Details & CTAs (snug layout, zero empty space)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Badge & Categories Row
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isOfficialFeed
-                                    ? universityColor.withOpacity(0.12)
-                                    : theme.colorScheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                isOfficialFeed
-                                    ? event.universityDomain.toUpperCase()
-                                    : AppLocalizations.of(context)!.badgePublic,
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: isOfficialFeed ? universityColor : theme.colorScheme.onSecondaryContainer,
-                                ),
-                              ),
-                            ),
-                            // List of categories (max 2 visual tags on tile)
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: event.categories.take(2).map((cat) => Container(
-                                      margin: const EdgeInsets.only(left: 4),
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.surfaceContainer,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
-                                      ),
-                                      child: Text(
-                                        categoryLabel(AppLocalizations.of(context)!, cat),
-                                        style: TextStyle(
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.bold,
-                                          color: theme.colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    )).toList(),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        // Title & CTA button in the same line (very compact)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    event.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  // Who organizes it
-                                  if (appState.hostOf(event.organizerId) case final host?)
-                                    Text(
-                                      AppLocalizations.of(context)!.byOrganizer(host.label),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            _buildCtaButton(context, event, universityColor, theme, appState),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                  FeaturedEventCard(event: featured),
+                  if (rest.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text(l10n.homeComingUp, style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 10),
+                    for (final e in rest) ...[
+                      EventRowCard(event: e),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
                 ],
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildCtaButton(
-    BuildContext context,
-    Event event,
-    Color brandColor,
-    ThemeData theme,
-    AppState appState,
-  ) {
-    // Own events and existing registrations show a greyed-out label instead.
-    final own = appState.isOwnEvent(event);
-    final isRegistered = appState.isRegistered(event.id) || own;
-    final l10n = AppLocalizations.of(context)!;
-    final ctaText = own
-        ? l10n.ctaOwnEvent
-        : isRegistered
-        ? (appState.isWaitlisted(event.id) ? l10n.ctaWaitlisted : l10n.ctaRegistered)
-        : l10n.ctaRegister;
-
-    return ElevatedButton(
-      onPressed: isRegistered
-          ? null
-          : () => registerWithFeedback(context, appState, event),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isRegistered
-            ? theme.colorScheme.surfaceContainer
-            : brandColor,
-        foregroundColor: isRegistered ? theme.colorScheme.onSurfaceVariant : Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        minimumSize: Size.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      child: Text(
-        ctaText,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  String _getMonthAbbreviation(DateTime date) {
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    return months[date.month - 1];
+  String _firstName(AppState appState) {
+    final name = appState.activeProfile.name.trim();
+    return name.isEmpty ? '' : name.split(RegExp(r'\s+')).first;
   }
 }

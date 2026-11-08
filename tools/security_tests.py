@@ -969,18 +969,29 @@ def run(s: Sim, tag: str) -> None:
     check("registering again starts a fresh confirmation", s.scalar(
         "select released_at is null and confirm_asked_at is null and confirmed_at is null from public.registrations where user_id = %s and event_id = %s", [a2, ev_rel]))
 
+    print("\n[26] Seat counts for the feed")
+    s.anon()
+    rows = dict(s.rows("select event_id, registered from public.event_seat_counts(%s::uuid[])", [[ev_pub, ev_tum, ev_draft]]))
+    check("visitors get seat counts of public events", ev_pub in rows)
+    check("visitors get no counts for university events or drafts", ev_tum not in rows and ev_draft not in rows, str(rows))
+    s.user(stu_tum)
+    rows = dict(s.rows("select event_id, registered from public.event_seat_counts(%s::uuid[])", [[ev_tum, ev_haw]]))
+    check("students get counts for their own university's events only", ev_tum in rows and ev_haw not in rows, str(rows))
+    check("the count matches the single-event count", rows.get(ev_tum) == s.scalar("select public.event_registered_count(%s)", [ev_tum]))
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
         "anon": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
-                 "categories_ok"},
+                 "categories_ok", "event_seat_counts"},
         "authenticated": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
                           "register_for_event", "cancel_registration", "check_in_ticket", "submit_review", "admin_set_role",
                           "is_verified_publisher", "user_tenant", "request_organizer_access",
                           "review_organizer_request", "admin_list_users", "delete_my_account",
                           "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count",
                           "can_moderate_event", "report_event", "resolve_report",
-                          "register_push_token", "unregister_push_token", "confirm_attendance", "event_insights"},
+                          "register_push_token", "unregister_push_token", "confirm_attendance", "event_insights",
+                          "event_seat_counts"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")

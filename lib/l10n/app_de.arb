@@ -509,5 +509,12 @@
   "insightsNotAskedYet": "Teilnehmende werden etwa 3 Tage vor dem Event gefragt.",
   "statNoShow": "Nicht erschienen",
   "statWaitlist": "Warteliste",
-  "statCancelled": "Storniert"
+  "statCancelled": "Storniert",
+  "homeGreeting": "Hallo {name}",
+  "homeComingUp": "Demnächst",
+  "seatsLeft": "{count, plural, =1{Noch 1 Platz} other{Noch {count} Plätze}}",
+  "seatsFull": "Voll · Warteliste",
+  "seatsTaken": "{taken} von {capacity} Plätzen belegt",
+  "detailsEntry": "Eintritt",
+  "detailsFreeShort": "Kostenlos"
 }

@@ -507,6 +507,33 @@ class AppState extends ChangeNotifier {
   /// The organizer of an event if already loaded (null while loading or unknown).
   EventHost? hostOf(String? organizerId) => organizerId == null ? null : _hosts[organizerId];
 
+  // Taken seats per event, for "12 seats left" labels on the feed.
+  final Map<String, int> _seatsTaken = {};
+
+  /// Free seats of [event], or null when it is unlimited or not known yet.
+  int? seatsLeft(Event event) {
+    final capacity = event.capacity;
+    final taken = _seatsTaken[event.id];
+    if (capacity == null || taken == null) return null;
+    return (capacity - taken).clamp(0, capacity);
+  }
+
+  Future<void> _loadSeatCounts(List<Event> events) async {
+    final c = _client;
+    if (c == null) return;
+    final ids = [for (final e in events) if (e.capacity != null) e.id];
+    if (ids.isEmpty) return;
+    try {
+      final rows = await c.rpc('event_seat_counts', params: {'p_event_ids': ids}).timeout(_requestTimeout);
+      for (final row in rows as List) {
+        _seatsTaken[row['event_id'] as String] = row['registered'] as int;
+      }
+      notifyListeners();
+    } catch (_) {
+      // Labels are optional extras; the feed works without them.
+    }
+  }
+
   EventHost _hostFromRow(SupabaseClient c, Map<String, dynamic> row) {
     final path = row['avatar_path'] as String?;
     return EventHost(
@@ -769,6 +796,7 @@ class AppState extends ChangeNotifier {
     }
     refreshRatings();
     _loadHosts(_events);
+    _loadSeatCounts(_events);
   }
 
   bool _eventsReloadPending = false;
@@ -937,6 +965,7 @@ class AppState extends ChangeNotifier {
     if (repo != null) {
       final status = await repo.register(eventId);
       await refreshRegistrations();
+      _loadSeatCounts(_events);
       return status;
     }
     _registerLocally(eventId);
@@ -948,6 +977,7 @@ class AppState extends ChangeNotifier {
     if (repo != null) {
       await repo.cancel(eventId);
       await refreshRegistrations();
+      _loadSeatCounts(_events);
       return;
     }
     _registeredEventIds.remove(eventId);

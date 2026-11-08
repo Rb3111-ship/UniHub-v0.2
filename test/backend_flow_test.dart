@@ -510,7 +510,7 @@ void main() {
     await _settle(tester, rounds: 3);
 
     // "Other" opens the list of custom categories.
-    await tester.dragUntilVisible(find.text('Other'), find.byType(ListView).first, const Offset(-200, 0));
+    await tester.dragUntilVisible(find.text('Other'), find.byKey(const Key('categoryChips')), const Offset(-200, 0));
     await _settle(tester, rounds: 4);
     await tester.tap(find.text('Other'));
     await _settle(tester, rounds: 4);

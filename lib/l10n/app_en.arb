@@ -724,5 +724,15 @@
   "insightsNotAskedYet": "Attendees are asked about 3 days before the event.",
   "statNoShow": "No-show",
   "statWaitlist": "Waitlist",
-  "statCancelled": "Cancelled"
+  "statCancelled": "Cancelled",
+  "homeGreeting": "Hi {name}",
+  "@homeGreeting": {"placeholders": {"name": {"type": "String"}}},
+  "homeComingUp": "Coming up",
+  "seatsLeft": "{count, plural, =1{1 seat left} other{{count} seats left}}",
+  "@seatsLeft": {"placeholders": {"count": {"type": "int"}}},
+  "seatsFull": "Full · waitlist",
+  "seatsTaken": "{taken} of {capacity} seats taken",
+  "@seatsTaken": {"placeholders": {"taken": {"type": "int"}, "capacity": {"type": "int"}}},
+  "detailsEntry": "Entry",
+  "detailsFreeShort": "Free"
 }
