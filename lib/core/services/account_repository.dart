@@ -219,6 +219,12 @@ class AccountRepository {
     return (rows as List).map((r) => AdminUser.fromRow(r as Map<String, dynamic>)).toList();
   }
 
+  /// Removes a user (and their events); returns how many events were deleted.
+  Future<int> deleteUser(String userId, {required bool block}) async {
+    final n = await _client.rpc('admin_delete_user', params: {'p_user': userId, 'p_block': block});
+    return (n as num?)?.toInt() ?? 0;
+  }
+
   Future<void> setRole(String userId, String role, bool verified) async {
     await _client.rpc('admin_set_role', params: {
       'p_user': userId,

@@ -63,7 +63,11 @@ class _AuthScreenState extends State<AuthScreen> {
           return l10n.authErrCodeInvalid;
         case 'weak_password':
           return l10n.authErrPasswordShort;
+        case 'over_email_send_rate_limit':
+          return l10n.authErrWaitForCode;
       }
+      // The database refuses addresses an admin has blocked.
+      if (e.message.contains('Database error saving new user')) return l10n.authErrSignUpRefused;
       return l10n.authErrGeneric;
     }
     if (e is AuthRetryableFetchException || e.toString().contains('SocketException')) {
@@ -205,7 +209,14 @@ class _AuthScreenState extends State<AuthScreen> {
           _passwordField(l10n, l10n.authPassword, isNew: true),
         ];
       case _Mode.verify:
-        return [Text(l10n.authVerifyBody(_pendingEmail)), gap, codeField];
+        return [
+          Text(l10n.authVerifyBody(_pendingEmail)),
+          const SizedBox(height: 6),
+          // Unconfirmed sign-ups are deleted on the server after 20 minutes.
+          Text(l10n.authVerifyExpiry, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.secondary)),
+          gap,
+          codeField,
+        ];
       case _Mode.forgot:
         return [Text(l10n.authResetBody), gap, emailField];
       case _Mode.reset:

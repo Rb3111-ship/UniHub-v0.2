@@ -172,6 +172,22 @@ class _FakeBackend {
           'asked': 38,
           'declined': 3,
         };
+      } else if (path.endsWith('/rpc/admin_list_users')) {
+        body = [
+          {
+            'id': '99999999-9999-9999-9999-999999999999',
+            'display_name': 'Troll Account',
+            'email': 'troll@example.com',
+            'role': 'organizer',
+            'tenant_id': null,
+            'organizer_verified': true,
+            'created_at': '2026-11-01T10:00:00Z',
+            'email_confirmed': true,
+            'event_count': 2,
+          },
+        ];
+      } else if (path.endsWith('/rpc/admin_delete_user')) {
+        body = 2;
       } else if (path.endsWith('/event_reports') && req.method == 'GET') {
         body = [
           {
@@ -643,6 +659,32 @@ void main() {
     expect(body, contains('"p_remove":true'));
     expect(body, contains('"p_note":"Advertising"'));
     await _settle(tester, rounds: 6); // removing reloads the feed; let it finish
+    await _finish(tester);
+  });
+
+  testWidgets('admin removes a user and blocks the address', (tester) async {
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.admin_panel_settings_outlined));
+    await _settle(tester);
+    await tester.tap(find.text('Users'));
+    await _settle(tester, rounds: 12);
+    expect(find.text('Troll Account'), findsOneWidget);
+    await tester.tap(find.byTooltip('Change role'));
+    await _settle(tester, rounds: 10); // let the menu finish opening
+    await tester.ensureVisible(find.text('Remove user'));
+    await tester.tap(find.text('Remove user'));
+    await _settle(tester, rounds: 10); // menu closes, then the dialog opens
+    expect(find.text('Remove Troll Account?'), findsOneWidget);
+    expect(find.textContaining('Their 2 events are deleted too'), findsOneWidget);
+    await tester.tap(find.text('Block this email address from signing up again'));
+    await _settle(tester, rounds: 2);
+    await tester.tap(find.widgetWithText(FilledButton, 'Remove user'));
+    await _settle(tester, rounds: 6);
+    final body = backend.bodies['/rest/v1/rpc/admin_delete_user'] ?? '';
+    expect(body, contains('"p_user":"99999999-9999-9999-9999-999999999999"'));
+    expect(body, contains('"p_block":true'));
+    expect(find.text('Troll Account was removed'), findsOneWidget);
+    await _settle(tester, rounds: 6);
     await _finish(tester);
   });
 

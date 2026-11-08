@@ -244,6 +244,62 @@ class _AdminScreenState extends State<AdminScreen> {
     }
   }
 
+  static const _removeAction = '_remove';
+
+  Future<void> _removeUser(AppState appState, AdminUser u) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final name = u.displayName.isEmpty ? u.email : u.displayName;
+    var block = false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          title: Text(l10n.adminRemoveUserTitle(name)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(u.email, style: TextStyle(fontSize: 12, color: Theme.of(ctx).colorScheme.secondary)),
+              const SizedBox(height: 12),
+              Text(l10n.adminRemoveUserBody),
+              if (u.eventCount > 0) ...[
+                const SizedBox(height: 8),
+                Text(l10n.adminRemoveUserEvents(u.eventCount), style: const TextStyle(fontWeight: FontWeight.w600)),
+              ],
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: block,
+                onChanged: (v) => setDialog(() => block = v ?? false),
+                title: Text(l10n.adminBlockEmail, style: const TextStyle(fontSize: 14)),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.adminRemoveUser),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await appState.removeUser(u.id, block: block, search: _search.text.trim());
+      messenger.showSnackBar(SnackBar(content: Text(l10n.adminUserRemoved(name))));
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -412,22 +468,43 @@ class _AdminScreenState extends State<AdminScreen> {
               itemBuilder: (context, i) {
                 final u = users[i];
                 final isMe = u.id == appState.currentUserId;
+                // Admins must be demoted first; university admins may remove students and organizers.
+                final removable = !isMe && !u.isAdmin && (appState.isPlatformAdmin || assignable.contains(u.role));
                 return Card(
                   margin: EdgeInsets.zero,
                   child: ListTile(
                     title: Text(u.displayName.isEmpty ? u.email : u.displayName,
                         style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${u.email}\n${_roleLabel(l10n, u.role)}'),
+                    subtitle: Text.rich(TextSpan(children: [
+                      TextSpan(text: '${u.email}\n${_roleLabel(l10n, u.role)}'),
+                      if (!u.emailConfirmed)
+                        TextSpan(
+                          text: '  ·  ${l10n.adminUnconfirmed}',
+                          style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.w600),
+                        ),
+                    ])),
                     isThreeLine: true,
                     trailing: isMe
                         ? null
                         : PopupMenuButton<String>(
                             tooltip: l10n.adminChangeRole,
                             icon: const Icon(Icons.manage_accounts_rounded),
-                            onSelected: (role) => _changeRole(appState, u, role),
+                            onSelected: (value) =>
+                                value == _removeAction ? _removeUser(appState, u) : _changeRole(appState, u, value),
                             itemBuilder: (_) => [
                               for (final r in assignable)
                                 PopupMenuItem(value: r, enabled: r != u.role, child: Text(_roleLabel(l10n, r))),
+                              if (removable) ...[
+                                const PopupMenuDivider(),
+                                PopupMenuItem(
+                                  value: _removeAction,
+                                  child: Row(children: [
+                                    Icon(Icons.person_remove_rounded, color: theme.colorScheme.error, size: 20),
+                                    const SizedBox(width: 10),
+                                    Text(l10n.adminRemoveUser, style: TextStyle(color: theme.colorScheme.error)),
+                                  ]),
+                                ),
+                              ],
                             ],
                           ),
                   ),

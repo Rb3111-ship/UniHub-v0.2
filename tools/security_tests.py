@@ -979,6 +979,63 @@ def run(s: Sim, tag: str) -> None:
     check("students get counts for their own university's events only", ev_tum in rows and ev_haw not in rows, str(rows))
     check("the count matches the single-event count", rows.get(ev_tum) == s.scalar("select public.event_registered_count(%s)", [ev_tum]))
 
+    print("\n[27] Unconfirmed sign-ups expire; admins remove users")
+    s.postgres()
+    stale = mk_user(f"stale-{tag}@haw-hamburg.de", confirmed=False)
+    fresh = mk_user(f"fresh-{tag}@haw-hamburg.de", confirmed=False)
+    resent = mk_user(f"resent-{tag}@haw-hamburg.de", confirmed=False)
+    s.c.execute("update auth.users set created_at = now() - interval '30 minutes' where id in (%s, %s)", [stale, resent])
+    s.c.execute("update auth.users set confirmation_sent_at = now() - interval '5 minutes' where id = %s", [resent])
+    s.user(stu_haw)
+    _, err = s.call("select public.purge_unconfirmed_signups()"); check("a student cannot run the sign-up clean-up", err is not None and "permission denied" in err, str(err))
+    s.postgres()
+    s.c.execute("select public.purge_unconfirmed_signups()")
+    alive = lambda u: s.scalar("select count(*) from auth.users where id = %s", [u]) == 1
+    check("a sign-up without the code is removed after 20 minutes", not alive(stale))
+    check("its profile is removed too", s.scalar("select count(*) from public.profiles where id = %s", [stale]) == 0)
+    check("a sign-up from a few minutes ago stays", alive(fresh))
+    check("asking for a new code restarts the 20 minutes", alive(resent))
+    check("confirmed accounts are never touched", alive(stu_haw) and alive(stu_tum))
+    check("the clean-up runs every 5 minutes", s.scalar("select count(*) from cron.job where jobname = 'unihub-purge-unconfirmed' and schedule = '*/5 * * * *'") == 1)
+
+    bad = mk_user(f"bad-{tag}@haw-hamburg.de"); promote(bad, "organizer")
+    fan = mk_user(f"fan-{tag}@haw-hamburg.de")
+    ev_bad = mk_event(bad, haw, "Bad upcoming")
+    ev_bad_old = mk_event(bad, haw, "Bad past", start="now() - interval '3 days'", end="now() - interval '3 days' + interval '2 hours'")
+    s.user(fan); s.call("select public.register_for_event(%s)", [ev_bad])
+    s.user(bad); s.call("select public.register_for_event(%s)", [ev_haw])
+    victim = mk_user(f"victim-{tag}@tum.de")
+    s.anon()
+    s.fails("anonymous cannot remove users", "select public.admin_delete_user(%s)", [bad], contains="permission denied")
+    s.user(stu_haw)
+    _, err = s.call("select public.admin_delete_user(%s)", [bad]); check("a student cannot remove users", err is not None and "not_authorized" in err, str(err))
+    s.user(org_haw)
+    _, err = s.call("select public.admin_delete_user(%s)", [fan]); check("an organizer cannot remove users", err is not None and "not_authorized" in err, str(err))
+    s.user(t_admin)
+    _, err = s.call("select public.admin_delete_user(%s)", [victim]); check("a university admin cannot remove another university's user", err is not None and "not_authorized" in err, str(err))
+    _, err = s.call("select public.admin_delete_user(%s)", [commercial]); check("a university admin cannot remove a commercial planner", err is not None and "not_authorized" in err, str(err))
+    _, err = s.call("select public.admin_delete_user(%s)", [p_admin]); check("admins cannot be removed before being demoted", err is not None and "demote_first" in err, str(err))
+    _, err = s.call("select public.admin_delete_user(%s)", [t_admin]); check("an admin cannot remove themselves here", err is not None and "cannot_remove_self" in err, str(err))
+    row = s.rows("select email_confirmed, event_count from public.admin_list_users(%s)", [f"bad-{tag}"])
+    check("the admin list shows confirmation and event count", row == [(True, 2)], str(row))
+    r, err = s.call("select public.admin_delete_user(%s, true)", [bad]); check("a university admin removes a user of their university", err is None and r == 2, f"{r} {err}")
+    s.postgres()
+    check("the login and profile are gone", not alive(bad) and s.scalar("select count(*) from public.profiles where id = %s", [bad]) == 0)
+    check("their events are gone", s.scalar("select count(*) from public.events where id in (%s, %s)", [ev_bad, ev_bad_old]) == 0)
+    check("their registrations elsewhere are gone", s.scalar("select count(*) from public.registrations where user_id = %s", [bad]) == 0)
+    check("people registered for their upcoming event are told it is cancelled",
+          s.scalar("select count(*) from public.notifications where user_id = %s and kind = 'event_cancelled' and event_title = 'Bad upcoming'", [fan]) == 1)
+    check("the address is blocked", s.scalar("select count(*) from public.blocked_emails where email = %s", [f"bad-{tag}@haw-hamburg.de"]) == 1)
+    s.fails("a blocked address cannot sign up again", "insert into auth.users (instance_id, id, aud, role, email, created_at, updated_at) values "
+            "('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', %s, now(), now())",
+            [f"BAD-{tag}@haw-hamburg.de"], contains="email_blocked")
+    s.user(p_admin)
+    r, err = s.call("select public.admin_delete_user(%s)", [victim]); check("a platform admin removes any non-admin user", err is None and r == 0, f"{r} {err}")
+    s.postgres()
+    check("without blocking, the address stays free", s.scalar("select count(*) from public.blocked_emails where email = %s", [f"victim-{tag}@tum.de"]) == 0)
+    s.user(stu_haw)
+    s.fails("nobody can read the blocked list directly", "select * from public.blocked_emails", contains="permission denied")
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
@@ -991,7 +1048,7 @@ def run(s: Sim, tag: str) -> None:
                           "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count",
                           "can_moderate_event", "report_event", "resolve_report",
                           "register_push_token", "unregister_push_token", "confirm_attendance", "event_insights",
-                          "event_seat_counts"},
+                          "event_seat_counts", "admin_delete_user"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")

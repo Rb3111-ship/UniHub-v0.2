@@ -526,5 +526,15 @@
   "notificationsDeleteAllBody": "Damit wird deine Benachrichtigungsliste geleert. Deine Tickets und Events bleiben unverändert.",
   "notificationsDeleteFailed": "Löschen fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
   "insightsNoSignupsYet": "Noch keine Anmeldungen",
-  "insightsCameNotCounted": "Gekommen: nicht gezählt (freier Eintritt, kein Ticket-Scan)"
+  "insightsCameNotCounted": "Gekommen: nicht gezählt (freier Eintritt, kein Ticket-Scan)",
+  "authVerifyExpiry": "Gib den Code innerhalb von 20 Minuten ein. Danach wird die Registrierung verworfen und du kannst dich einfach neu registrieren.",
+  "authErrWaitForCode": "Gerade wurde ein Code gesendet. Bitte warte eine Minute, bevor du einen neuen anforderst.",
+  "authErrSignUpRefused": "Mit dieser E-Mail-Adresse ist keine Registrierung möglich. Wende dich an das UniHub-Team, falls das ein Irrtum ist.",
+  "adminUnconfirmed": "E-Mail nicht bestätigt",
+  "adminRemoveUser": "Nutzer entfernen",
+  "adminRemoveUserTitle": "{name} entfernen?",
+  "adminRemoveUserBody": "Konto, Tickets, Bewertungen und gemerkte Events werden gelöscht. Das kann nicht rückgängig gemacht werden.",
+  "adminRemoveUserEvents": "{count, plural, =1{Das eine Event dieser Person wird ebenfalls gelöscht. Angemeldete werden über die Absage informiert.} other{Die {count} Events dieser Person werden ebenfalls gelöscht. Angemeldete für kommende Events werden über die Absage informiert.}}",
+  "adminBlockEmail": "Diese E-Mail-Adresse für neue Registrierungen sperren",
+  "adminUserRemoved": "{name} wurde entfernt"
 }

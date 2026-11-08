@@ -3266,6 +3266,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Came: not counted (open entry, no ticket scan)'**
   String get insightsCameNotCounted;
+
+  /// No description provided for @authVerifyExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code within 20 minutes. After that the sign-up is cancelled and you can simply sign up again.'**
+  String get authVerifyExpiry;
+
+  /// No description provided for @authErrWaitForCode.
+  ///
+  /// In en, this message translates to:
+  /// **'A code was sent a moment ago. Please wait a minute before asking for another one.'**
+  String get authErrWaitForCode;
+
+  /// No description provided for @authErrSignUpRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'This email address can\'t be used to sign up. Contact the UniHub team if you think this is a mistake.'**
+  String get authErrSignUpRefused;
+
+  /// No description provided for @adminUnconfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Email not confirmed'**
+  String get adminUnconfirmed;
+
+  /// No description provided for @adminRemoveUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove user'**
+  String get adminRemoveUser;
+
+  /// No description provided for @adminRemoveUserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String adminRemoveUserTitle(String name);
+
+  /// No description provided for @adminRemoveUserBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Their account, tickets, reviews and saved events are deleted. This cannot be undone.'**
+  String get adminRemoveUserBody;
+
+  /// No description provided for @adminRemoveUserEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Their 1 event is deleted too. People registered for it are told it is cancelled.} other{Their {count} events are deleted too. People registered for upcoming ones are told they are cancelled.}}'**
+  String adminRemoveUserEvents(int count);
+
+  /// No description provided for @adminBlockEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Block this email address from signing up again'**
+  String get adminBlockEmail;
+
+  /// No description provided for @adminUserRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} was removed'**
+  String adminUserRemoved(String name);
 }
 
 class _AppLocalizationsDelegate

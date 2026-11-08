@@ -1762,4 +1762,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get insightsCameNotCounted =>
       'Came: not counted (open entry, no ticket scan)';
+
+  @override
+  String get authVerifyExpiry =>
+      'Enter the code within 20 minutes. After that the sign-up is cancelled and you can simply sign up again.';
+
+  @override
+  String get authErrWaitForCode =>
+      'A code was sent a moment ago. Please wait a minute before asking for another one.';
+
+  @override
+  String get authErrSignUpRefused =>
+      'This email address can\'t be used to sign up. Contact the UniHub team if you think this is a mistake.';
+
+  @override
+  String get adminUnconfirmed => 'Email not confirmed';
+
+  @override
+  String get adminRemoveUser => 'Remove user';
+
+  @override
+  String adminRemoveUserTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get adminRemoveUserBody =>
+      'Their account, tickets, reviews and saved events are deleted. This cannot be undone.';
+
+  @override
+  String adminRemoveUserEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Their $count events are deleted too. People registered for upcoming ones are told they are cancelled.',
+      one:
+          'Their 1 event is deleted too. People registered for it are told it is cancelled.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adminBlockEmail =>
+      'Block this email address from signing up again';
+
+  @override
+  String adminUserRemoved(String name) {
+    return '$name was removed';
+  }
 }

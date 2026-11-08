@@ -706,6 +706,15 @@ class AppState extends ChangeNotifier {
     await refreshUsers(search);
   }
 
+  /// Admin: deletes a user's account and events, optionally blocking the address.
+  Future<void> removeUser(String userId, {required bool block, required String search}) async {
+    await _accountRepository!.deleteUser(userId, block: block);
+    _adminUsers = [for (final u in _adminUsers) if (u.id != userId) u];
+    notifyListeners();
+    await refreshUsers(search);
+    refreshEvents();
+  }
+
   /// Email domain -> university display name, for the live hint on the sign-up form.
   String? universityForEmail(String email) {
     final at = email.indexOf('@');

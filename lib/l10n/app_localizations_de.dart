@@ -1793,4 +1793,53 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get insightsCameNotCounted =>
       'Gekommen: nicht gezählt (freier Eintritt, kein Ticket-Scan)';
+
+  @override
+  String get authVerifyExpiry =>
+      'Gib den Code innerhalb von 20 Minuten ein. Danach wird die Registrierung verworfen und du kannst dich einfach neu registrieren.';
+
+  @override
+  String get authErrWaitForCode =>
+      'Gerade wurde ein Code gesendet. Bitte warte eine Minute, bevor du einen neuen anforderst.';
+
+  @override
+  String get authErrSignUpRefused =>
+      'Mit dieser E-Mail-Adresse ist keine Registrierung möglich. Wende dich an das UniHub-Team, falls das ein Irrtum ist.';
+
+  @override
+  String get adminUnconfirmed => 'E-Mail nicht bestätigt';
+
+  @override
+  String get adminRemoveUser => 'Nutzer entfernen';
+
+  @override
+  String adminRemoveUserTitle(String name) {
+    return '$name entfernen?';
+  }
+
+  @override
+  String get adminRemoveUserBody =>
+      'Konto, Tickets, Bewertungen und gemerkte Events werden gelöscht. Das kann nicht rückgängig gemacht werden.';
+
+  @override
+  String adminRemoveUserEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Die $count Events dieser Person werden ebenfalls gelöscht. Angemeldete für kommende Events werden über die Absage informiert.',
+      one:
+          'Das eine Event dieser Person wird ebenfalls gelöscht. Angemeldete werden über die Absage informiert.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get adminBlockEmail =>
+      'Diese E-Mail-Adresse für neue Registrierungen sperren';
+
+  @override
+  String adminUserRemoved(String name) {
+    return '$name wurde entfernt';
+  }
 }

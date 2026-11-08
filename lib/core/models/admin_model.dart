@@ -112,6 +112,8 @@ class AdminUser {
   final String? tenantId;
   final bool organizerVerified;
   final DateTime createdAt;
+  final bool emailConfirmed;
+  final int eventCount; // events this person organizes
 
   const AdminUser({
     required this.id,
@@ -121,6 +123,8 @@ class AdminUser {
     required this.tenantId,
     required this.organizerVerified,
     required this.createdAt,
+    this.emailConfirmed = true,
+    this.eventCount = 0,
   });
 
   factory AdminUser.fromRow(Map<String, dynamic> row) => AdminUser(
@@ -131,7 +135,11 @@ class AdminUser {
         tenantId: row['tenant_id'] as String?,
         organizerVerified: (row['organizer_verified'] as bool?) ?? false,
         createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
+        emailConfirmed: (row['email_confirmed'] as bool?) ?? true,
+        eventCount: (row['event_count'] as num?)?.toInt() ?? 0,
       );
+
+  bool get isAdmin => role == 'platform_admin' || role == 'tenant_admin';
 }
 
 /// A student's report about an event, as seen by admins.

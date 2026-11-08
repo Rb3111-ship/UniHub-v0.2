@@ -745,5 +745,18 @@
   "notificationsDeleteAllBody": "This clears your notification list. Your tickets and events are not affected.",
   "notificationsDeleteFailed": "Could not delete. Check your connection and try again.",
   "insightsNoSignupsYet": "No sign-ups yet",
-  "insightsCameNotCounted": "Came: not counted (open entry, no ticket scan)"
+  "insightsCameNotCounted": "Came: not counted (open entry, no ticket scan)",
+  "authVerifyExpiry": "Enter the code within 20 minutes. After that the sign-up is cancelled and you can simply sign up again.",
+  "authErrWaitForCode": "A code was sent a moment ago. Please wait a minute before asking for another one.",
+  "authErrSignUpRefused": "This email address can't be used to sign up. Contact the UniHub team if you think this is a mistake.",
+  "adminUnconfirmed": "Email not confirmed",
+  "adminRemoveUser": "Remove user",
+  "adminRemoveUserTitle": "Remove {name}?",
+  "@adminRemoveUserTitle": {"placeholders": {"name": {"type": "String"}}},
+  "adminRemoveUserBody": "Their account, tickets, reviews and saved events are deleted. This cannot be undone.",
+  "adminRemoveUserEvents": "{count, plural, =1{Their 1 event is deleted too. People registered for it are told it is cancelled.} other{Their {count} events are deleted too. People registered for upcoming ones are told they are cancelled.}}",
+  "@adminRemoveUserEvents": {"placeholders": {"count": {"type": "int"}}},
+  "adminBlockEmail": "Block this email address from signing up again",
+  "adminUserRemoved": "{name} was removed",
+  "@adminUserRemoved": {"placeholders": {"name": {"type": "String"}}}
 }
