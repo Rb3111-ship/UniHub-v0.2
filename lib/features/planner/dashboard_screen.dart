@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../../../app/config/theme.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/review_model.dart';
 import '../../../core/models/dashboard_model.dart';
@@ -23,10 +24,13 @@ class PlannerDashboardScreen extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
-            // Solid and pinned: the app-wide transparent bar let the cards scroll underneath the title.
+            // Solid and pinned so the cards never show through the title. Not
+            // scaffoldBackgroundColor: under the wallpaper that is transparent.
             pinned: true,
             toolbarHeight: 68,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? AppTheme.darkBackground
+                : AppTheme.lightBackground,
             title: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
