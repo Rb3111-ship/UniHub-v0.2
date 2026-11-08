@@ -715,6 +715,10 @@ class AppState extends ChangeNotifier {
     refreshEvents();
   }
 
+  Future<List<BlockedEmail>> loadBlockedEmails() => _accountRepository!.listBlockedEmails();
+
+  Future<void> unblockEmail(String email) => _accountRepository!.unblockEmail(email);
+
   /// Email domain -> university display name, for the live hint on the sign-up form.
   String? universityForEmail(String email) {
     final at = email.indexOf('@');

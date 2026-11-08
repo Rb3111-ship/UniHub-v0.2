@@ -1842,4 +1842,30 @@ class AppLocalizationsDe extends AppLocalizations {
   String adminUserRemoved(String name) {
     return '$name wurde entfernt';
   }
+
+  @override
+  String get adminBlockedTitle => 'Gesperrte Adressen';
+
+  @override
+  String get adminBlockedHint =>
+      'Mit diesen E-Mail-Adressen ist keine Registrierung möglich. Nach dem Entsperren kann die Person ein neues Konto anlegen; alte Daten kommen nicht zurück.';
+
+  @override
+  String get adminNoBlocked => 'Keine gesperrten Adressen';
+
+  @override
+  String get adminUnblock => 'Entsperren';
+
+  @override
+  String get adminUnblockTitle => 'Adresse entsperren?';
+
+  @override
+  String adminUnblockBody(String email) {
+    return '$email kann sich dann wieder registrieren.';
+  }
+
+  @override
+  String adminUnblocked(String email) {
+    return '$email ist entsperrt';
+  }
 }

@@ -536,5 +536,12 @@
   "adminRemoveUserBody": "Konto, Tickets, Bewertungen und gemerkte Events werden gelöscht. Das kann nicht rückgängig gemacht werden.",
   "adminRemoveUserEvents": "{count, plural, =1{Das eine Event dieser Person wird ebenfalls gelöscht. Angemeldete werden über die Absage informiert.} other{Die {count} Events dieser Person werden ebenfalls gelöscht. Angemeldete für kommende Events werden über die Absage informiert.}}",
   "adminBlockEmail": "Diese E-Mail-Adresse für neue Registrierungen sperren",
-  "adminUserRemoved": "{name} wurde entfernt"
+  "adminUserRemoved": "{name} wurde entfernt",
+  "adminBlockedTitle": "Gesperrte Adressen",
+  "adminBlockedHint": "Mit diesen E-Mail-Adressen ist keine Registrierung möglich. Nach dem Entsperren kann die Person ein neues Konto anlegen; alte Daten kommen nicht zurück.",
+  "adminNoBlocked": "Keine gesperrten Adressen",
+  "adminUnblock": "Entsperren",
+  "adminUnblockTitle": "Adresse entsperren?",
+  "adminUnblockBody": "{email} kann sich dann wieder registrieren.",
+  "adminUnblocked": "{email} ist entsperrt"
 }

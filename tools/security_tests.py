@@ -1036,6 +1036,30 @@ def run(s: Sim, tag: str) -> None:
     s.user(stu_haw)
     s.fails("nobody can read the blocked list directly", "select * from public.blocked_emails", contains="permission denied")
 
+    print("\n[28] Unblocking addresses")
+    bad2 = mk_user(f"bad2-{tag}@example.com")
+    s.user(p_admin); s.call("select public.admin_delete_user(%s, true)", [bad2])
+    bad_mail, bad2_mail = f"bad-{tag}@haw-hamburg.de", f"bad2-{tag}@example.com"
+    s.anon()
+    s.fails("anonymous cannot list blocked addresses", "select * from public.admin_list_blocked_emails()", contains="permission denied")
+    s.fails("anonymous cannot unblock", "select public.admin_unblock_email(%s)", [bad_mail], contains="permission denied")
+    s.user(stu_haw)
+    _, err = s.call("select * from public.admin_list_blocked_emails()"); check("a student cannot list blocked addresses", err is not None and "not_authorized" in err, str(err))
+    _, err = s.call("select public.admin_unblock_email(%s)", [bad_mail]); check("a student cannot unblock", err is not None and "not_authorized" in err, str(err))
+    s.user(t_admin)
+    mails = [r[0] for r in s.rows("select email from public.admin_list_blocked_emails()")]
+    check("a university admin sees their university's blocks", bad_mail in mails, str(mails))
+    check("a university admin does not see blocks made by a platform admin", bad2_mail not in mails, str(mails))
+    r, _ = s.call("select public.admin_unblock_email(%s)", [bad2_mail]); check("a university admin cannot lift a platform admin's block", r is False, str(r))
+    r, _ = s.call("select public.admin_unblock_email(%s)", [bad_mail.upper()]); check("a university admin lifts their university's block (any letter case)", r is True, str(r))
+    s.postgres()
+    check("the unblocked address can sign up again", s.call("insert into auth.users (instance_id, id, aud, role, email, created_at, updated_at) values "
+          "('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', %s, now(), now())", [bad_mail])[1] is None)
+    s.user(p_admin)
+    mails = [r[0] for r in s.rows("select email from public.admin_list_blocked_emails()")]
+    check("a platform admin sees every block", bad2_mail in mails, str(mails))
+    r, _ = s.call("select public.admin_unblock_email(%s)", [bad2_mail]); check("a platform admin lifts any block", r is True, str(r))
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
@@ -1048,7 +1072,7 @@ def run(s: Sim, tag: str) -> None:
                           "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count",
                           "can_moderate_event", "report_event", "resolve_report",
                           "register_push_token", "unregister_push_token", "confirm_attendance", "event_insights",
-                          "event_seat_counts", "admin_delete_user"},
+                          "event_seat_counts", "admin_delete_user", "admin_list_blocked_emails", "admin_unblock_email"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")

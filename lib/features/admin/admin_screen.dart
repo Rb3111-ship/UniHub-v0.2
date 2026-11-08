@@ -6,6 +6,7 @@ import '../../core/auth/user_role.dart';
 import '../../core/models/admin_model.dart';
 import '../../core/utils/open_link.dart';
 import '../student/community_actions.dart' show reportReasonLabel;
+import 'blocked_emails_screen.dart';
 
 /// Approve organizer requests and manage user roles.
 /// What each admin may actually do is enforced by the database
@@ -455,6 +456,17 @@ class _AdminScreenState extends State<AdminScreen> {
               border: const OutlineInputBorder(),
             ),
             onSubmitted: appState.refreshUsers,
+          ),
+        ),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              icon: const Icon(Icons.block_rounded, size: 18),
+              label: Text(l10n.adminBlockedTitle),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BlockedEmailsScreen())),
+            ),
           ),
         ),
         Expanded(

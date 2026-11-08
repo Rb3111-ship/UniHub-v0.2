@@ -758,5 +758,14 @@
   "@adminRemoveUserEvents": {"placeholders": {"count": {"type": "int"}}},
   "adminBlockEmail": "Block this email address from signing up again",
   "adminUserRemoved": "{name} was removed",
-  "@adminUserRemoved": {"placeholders": {"name": {"type": "String"}}}
+  "@adminUserRemoved": {"placeholders": {"name": {"type": "String"}}},
+  "adminBlockedTitle": "Blocked addresses",
+  "adminBlockedHint": "These email addresses cannot sign up. Unblocking lets the person create a new account; their old data does not come back.",
+  "adminNoBlocked": "No blocked addresses",
+  "adminUnblock": "Unblock",
+  "adminUnblockTitle": "Unblock this address?",
+  "adminUnblockBody": "{email} will be able to sign up again.",
+  "@adminUnblockBody": {"placeholders": {"email": {"type": "String"}}},
+  "adminUnblocked": "{email} is unblocked",
+  "@adminUnblocked": {"placeholders": {"email": {"type": "String"}}}
 }

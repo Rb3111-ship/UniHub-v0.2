@@ -142,6 +142,21 @@ class AdminUser {
   bool get isAdmin => role == 'platform_admin' || role == 'tenant_admin';
 }
 
+/// An address an admin blocked from signing up.
+class BlockedEmail {
+  final String email;
+  final DateTime blockedAt;
+  final String? blockedBy; // admin's name; null if that admin no longer exists
+
+  const BlockedEmail({required this.email, required this.blockedAt, this.blockedBy});
+
+  factory BlockedEmail.fromRow(Map<String, dynamic> row) => BlockedEmail(
+        email: row['email'] as String,
+        blockedAt: DateTime.parse(row['created_at'] as String).toLocal(),
+        blockedBy: row['blocked_by_name'] as String?,
+      );
+}
+
 /// A student's report about an event, as seen by admins.
 class EventReport {
   static const reasons = ['spam', 'inappropriate', 'misleading', 'scam', 'other'];

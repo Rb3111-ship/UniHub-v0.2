@@ -1811,4 +1811,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String adminUserRemoved(String name) {
     return '$name was removed';
   }
+
+  @override
+  String get adminBlockedTitle => 'Blocked addresses';
+
+  @override
+  String get adminBlockedHint =>
+      'These email addresses cannot sign up. Unblocking lets the person create a new account; their old data does not come back.';
+
+  @override
+  String get adminNoBlocked => 'No blocked addresses';
+
+  @override
+  String get adminUnblock => 'Unblock';
+
+  @override
+  String get adminUnblockTitle => 'Unblock this address?';
+
+  @override
+  String adminUnblockBody(String email) {
+    return '$email will be able to sign up again.';
+  }
+
+  @override
+  String adminUnblocked(String email) {
+    return '$email is unblocked';
+  }
 }

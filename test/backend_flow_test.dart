@@ -186,8 +186,14 @@ class _FakeBackend {
             'event_count': 2,
           },
         ];
-      } else if (path.endsWith('/rpc/admin_delete_user')) {
-        body = 2;
+      } else if (path.endsWith('/functions/v1/remove-user')) {
+        body = {'events': 2, 'files': 3, 'files_ok': true};
+      } else if (path.endsWith('/rpc/admin_list_blocked_emails')) {
+        body = [
+          {'email': 'spammer@example.com', 'created_at': '2026-11-05T10:00:00Z', 'blocked_by_name': 'Test Admin'},
+        ];
+      } else if (path.endsWith('/rpc/admin_unblock_email')) {
+        body = true;
       } else if (path.endsWith('/event_reports') && req.method == 'GET') {
         body = [
           {
@@ -679,12 +685,31 @@ void main() {
     await tester.tap(find.text('Block this email address from signing up again'));
     await _settle(tester, rounds: 2);
     await tester.tap(find.widgetWithText(FilledButton, 'Remove user'));
-    await _settle(tester, rounds: 6);
-    final body = backend.bodies['/rest/v1/rpc/admin_delete_user'] ?? '';
-    expect(body, contains('"p_user":"99999999-9999-9999-9999-999999999999"'));
-    expect(body, contains('"p_block":true'));
+    await _settle(tester, rounds: 14);
+    final body = backend.bodies['/functions/v1/remove-user'] ?? '';
+    expect(body, contains('"user_id":"99999999-9999-9999-9999-999999999999"'));
+    expect(body, contains('"block":true'));
     expect(find.text('Troll Account was removed'), findsOneWidget);
     await _settle(tester, rounds: 6);
+    await _finish(tester);
+  });
+
+  testWidgets('admin sees blocked addresses and unblocks one', (tester) async {
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.admin_panel_settings_outlined));
+    await _settle(tester);
+    await tester.tap(find.text('Users'));
+    await _settle(tester, rounds: 12);
+    await tester.tap(find.text('Blocked addresses'));
+    await _settle(tester, rounds: 8);
+    expect(find.text('spammer@example.com'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, 'Unblock'));
+    await _settle(tester, rounds: 6);
+    expect(find.text('spammer@example.com will be able to sign up again.'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Unblock'));
+    await _settle(tester, rounds: 6);
+    expect(backend.bodies['/rest/v1/rpc/admin_unblock_email'], contains('spammer@example.com'));
+    expect(find.text('No blocked addresses'), findsOneWidget);
     await _finish(tester);
   });
 

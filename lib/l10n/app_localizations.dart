@@ -3326,6 +3326,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} was removed'**
   String adminUserRemoved(String name);
+
+  /// No description provided for @adminBlockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked addresses'**
+  String get adminBlockedTitle;
+
+  /// No description provided for @adminBlockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'These email addresses cannot sign up. Unblocking lets the person create a new account; their old data does not come back.'**
+  String get adminBlockedHint;
+
+  /// No description provided for @adminNoBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'No blocked addresses'**
+  String get adminNoBlocked;
+
+  /// No description provided for @adminUnblock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock'**
+  String get adminUnblock;
+
+  /// No description provided for @adminUnblockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock this address?'**
+  String get adminUnblockTitle;
+
+  /// No description provided for @adminUnblockBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{email} will be able to sign up again.'**
+  String adminUnblockBody(String email);
+
+  /// No description provided for @adminUnblocked.
+  ///
+  /// In en, this message translates to:
+  /// **'{email} is unblocked'**
+  String adminUnblocked(String email);
 }
 
 class _AppLocalizationsDelegate

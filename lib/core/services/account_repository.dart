@@ -219,10 +219,19 @@ class AccountRepository {
     return (rows as List).map((r) => AdminUser.fromRow(r as Map<String, dynamic>)).toList();
   }
 
-  /// Removes a user (and their events); returns how many events were deleted.
-  Future<int> deleteUser(String userId, {required bool block}) async {
-    final n = await _client.rpc('admin_delete_user', params: {'p_user': userId, 'p_block': block});
-    return (n as num?)?.toInt() ?? 0;
+  /// Removes a user, their events and their uploaded files (through the Edge
+  /// Function, because the database cannot delete stored files).
+  Future<void> deleteUser(String userId, {required bool block}) async {
+    await _client.functions.invoke('remove-user', body: {'user_id': userId, 'block': block});
+  }
+
+  Future<List<BlockedEmail>> listBlockedEmails() async {
+    final rows = await _client.rpc('admin_list_blocked_emails');
+    return (rows as List).map((r) => BlockedEmail.fromRow(r as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> unblockEmail(String email) async {
+    await _client.rpc('admin_unblock_email', params: {'p_email': email});
   }
 
   Future<void> setRole(String userId, String role, bool verified) async {
