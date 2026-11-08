@@ -734,5 +734,6 @@
   "seatsTaken": "{taken} of {capacity} seats taken",
   "@seatsTaken": {"placeholders": {"taken": {"type": "int"}, "capacity": {"type": "int"}}},
   "detailsEntry": "Entry",
-  "detailsFreeShort": "Free"
+  "detailsFreeShort": "Free",
+  "ticketTapToEnlarge": "Tap the code to make it bigger and brighter"
 }

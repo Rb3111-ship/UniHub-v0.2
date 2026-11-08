@@ -5,6 +5,8 @@ import '../../../core/auth/user_role.dart';
 import '../../../core/models/categories.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/models/event_search.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/motion.dart';
 import 'event_cards.dart';
 
 class StudentHomeScreen extends StatefulWidget {
@@ -277,7 +279,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   ) {
     final l10n = AppLocalizations.of(context)!;
     if (appState.eventsLoading && appState.events.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const FeedSkeleton();
     }
     if (appState.eventsError && appState.events.isEmpty) {
       return Center(
@@ -297,24 +299,18 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            SizedBox(
-              height: 320,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey.shade400),
-                  const SizedBox(height: 12),
-                  Text(
-                    _searchController.text.trim().isNotEmpty
-                        ? l10n.searchNoResults
-                        : _savedOnly
-                            ? l10n.savedEmpty
-                            : l10n.eventsEmptyCategory,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 40),
+            EmptyState(
+              icon: _searchController.text.trim().isNotEmpty
+                  ? Icons.search_off_rounded
+                  : _savedOnly
+                      ? Icons.favorite_border_rounded
+                      : Icons.event_note_rounded,
+              title: _searchController.text.trim().isNotEmpty
+                  ? l10n.searchNoResults
+                  : _savedOnly
+                      ? l10n.savedEmpty
+                      : l10n.eventsEmptyCategory,
             ),
           ],
         ),
@@ -338,13 +334,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  FeaturedEventCard(event: featured),
+                  FadeSlideIn(child: PressScale(child: FeaturedEventCard(event: featured))),
                   if (rest.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     Text(l10n.homeComingUp, style: theme.textTheme.titleLarge),
                     const SizedBox(height: 10),
-                    for (final e in rest) ...[
-                      EventRowCard(event: e),
+                    for (final (i, e) in rest.indexed) ...[
+                      FadeSlideIn(index: i + 1, child: PressScale(child: EventRowCard(event: e))),
                       const SizedBox(height: 10),
                     ],
                   ],

@@ -3206,6 +3206,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Free'**
   String get detailsFreeShort;
+
+  /// No description provided for @ticketTapToEnlarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the code to make it bigger and brighter'**
+  String get ticketTapToEnlarge;
 }
 
 class _AppLocalizationsDelegate

@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../../../core/widgets/empty_state.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../app/config/theme.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/models/registration_model.dart';
 import 'attendance_confirm_card.dart';
+import 'qr_fullscreen.dart';
 import 'register_action.dart';
 import 'review_screen.dart';
 
@@ -19,7 +21,6 @@ class StudentTicketsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
     final appState = context.watch<AppState>();
-    final theme = Theme.of(context);
 
     final registeredEvents = appState.registeredEvents;
 
@@ -36,35 +37,10 @@ class StudentTicketsScreen extends StatelessWidget {
         ],
         ),
         body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.confirmation_number_outlined,
-                  size: 80,
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  localizations.ticketsEmptyTitle,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  localizations.ticketsEmptyBody,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+          child: EmptyState(
+            icon: Icons.confirmation_number_outlined,
+            title: localizations.ticketsEmptyTitle,
+            body: localizations.ticketsEmptyBody,
           ),
         ),
       );
@@ -315,7 +291,11 @@ class StudentTicketsScreen extends StatelessWidget {
                   Stack(
                     alignment: Alignment.center,
                     children: [
-                      Container(
+                      GestureDetector(
+                        onTap: isScanned || !appState.hasValidTicketFor(event.id)
+                            ? null
+                            : () => QrFullscreenPage.open(context, payload: qrPayload, title: event.title, ticketId: ticketId),
+                        child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -338,6 +318,7 @@ class StudentTicketsScreen extends StatelessWidget {
                             ),
                           ),
                         ),
+                      ),
                       ),
                       if (isScanned)
                         Container(
@@ -376,11 +357,27 @@ class StudentTicketsScreen extends StatelessWidget {
                   Text(
                     isScanned ? localizations.ticketScannedOk : localizations.ticketShowAtEntrance,
                     style: TextStyle(
-                      fontSize: 12,
-                      color: isScanned ? Colors.green : Colors.grey,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isScanned ? Colors.green : theme.colorScheme.secondary,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (!isScanned && appState.hasValidTicketFor(event.id))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.brightness_high_rounded, size: 15, color: theme.colorScheme.secondary),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(localizations.ticketTapToEnlarge,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+                          ),
+                        ],
+                      ),
+                    ),
                   if (event.allowReviews) ...[
                     const SizedBox(height: 16),
                     ElevatedButton.icon(

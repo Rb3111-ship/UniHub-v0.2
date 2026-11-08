@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/auth/user_role.dart';
@@ -24,6 +25,7 @@ class _AttendanceConfirmCardState extends State<AttendanceConfirmCard> {
     setState(() => _busy = true);
     try {
       await action();
+      HapticFeedback.lightImpact();
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text(done)));
     } catch (_) {
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.confirmFailed)));

@@ -516,5 +516,6 @@
   "seatsFull": "Voll · Warteliste",
   "seatsTaken": "{taken} von {capacity} Plätzen belegt",
   "detailsEntry": "Eintritt",
-  "detailsFreeShort": "Kostenlos"
+  "detailsFreeShort": "Kostenlos",
+  "ticketTapToEnlarge": "Tippe auf den Code, um ihn größer und heller zu machen"
 }

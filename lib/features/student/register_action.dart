@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
 import '../../core/models/event_model.dart';
 import '../../core/models/registration_model.dart';
+import '../../core/widgets/motion.dart';
 
 /// Tells a signed-out visitor that they need an account and offers the sign-in screen.
 Future<void> askGuestToSignIn(BuildContext context, AppState appState, String title, String body) async {
@@ -38,6 +40,12 @@ Future<void> registerWithFeedback(BuildContext context, AppState appState, Event
   }
   try {
     final status = await appState.registerForEvent(event.id);
+    if (status == RegistrationStatus.registered) {
+      HapticFeedback.mediumImpact();
+      if (context.mounted) showConfetti(context);
+    } else {
+      HapticFeedback.lightImpact();
+    }
     messenger.showSnackBar(SnackBar(
       backgroundColor: status == RegistrationStatus.waitlisted ? Colors.orange : Colors.green,
       content: Text(status == RegistrationStatus.waitlisted

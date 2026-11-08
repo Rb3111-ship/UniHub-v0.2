@@ -1725,4 +1725,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get detailsFreeShort => 'Free';
+
+  @override
+  String get ticketTapToEnlarge =>
+      'Tap the code to make it bigger and brighter';
 }

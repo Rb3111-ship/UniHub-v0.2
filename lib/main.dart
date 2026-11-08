@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -11,6 +13,11 @@ import 'features/auth/auth_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // The bundled font's license (SIL OFL) appears in the app's license list.
+  LicenseRegistry.addLicense(() async* {
+    final text = await rootBundle.loadString('assets/fonts/PlusJakartaSans-OFL.txt');
+    yield LicenseEntryWithLineBreaks(const ['Plus Jakarta Sans'], text);
+  });
   // Draw something immediately; the backend is connected afterwards so a slow or
   // failing start-up shows a message instead of a frozen launch screen.
   runApp(const _Bootstrap());

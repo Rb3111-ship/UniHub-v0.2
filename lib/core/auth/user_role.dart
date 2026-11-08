@@ -821,6 +821,9 @@ class AppState extends ChangeNotifier {
   bool isWaitlisted(String eventId) =>
       registrationFor(eventId)?.status == RegistrationStatus.waitlisted;
 
+  /// Whether there is a usable QR ticket to show (demo mode always has one).
+  bool hasValidTicketFor(String eventId) => !usesBackend || (registrationFor(eventId)?.hasValidTicket ?? false);
+
   /// Seats the user was asked to confirm and has not answered for yet.
   List<Registration> get pendingConfirmations =>
       _registrations.where((r) => r.needsConfirmation).toList();

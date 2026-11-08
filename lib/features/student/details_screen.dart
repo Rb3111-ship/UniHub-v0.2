@@ -453,7 +453,24 @@ class EventDetailsScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 26),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               ),
-              child: Text(ctaText, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                transitionBuilder: (child, anim) => ScaleTransition(
+                  scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+                  child: FadeTransition(opacity: anim, child: child),
+                ),
+                child: Row(
+                  key: ValueKey(ctaText),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isRegistered && !waitlisted && !own) ...[
+                      const Icon(Icons.check_circle_rounded, size: 20),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(ctaText, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

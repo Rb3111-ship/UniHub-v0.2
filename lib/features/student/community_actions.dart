@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -25,7 +26,10 @@ class FavoriteButton extends StatelessWidget {
       visualDensity: onImage ? VisualDensity.compact : null,
       icon: Icon(saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           color: saved ? Colors.redAccent : (color ?? Colors.white)),
-      onPressed: () => _toggle(context, appState, l10n),
+      onPressed: () {
+        HapticFeedback.selectionClick();
+        _toggle(context, appState, l10n);
+      },
     );
     if (!onImage) return button;
     return DecoratedBox(

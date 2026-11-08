@@ -15,7 +15,7 @@
             android:resource="@drawable/ic_stat_unihub" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
-            android:resource="@color/unihub_splash_background" />
+            android:resource="@color/unihub_brand" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

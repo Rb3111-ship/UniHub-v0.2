@@ -1,6 +1,6 @@
 name: uni_events_app
 description: A multi-tenant university events app with role-based shell navigation and dual-language localization.
-version: 0.2.9+10
+version: 0.2.10+11
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -22,6 +22,7 @@ dependencies:
   add_2_calendar: ^3.1.1
   firebase_core: ^5.1.0
   firebase_messaging: ^17.0.1
+  screen_brightness: ^2.1.11
 
 
 dev_dependencies:
@@ -32,6 +33,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true # Enable automatic l10n generation
+  assets:
+    - assets/fonts/PlusJakartaSans-OFL.txt
   # Plus Jakarta Sans (SIL Open Font License, see assets/fonts/PlusJakartaSans-OFL.txt).
   # Bundled instead of loaded from Google at runtime, so no user data goes to Google.
   fonts:

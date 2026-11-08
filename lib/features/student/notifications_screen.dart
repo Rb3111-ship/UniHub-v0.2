@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/widgets/empty_state.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -109,14 +110,8 @@ class NotificationsScreen extends StatelessWidget {
         onRefresh: appState.refreshNotifications,
         child: items.isEmpty
             ? ListView(children: [
-                Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(children: [
-                    Icon(Icons.notifications_none_rounded, size: 56, color: theme.colorScheme.outline),
-                    const SizedBox(height: 12),
-                    Text(l10n.notificationsEmpty, textAlign: TextAlign.center),
-                  ]),
-                ),
+                const SizedBox(height: 40),
+                EmptyState(icon: Icons.notifications_none_rounded, title: l10n.notificationsEmpty),
               ])
             : ListView.separated(
                 itemCount: items.length,

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="unihub_splash_background">#1E40AF</color>
+    <!-- UniHub blue (#3F51E0). The splash uses near-black in dark mode, see values-night. -->
+    <color name="unihub_brand">#3F51E0</color>
+    <color name="ic_launcher_background">#3F51E0</color>
+    <color name="unihub_splash_background">#3F51E0</color>
 </resources>
