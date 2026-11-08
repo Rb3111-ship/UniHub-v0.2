@@ -70,13 +70,7 @@ class _EventInsightsScreenState extends State<EventInsightsScreen> {
             _tiles(context, stat, l10n),
             const SizedBox(height: 16),
             _section(context, l10n.insightsAttendance, [
-              ChartLegend(items: [
-                (l10n.legendRegistered, registeredColor),
-                (l10n.legendConfirmed, confirmedColor),
-                if (stat.requiresQr) (l10n.legendCame, cameColor),
-              ]),
-              const SizedBox(height: 10),
-              ..._attendanceBars(stat),
+              ..._attendanceBars(stat, l10n),
               if (!stat.requiresQr) ...[
                 const SizedBox(height: 8),
                 Text(l10n.insightsCameUnknown, style: const TextStyle(fontSize: 12)),
@@ -132,12 +126,13 @@ class _EventInsightsScreenState extends State<EventInsightsScreen> {
     );
   }
 
-  List<Widget> _attendanceBars(EventStat stat) {
+  List<Widget> _attendanceBars(EventStat stat, AppLocalizations l10n) {
     final max = stat.capacity ?? stat.registered;
     return [
-      HBar(value: stat.registered, max: max, color: registeredColor, height: 14),
-      HBar(value: stat.confirmed, max: max, color: confirmedColor, height: 14),
-      if (stat.requiresQr) HBar(value: stat.checkedIn, max: max, color: cameColor, height: 14),
+      HBar(label: l10n.legendRegistered, labelWidth: 96, value: stat.registered, max: max, color: registeredColor, height: 14),
+      HBar(label: l10n.legendConfirmed, labelWidth: 96, value: stat.confirmed, max: max, color: confirmedColor, height: 14),
+      if (stat.requiresQr)
+        HBar(label: l10n.legendCame, labelWidth: 96, value: stat.checkedIn, max: max, color: cameColor, height: 14),
     ];
   }
 

@@ -23,6 +23,11 @@ class StudentTicketsScreen extends StatelessWidget {
     final appState = context.watch<AppState>();
 
     final registeredEvents = appState.registeredEvents;
+    // Events that are over move to a folded "Past events" section at the bottom.
+    final now = DateTime.now();
+    final upcoming = registeredEvents.where((e) => !e.endDate.isBefore(now)).toList();
+    final past = registeredEvents.where((e) => e.endDate.isBefore(now)).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
 
     if (registeredEvents.isEmpty) {
       return Scaffold(
@@ -59,36 +64,133 @@ class StudentTicketsScreen extends StatelessWidget {
       ),
       body: RefreshIndicator(
         onRefresh: appState.refreshRegistrations,
-        child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16.0),
-        itemCount: registeredEvents.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 20),
-        itemBuilder: (context, index) {
-          final event = registeredEvents[index];
-          final ticketId = appState.getTicketId(event.id);
-          final ticket = _buildTicket(context, event, ticketId, appState);
-          final reg = appState.registrationFor(event.id);
-          if (reg == null || !(reg.needsConfirmation || (reg.isConfirmed && event.date.isAfter(DateTime.now())))) {
-            return ticket;
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (reg.needsConfirmation)
-                AttendanceConfirmCard(registration: reg)
-              else
-                Chip(
-                  avatar: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
-                  label: Text(localizations.confirmedBadge),
-                  visualDensity: VisualDensity.compact,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            if (upcoming.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: EmptyState(
+                  icon: Icons.confirmation_number_outlined,
+                  title: localizations.ticketsNoUpcoming,
+                  body: localizations.ticketsEmptyBody,
                 ),
-              const SizedBox(height: 8),
-              ticket,
+              ),
+            for (var i = 0; i < upcoming.length; i++) ...[
+              if (i > 0) const SizedBox(height: 20),
+              _buildUpcoming(context, upcoming[i], appState),
             ],
-          );
-        },
+            if (past.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Theme(
+                // No divider lines around the expandable section.
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  key: const Key('pastTickets'),
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+                  childrenPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.history_rounded),
+                  title: Text(localizations.ticketsPastSection(past.length),
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                  children: [
+                    for (final e in past)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _buildPastCard(context, e, appState),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildUpcoming(BuildContext context, Event event, AppState appState) {
+    final localizations = AppLocalizations.of(context)!;
+    final ticketId = appState.getTicketId(event.id);
+    final ticket = _buildTicket(context, event, ticketId, appState);
+    final reg = appState.registrationFor(event.id);
+    if (reg == null || !(reg.needsConfirmation || (reg.isConfirmed && event.date.isAfter(DateTime.now())))) {
+      return ticket;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (reg.needsConfirmation)
+          AttendanceConfirmCard(registration: reg)
+        else
+          Chip(
+            avatar: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 18),
+            label: Text(localizations.confirmedBadge),
+            visualDensity: VisualDensity.compact,
+          ),
+        const SizedBox(height: 8),
+        ticket,
+      ],
+    );
+  }
+
+  /// Small card for an event that is over: what happened, and the review button.
+  Widget _buildPastCard(BuildContext context, Event event, AppState appState) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
+    final scanned = appState.isTicketScanned(appState.getTicketId(event.id));
+    final waitlisted = appState.isWaitlisted(event.id);
+    final (status, statusColor) = event.isCancelled
+        ? (l10n.eventStatusCancelled, theme.colorScheme.error)
+        : waitlisted
+            ? (l10n.ticketsWaitlistBadge, Colors.orange.shade800)
+            : scanned
+                ? (l10n.ticketCheckedInBadge, Colors.green.shade700)
+                : (l10n.ticketEndedBadge, theme.colorScheme.secondary);
+    final reviewed = appState.hasReviewed(event.id);
+    final canReview = event.allowReviews && !event.isCancelled && !waitlisted && !reviewed && (!event.requiresQrCode || scanned);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(event.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(DateFormat.yMMMd(locale).format(event.date),
+                      style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+                  const SizedBox(height: 6),
+                  Text(status, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: statusColor)),
+                ],
+              ),
+            ),
+            if (canReview)
+              TextButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => StudentReviewScreen(event: event)),
+                ),
+                icon: const Icon(Icons.star_rate_rounded, size: 18),
+                label: Text(l10n.buttonLeaveReview),
+              )
+            else if (reviewed)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Tooltip(
+                  message: l10n.reviewAlreadySubmitted,
+                  child: Icon(Icons.star_rounded, color: Colors.amber.shade700),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

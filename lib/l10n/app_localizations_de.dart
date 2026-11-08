@@ -1760,4 +1760,37 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get ticketTapToEnlarge =>
       'Tippe auf den Code, um ihn größer und heller zu machen';
+
+  @override
+  String ticketsPastSection(int count) {
+    return 'Vergangene Events ($count)';
+  }
+
+  @override
+  String get ticketsNoUpcoming => 'Keine anstehenden Tickets';
+
+  @override
+  String get notificationsSwipeHint =>
+      'Wische eine Benachrichtigung zur Seite, um sie zu entfernen.';
+
+  @override
+  String get notificationsDeleteAll => 'Alle löschen';
+
+  @override
+  String get notificationsDeleteAllTitle => 'Alle Benachrichtigungen löschen?';
+
+  @override
+  String get notificationsDeleteAllBody =>
+      'Damit wird deine Benachrichtigungsliste geleert. Deine Tickets und Events bleiben unverändert.';
+
+  @override
+  String get notificationsDeleteFailed =>
+      'Löschen fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.';
+
+  @override
+  String get insightsNoSignupsYet => 'Noch keine Anmeldungen';
+
+  @override
+  String get insightsCameNotCounted =>
+      'Gekommen: nicht gezählt (freier Eintritt, kein Ticket-Scan)';
 }

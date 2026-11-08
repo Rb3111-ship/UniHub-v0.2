@@ -27,6 +27,11 @@ class NotificationRepository {
         .isFilter('read_at', null);
   }
 
+  Future<void> delete(List<int> ids) async {
+    if (ids.isEmpty) return;
+    await _client.from('notifications').delete().inFilter('id', ids);
+  }
+
   Future<void> saveSettings({bool? reminders, bool? updates}) async {
     await _client.from('profiles').update({
       if (reminders != null) 'notify_reminders': reminders,

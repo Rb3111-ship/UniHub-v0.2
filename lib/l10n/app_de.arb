@@ -517,5 +517,14 @@
   "seatsTaken": "{taken} von {capacity} Plätzen belegt",
   "detailsEntry": "Eintritt",
   "detailsFreeShort": "Kostenlos",
-  "ticketTapToEnlarge": "Tippe auf den Code, um ihn größer und heller zu machen"
+  "ticketTapToEnlarge": "Tippe auf den Code, um ihn größer und heller zu machen",
+  "ticketsPastSection": "Vergangene Events ({count})",
+  "ticketsNoUpcoming": "Keine anstehenden Tickets",
+  "notificationsSwipeHint": "Wische eine Benachrichtigung zur Seite, um sie zu entfernen.",
+  "notificationsDeleteAll": "Alle löschen",
+  "notificationsDeleteAllTitle": "Alle Benachrichtigungen löschen?",
+  "notificationsDeleteAllBody": "Damit wird deine Benachrichtigungsliste geleert. Deine Tickets und Events bleiben unverändert.",
+  "notificationsDeleteFailed": "Löschen fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.",
+  "insightsNoSignupsYet": "Noch keine Anmeldungen",
+  "insightsCameNotCounted": "Gekommen: nicht gezählt (freier Eintritt, kein Ticket-Scan)"
 }

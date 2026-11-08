@@ -735,5 +735,15 @@
   "@seatsTaken": {"placeholders": {"taken": {"type": "int"}, "capacity": {"type": "int"}}},
   "detailsEntry": "Entry",
   "detailsFreeShort": "Free",
-  "ticketTapToEnlarge": "Tap the code to make it bigger and brighter"
+  "ticketTapToEnlarge": "Tap the code to make it bigger and brighter",
+  "ticketsPastSection": "Past events ({count})",
+  "@ticketsPastSection": {"placeholders": {"count": {"type": "int"}}},
+  "ticketsNoUpcoming": "No upcoming tickets",
+  "notificationsSwipeHint": "Swipe a notification sideways to remove it.",
+  "notificationsDeleteAll": "Delete all",
+  "notificationsDeleteAllTitle": "Delete all notifications?",
+  "notificationsDeleteAllBody": "This clears your notification list. Your tickets and events are not affected.",
+  "notificationsDeleteFailed": "Could not delete. Check your connection and try again.",
+  "insightsNoSignupsYet": "No sign-ups yet",
+  "insightsCameNotCounted": "Came: not counted (open entry, no ticket scan)"
 }

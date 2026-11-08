@@ -1729,4 +1729,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get ticketTapToEnlarge =>
       'Tap the code to make it bigger and brighter';
+
+  @override
+  String ticketsPastSection(int count) {
+    return 'Past events ($count)';
+  }
+
+  @override
+  String get ticketsNoUpcoming => 'No upcoming tickets';
+
+  @override
+  String get notificationsSwipeHint =>
+      'Swipe a notification sideways to remove it.';
+
+  @override
+  String get notificationsDeleteAll => 'Delete all';
+
+  @override
+  String get notificationsDeleteAllTitle => 'Delete all notifications?';
+
+  @override
+  String get notificationsDeleteAllBody =>
+      'This clears your notification list. Your tickets and events are not affected.';
+
+  @override
+  String get notificationsDeleteFailed =>
+      'Could not delete. Check your connection and try again.';
+
+  @override
+  String get insightsNoSignupsYet => 'No sign-ups yet';
+
+  @override
+  String get insightsCameNotCounted =>
+      'Came: not counted (open entry, no ticket scan)';
 }

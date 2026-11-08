@@ -3212,6 +3212,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap the code to make it bigger and brighter'**
   String get ticketTapToEnlarge;
+
+  /// No description provided for @ticketsPastSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Past events ({count})'**
+  String ticketsPastSection(int count);
+
+  /// No description provided for @ticketsNoUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming tickets'**
+  String get ticketsNoUpcoming;
+
+  /// No description provided for @notificationsSwipeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe a notification sideways to remove it.'**
+  String get notificationsSwipeHint;
+
+  /// No description provided for @notificationsDeleteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all'**
+  String get notificationsDeleteAll;
+
+  /// No description provided for @notificationsDeleteAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all notifications?'**
+  String get notificationsDeleteAllTitle;
+
+  /// No description provided for @notificationsDeleteAllBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This clears your notification list. Your tickets and events are not affected.'**
+  String get notificationsDeleteAllBody;
+
+  /// No description provided for @notificationsDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete. Check your connection and try again.'**
+  String get notificationsDeleteFailed;
+
+  /// No description provided for @insightsNoSignupsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No sign-ups yet'**
+  String get insightsNoSignupsYet;
+
+  /// No description provided for @insightsCameNotCounted.
+  ///
+  /// In en, this message translates to:
+  /// **'Came: not counted (open entry, no ticket scan)'**
+  String get insightsCameNotCounted;
 }
 
 class _AppLocalizationsDelegate

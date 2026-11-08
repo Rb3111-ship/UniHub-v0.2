@@ -317,6 +317,23 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Removes notifications from the list at once; they come back if the server refuses.
+  Future<bool> deleteNotifications([List<int>? ids]) async {
+    final targets = ids ?? [for (final n in _notifications) n.id];
+    if (targets.isEmpty) return true;
+    final before = _notifications;
+    _notifications = [for (final n in _notifications) if (!targets.contains(n.id)) n];
+    notifyListeners();
+    try {
+      await _notificationRepository?.delete(targets).timeout(_requestTimeout);
+      return true;
+    } catch (_) {
+      _notifications = before;
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Turns reminders or event updates on/off. Flips back if the server refuses.
   Future<void> setNotificationSettings({bool? reminders, bool? updates}) async {
     final before = (_notifyReminders, _notifyUpdates);

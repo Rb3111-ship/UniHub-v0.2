@@ -65,6 +65,7 @@ class _FakeBackend {
   final bodies = <String, String>{}; // last request body per path
   String role = 'platform_admin';
   bool askConfirm = false; // the student has a seat they were asked to confirm
+  bool pastTicket = false; // the student also has a ticket for an event that is over
 
   Future<void> start() async {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -109,16 +110,33 @@ class _FakeBackend {
             'events': null,
           },
         ];
-      } else if (path.endsWith('/registrations') && req.method == 'GET' && askConfirm) {
+      } else if (path.endsWith('/registrations') && req.method == 'GET' && (askConfirm || pastTicket)) {
         body = [
-          {
-            'id': '66666666-6666-6666-6666-666666666666',
-            'status': 'registered',
-            'confirm_asked_at': DateTime.now().toUtc().toIso8601String(),
-            'confirmed_at': null,
-            'events': _publicEvent,
-            'tickets': {'code': 'abc', 'ticket_number': 7, 'checked_in_at': null, 'voided_at': null},
-          },
+          if (askConfirm)
+            {
+              'id': '66666666-6666-6666-6666-666666666666',
+              'status': 'registered',
+              'confirm_asked_at': DateTime.now().toUtc().toIso8601String(),
+              'confirmed_at': null,
+              'events': _publicEvent,
+              'tickets': {'code': 'abc', 'ticket_number': 7, 'checked_in_at': null, 'voided_at': null},
+            },
+          if (pastTicket)
+            {
+              'id': '77777777-7777-7777-7777-777777777777',
+              'status': 'registered',
+              'confirm_asked_at': null,
+              'confirmed_at': null,
+              'events': {
+                ..._publicEvent,
+                'id': '88888888-8888-8888-8888-888888888888',
+                'title': 'Last Week Lecture',
+                'requires_qr': false,
+                'starts_at': DateTime.now().subtract(const Duration(days: 7)).toUtc().toIso8601String(),
+                'ends_at': DateTime.now().subtract(const Duration(days: 7, hours: -2)).toUtc().toIso8601String(),
+              },
+              'tickets': {'code': 'def', 'ticket_number': 8, 'checked_in_at': null, 'voided_at': null},
+            },
         ];
       } else if (path.endsWith('/rpc/confirm_attendance')) {
         body = DateTime.now().toUtc().toIso8601String();
@@ -325,6 +343,48 @@ void main() {
     await _settle(tester, rounds: 4);
     expect(backend.requests, contains('POST /rest/v1/rpc/confirm_attendance'));
     expect(backend.bodies['/rest/v1/rpc/confirm_attendance'], contains('22222222-2222-2222-2222-222222222222'));
+    await _finish(tester);
+  });
+
+  testWidgets('tickets for events that are over move to a folded "Past events" section', (tester) async {
+    backend.role = 'student';
+    backend.askConfirm = true;
+    backend.pastTicket = true;
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.confirmation_number_outlined));
+    await _settle(tester, rounds: 4);
+    expect(find.text('Are you still coming?'), findsOneWidget); // the upcoming ticket stays on top
+    expect(find.text('Last Week Lecture'), findsNothing); // folded away
+    await tester.scrollUntilVisible(find.text('Past events (1)'), 300, scrollable: find.byType(Scrollable).first);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -300)); // clear of the bottom bar
+    await _settle(tester, rounds: 2);
+    await tester.tap(find.text('Past events (1)'));
+    await _settle(tester, rounds: 6);
+    await tester.scrollUntilVisible(find.text('Last Week Lecture'), 300, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Last Week Lecture'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, 'Leave Review'), findsOneWidget); // open event, so no scan needed to review
+    await _finish(tester);
+  });
+
+  testWidgets('notifications can be swiped away or all deleted', (tester) async {
+    final state = await launchSignedIn(tester);
+    await tester.tap(find.byTooltip('Notifications'));
+    await _settle(tester, rounds: 4);
+    expect(state.notifications.length, 2);
+
+    await tester.drag(find.text('Application approved'), const Offset(-600, 0));
+    await _settle(tester, rounds: 12); // slide out, then the row closes up
+    expect(find.text('Application approved'), findsNothing);
+    expect(state.notifications.length, 1);
+    expect(backend.requests, contains('DELETE /rest/v1/notifications'));
+
+    await tester.tap(find.byTooltip('Delete all'));
+    await _settle(tester, rounds: 3);
+    expect(find.text('Delete all notifications?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete all'));
+    await _settle(tester, rounds: 4);
+    expect(state.notifications, isEmpty);
+    expect(find.text('Reminder'), findsNothing);
     await _finish(tester);
   });
 

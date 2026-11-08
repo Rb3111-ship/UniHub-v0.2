@@ -31,27 +31,48 @@ class ChartLegend extends StatelessWidget {
 
 /// One horizontal bar: [value] out of [max], with the number at the end.
 class HBar extends StatelessWidget {
-  const HBar({super.key, required this.value, required this.max, required this.color, this.label, this.height = 10});
+  const HBar({
+    super.key,
+    required this.value,
+    required this.max,
+    required this.color,
+    this.label,
+    this.labelWidth = 28,
+    this.height = 10,
+  });
 
   final num value;
   final num max;
   final Color color;
   final String? label; // shown in front of the bar
+  final double labelWidth;
   final double height;
 
   @override
   Widget build(BuildContext context) {
     final share = max <= 0 ? 0.0 : (value / max).clamp(0.0, 1.0).toDouble();
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
           if (label != null)
-            SizedBox(width: 28, child: Text(label!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+            SizedBox(
+              width: labelWidth,
+              child: Text(label!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            ),
           Expanded(
             child: LayoutBuilder(
-              builder: (context, c) => Align(
+              // Faint full-width track behind the bar, so an empty bar still reads as "0 of max".
+              builder: (context, c) => Container(
+                height: height,
                 alignment: Alignment.centerLeft,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.13),
+                  borderRadius: BorderRadius.circular(height / 2),
+                ),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 400),
                   width: math.max(share * c.maxWidth, value > 0 ? 3 : 0),

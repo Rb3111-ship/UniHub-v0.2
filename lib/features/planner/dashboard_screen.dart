@@ -23,8 +23,12 @@ class PlannerDashboardScreen extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
-            floating: true,
+            // Solid and pinned: the app-wide transparent bar let the cards scroll underneath the title.
+            pinned: true,
+            toolbarHeight: 68,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             title: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -156,7 +160,9 @@ class PlannerDashboardScreen extends StatelessWidget {
     if (recent.isEmpty) return const [];
     final rated = d.stats.where((s) => s.averageRating != null).take(8).toList().reversed.toList();
     final max = recent.fold<int>(1, (m, s) => s.registered > m ? s.registered : m);
-    final anyOpen = recent.any((s) => !s.requiresQr);
+    final muted = Theme.of(context).colorScheme.secondary;
+    Widget bar(String label, int value, Color color) =>
+        HBar(label: label, labelWidth: 92, value: value, max: max, color: color, height: 10);
     Widget card(String title, List<Widget> children) => Card(
           margin: const EdgeInsets.only(top: 16),
           child: Padding(
@@ -170,27 +176,38 @@ class PlannerDashboardScreen extends StatelessWidget {
         );
     return [
       card(l10n.insightsOverviewTitle, [
-        ChartLegend(items: [
-          (l10n.legendRegistered, registeredColor),
-          (l10n.legendConfirmed, confirmedColor),
-          (l10n.legendCame, cameColor),
-        ]),
-        const SizedBox(height: 8),
-        for (final s in recent)
+        for (var i = 0; i < recent.length; i++) ...[
+          if (i > 0) const Divider(height: 1),
           InkWell(
-            onTap: () => _openInsights(context, s),
+            onTap: () => _openInsights(context, recent[i]),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                HBar(value: s.registered, max: max, color: registeredColor, height: 8),
-                HBar(value: s.confirmed, max: max, color: confirmedColor, height: 8),
-                if (s.requiresQr) HBar(value: s.checkedIn, max: max, color: cameColor, height: 8),
+                Row(children: [
+                  Expanded(
+                    child: Text(recent[i].title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                  ),
+                  Icon(Icons.chevron_right_rounded, size: 20, color: muted),
+                ]),
+                const SizedBox(height: 6),
+                if (recent[i].registered == 0)
+                  Text(l10n.insightsNoSignupsYet, style: TextStyle(fontSize: 12, color: muted))
+                else ...[
+                  bar(l10n.legendRegistered, recent[i].registered, registeredColor),
+                  bar(l10n.legendConfirmed, recent[i].confirmed, confirmedColor),
+                  if (recent[i].requiresQr)
+                    bar(l10n.legendCame, recent[i].checkedIn, cameColor)
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(l10n.insightsCameNotCounted, style: TextStyle(fontSize: 11, color: muted)),
+                    ),
+                ],
               ]),
             ),
           ),
-        if (anyOpen) Text(l10n.insightsCameUnknown, style: const TextStyle(fontSize: 11)),
+        ],
       ]),
       card(l10n.insightsRatingTrend, [
         if (rated.isEmpty)

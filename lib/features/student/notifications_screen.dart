@@ -104,6 +104,12 @@ class NotificationsScreen extends StatelessWidget {
               icon: const Icon(Icons.done_all_rounded),
               onPressed: () => appState.markNotificationsRead(),
             ),
+          if (items.isNotEmpty)
+            IconButton(
+              tooltip: l10n.notificationsDeleteAll,
+              icon: const Icon(Icons.delete_sweep_rounded),
+              onPressed: () => _deleteAll(context, appState, l10n),
+            ),
         ],
       ),
       body: RefreshIndicator(
@@ -114,12 +120,41 @@ class NotificationsScreen extends StatelessWidget {
                 EmptyState(icon: Icons.notifications_none_rounded, title: l10n.notificationsEmpty),
               ])
             : ListView.separated(
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, i) {
-                  final n = items[i];
+                itemCount: items.length + 1,
+                separatorBuilder: (_, i) => i == 0 ? const SizedBox.shrink() : const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: Text(l10n.notificationsSwipeHint,
+                          style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+                    );
+                  }
+                  final n = items[index - 1];
                   final (title, body) = notificationText(l10n, n);
-                  return ListTile(
+                  final background = Container(
+                    color: theme.colorScheme.errorContainer,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Icon(Icons.delete_outline_rounded, color: theme.colorScheme.onErrorContainer),
+                  );
+                  return Dismissible(
+                    key: ValueKey('notification-${n.id}'),
+                    background: Container(
+                      color: theme.colorScheme.errorContainer,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Icon(Icons.delete_outline_rounded, color: theme.colorScheme.onErrorContainer),
+                    ),
+                    secondaryBackground: background,
+                    onDismissed: (_) async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final failed = l10n.notificationsDeleteFailed;
+                      if (!await appState.deleteNotifications([n.id])) {
+                        messenger.showSnackBar(SnackBar(content: Text(failed)));
+                      }
+                    },
+                    child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: theme.colorScheme.primaryContainer,
                       child: Icon(_icon(n.kind), color: theme.colorScheme.onPrimaryContainer),
@@ -134,11 +169,34 @@ class NotificationsScreen extends StatelessWidget {
                       appState.markNotificationsRead([n.id]);
                       if (n.eventId != null) openNotificationEvent(context, n.eventId!);
                     },
+                    ),
                   );
                 },
               ),
       ),
     );
+  }
+
+  Future<void> _deleteAll(BuildContext context, AppState appState, AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.notificationsDeleteAllTitle),
+        content: Text(l10n.notificationsDeleteAllBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(MaterialLocalizations.of(ctx).cancelButtonLabel),
+          ),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.notificationsDeleteAll)),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    if (!await appState.deleteNotifications()) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.notificationsDeleteFailed)));
+    }
   }
 }
 
