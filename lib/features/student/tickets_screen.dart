@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../../../app/config/theme.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/models/registration_model.dart';
@@ -139,77 +140,87 @@ class StudentTicketsScreen extends StatelessWidget {
     final dateStr = '${DateFormat.yMMMd(locale).format(event.date)}, ${DateFormat.Hm(locale).format(event.date)}';
     final ended = event.endDate.isBefore(DateTime.now());
 
+    final isDark = theme.brightness == Brightness.dark;
+    // Coloured ticket header: the university colour by day, deep violet at night.
+    final headerColor = isDark ? const Color(0xFF1B1530) : brandColor;
+    final headerSoft = isDark ? AppTheme.darkMuted : Colors.white.withOpacity(0.8);
+    final headerAccent = isDark ? AppTheme.neon : Colors.white;
     return Container(
       decoration: BoxDecoration(
         color: theme.cardTheme.color ?? Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isScanned
-              ? Colors.green.withOpacity(0.5)
-              : (event.isUniversityOfficial ? brandColor.withOpacity(0.6) : theme.colorScheme.outlineVariant.withOpacity(0.5)),
-          width: event.isUniversityOfficial ? 2.0 : 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        borderRadius: BorderRadius.circular(28),
+        border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
+        boxShadow: isDark ? null : const [BoxShadow(color: Color(0x1412141C), blurRadius: 24, offset: Offset(0, 8))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         child: Column(
           children: [
-            // Upper Part (Event Details)
+            // Upper part: coloured header with the event
             Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              width: double.infinity,
+              color: headerColor,
+              child: Stack(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Positioned(
+                    right: -40,
+                    top: -50,
+                    child: Container(
+                      width: 170,
+                      height: 170,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDark ? AppTheme.violet.withOpacity(0.35) : Colors.white.withOpacity(0.12),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                    child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: (isScanned ? Colors.green : brandColor).withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(8),
+                          color: isScanned ? Colors.green : (isDark ? AppTheme.neon : Colors.white),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           isScanned
                               ? localizations.ticketCheckedInBadge
                               : (ended ? localizations.ticketEndedBadge : localizations.ticketConfirmedBadge),
                           style: TextStyle(
-                            color: isScanned ? Colors.green : brandColor,
+                            color: isScanned ? Colors.white : (isDark ? AppTheme.darkBackground : brandColor),
                             fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
-                      Icon(
-                        Icons.confirmation_number_outlined,
-                        color: isScanned ? Colors.green : Colors.grey,
+                      const SizedBox(height: 12),
+                      Text(
+                        event.title,
+                        style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _headerCol(localizations.ticketLabelDate, dateStr, headerSoft, headerAccent),
+                          const SizedBox(width: 20),
+                          _headerCol(localizations.ticketLabelLocation, event.location, headerSoft, headerAccent),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    event.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                    ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _buildInfoCol(context, localizations.ticketLabelDate, dateStr),
-                      const SizedBox(width: 24),
-                      _buildInfoCol(context, localizations.ticketLabelLocation, event.location),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
                     children: [
                       _buildInfoCol(context, localizations.ticketLabelEntry,
@@ -316,7 +327,7 @@ class StudentTicketsScreen extends StatelessWidget {
                           child: QrImageView(
                             data: qrPayload,
                             version: QrVersions.auto,
-                            size: 130.0,
+                            size: 170.0,
                             eyeStyle: const QrEyeStyle(
                               eyeShape: QrEyeShape.square,
                               color: Colors.black87,
@@ -390,10 +401,10 @@ class StudentTicketsScreen extends StatelessWidget {
                           ? localizations.reviewAlreadySubmitted
                           : localizations.buttonLeaveReview),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isScanned ? Colors.green : brandColor,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 44),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         disabledBackgroundColor: theme.colorScheme.surfaceContainer,
                         disabledForegroundColor: theme.colorScheme.onSurfaceVariant.withOpacity(0.38),
                       ),
@@ -420,6 +431,22 @@ class StudentTicketsScreen extends StatelessWidget {
             )
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _headerCol(String label, String value, Color labelColor, Color valueColor) {
+    return Flexible(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: labelColor)),
+          const SizedBox(height: 2),
+          Text(value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: valueColor)),
+        ],
       ),
     );
   }

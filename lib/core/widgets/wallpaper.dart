@@ -63,7 +63,7 @@ class Wallpaper extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
-    final base = dark ? const Color(0xFF121214) : const Color(0xFFF5F5F7);
+    final base = dark ? const Color(0xFF0D0D12) : const Color(0xFFF6F7FB); // theme backgrounds
     final ink = theme.colorScheme.onSurface;
 
     Widget gradient(List<Color> colors) => DecoratedBox(

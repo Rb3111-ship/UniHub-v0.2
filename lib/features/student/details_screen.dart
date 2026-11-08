@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../../../app/config/theme.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/categories.dart';
 import '../../../core/models/event_host.dart';
@@ -56,7 +56,7 @@ class EventDetailsScreen extends StatelessWidget {
                     SliverAppBar(
                       expandedHeight: 280.0,
                       pinned: true,
-                      backgroundColor: isDark ? const Color(0xFF1E1E22) : brandColor,
+                      backgroundColor: isDark ? const Color(0xFF1B1530) : brandColor,
                       iconTheme: const IconThemeData(color: Colors.white),
                       actions: [
                         if (event.imageUrl != null)
@@ -145,21 +145,23 @@ class EventDetailsScreen extends StatelessWidget {
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: event.isUniversityOfficial
-                                      ? brandColor.withOpacity(0.15)
-                                      : theme.colorScheme.secondaryContainer,
-                                  borderRadius: BorderRadius.circular(8),
+                                      ? brandColor.withOpacity(isDark ? 0.25 : 0.12)
+                                      : theme.colorScheme.surfaceContainer,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
                                   event.isUniversityOfficial
                                       ? l10n.badgeOfficial(event.universityDomain.toUpperCase())
                                       : l10n.badgePublic,
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: event.isUniversityOfficial ? brandColor : theme.colorScheme.onSecondaryContainer,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: event.isUniversityOfficial
+                                        ? (isDark ? Color.lerp(brandColor, Colors.white, 0.55) : brandColor)
+                                        : theme.colorScheme.onSurface,
                                   ),
                                 ),
                               ),
@@ -171,16 +173,15 @@ class EventDetailsScreen extends StatelessWidget {
                                     children: event.categories
                                         .map((c) => Container(
                                               margin: const EdgeInsets.only(right: 6),
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                               decoration: BoxDecoration(
                                                 color: theme.colorScheme.surfaceContainer,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.3)),
+                                                borderRadius: BorderRadius.circular(10),
                                               ),
                                               child: Text(
                                                 categoryLabel(l10n, c),
                                                 style: TextStyle(
-                                                    fontSize: 9, fontWeight: FontWeight.bold, color: theme.colorScheme.secondary),
+                                                    fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                                               ),
                                             ))
                                         .toList(),
@@ -243,6 +244,11 @@ class EventDetailsScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+                          if (event.capacity != null && appState.seatsLeft(event) != null && !event.isCancelled)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: _SeatBar(event: event, left: appState.seatsLeft(event)!),
+                            ),
                           if (!event.isCancelled && event.endDate.isAfter(DateTime.now()))
                             Padding(
                               padding: const EdgeInsets.only(top: 12),
@@ -251,10 +257,9 @@ class EventDetailsScreen extends StatelessWidget {
                                 icon: const Icon(Icons.event_available_rounded),
                                 label: Text(l10n.addToCalendar),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: brandColor,
-                                  side: BorderSide(color: brandColor.withOpacity(0.6)),
-                                  backgroundColor: theme.colorScheme.surface.withOpacity(0.7),
-                                  minimumSize: const Size(double.infinity, 46),
+                                  foregroundColor: isDark ? theme.colorScheme.onSurface : theme.colorScheme.primary,
+                                  backgroundColor: theme.cardTheme.color,
+                                  minimumSize: const Size(double.infinity, 50),
                                 ),
                               ),
                             ),
@@ -321,21 +326,15 @@ class EventDetailsScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: theme.cardTheme.color?.withOpacity(isDark ? 0.65 : 0.85) ??
-                (isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.85)),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.08)),
-          ),
-          child: child,
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(20),
+        border: isDark ? Border.all(color: theme.colorScheme.outlineVariant) : null,
+        boxShadow: isDark ? null : const [BoxShadow(color: Color(0x0F12141C), blurRadius: 12, offset: Offset(0, 3))],
       ),
+      child: child,
     );
   }
 
@@ -348,10 +347,18 @@ class EventDetailsScreen extends StatelessWidget {
     bool hideLabel = false,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: theme.colorScheme.primary, size: 20),
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: isDark ? theme.colorScheme.surfaceContainer : theme.colorScheme.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: theme.colorScheme.primary, size: 20),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -360,15 +367,11 @@ class EventDetailsScreen extends StatelessWidget {
               if (!hideLabel) ...[
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.secondary.withOpacity(0.8),
-                  ),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.secondary),
                 ),
                 const SizedBox(height: 2),
               ],
-              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
             ],
           ),
         ),
@@ -408,14 +411,13 @@ class EventDetailsScreen extends StatelessWidget {
             ? (waitlisted ? l10n.ctaWaitlisted : l10n.ctaRegistered)
             : l10n.ctaRegister;
 
+    final enabled = !(own || isRegistered || closed);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E22) : Colors.white,
-        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant.withOpacity(0.3))),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4)),
-        ],
+        color: isDark ? const Color(0xFF121219) : Colors.white,
+        border: isDark ? Border(top: BorderSide(color: theme.colorScheme.outlineVariant)) : null,
+        boxShadow: isDark ? null : const [BoxShadow(color: Color(0x1412141C), blurRadius: 14, offset: Offset(0, -3))],
       ),
       child: SafeArea(
         top: false,
@@ -429,30 +431,90 @@ class EventDetailsScreen extends StatelessWidget {
                   Text(
                     headline,
                     style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: isRegistered ? Colors.green : brandColor,
-                      letterSpacing: 0.5,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: isRegistered ? (isDark ? AppTheme.neon : AppTheme.okText) : theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(subline, style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary)),
+                  Text(subline, maxLines: 2, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
                 ],
               ),
             ),
             const SizedBox(width: 16),
             ElevatedButton(
-              onPressed: own || isRegistered || closed ? null : () => registerWithFeedback(context, appState, event),
+              onPressed: enabled ? () => registerWithFeedback(context, appState, event) : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: own || isRegistered || closed ? theme.colorScheme.surfaceContainer : brandColor,
-                foregroundColor: own || isRegistered || closed ? theme.colorScheme.onSurfaceVariant : Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                backgroundColor: enabled ? theme.colorScheme.primary : theme.colorScheme.surfaceContainer,
+                foregroundColor: enabled ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                disabledBackgroundColor: theme.colorScheme.surfaceContainer,
+                disabledForegroundColor: theme.colorScheme.onSurfaceVariant,
+                minimumSize: const Size(140, 54),
+                padding: const EdgeInsets.symmetric(horizontal: 26),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               ),
-              child: Text(ctaText, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              child: Text(ctaText, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// "88 of 100 seats taken · 12 left" with a bar.
+class _SeatBar extends StatelessWidget {
+  const _SeatBar({required this.event, required this.left});
+
+  final Event event;
+  final int left;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = theme.brightness == Brightness.dark;
+    final capacity = event.capacity!;
+    final taken = capacity - left;
+    final share = capacity == 0 ? 0.0 : taken / capacity;
+    final urgent = left <= (capacity * 0.2).ceil().clamp(3, 25);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(18),
+        border: isDark ? Border.all(color: theme.colorScheme.outlineVariant) : null,
+        boxShadow: isDark ? null : const [BoxShadow(color: Color(0x0F12141C), blurRadius: 12, offset: Offset(0, 3))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(l10n.seatsTaken(taken, capacity), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+              ),
+              Text(
+                left == 0 ? l10n.seatsFull : l10n.seatsLeft(left),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: urgent ? (isDark ? AppTheme.urgentTextDark : AppTheme.urgentText) : theme.colorScheme.secondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: share.clamp(0.0, 1.0),
+              minHeight: 8,
+              backgroundColor: theme.colorScheme.primary.withOpacity(isDark ? 0.15 : 0.12),
+              valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
+            ),
+          ),
+        ],
       ),
     );
   }
