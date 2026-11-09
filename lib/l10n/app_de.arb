@@ -486,6 +486,8 @@
   "notifConfirmBody": "{title}: Bitte bestätige deinen Platz oder gib ihn frei.",
   "notifSeatReleasedTitle": "Platz freigegeben",
   "notifSeatReleasedBody": "Du hast deinen Platz für {title} nicht bestätigt, er ging an die Warteliste.",
+  "notifReviewPromptTitle": "Wie war's?",
+  "notifReviewPromptBody": "{title} ist vorbei. Tippe hier für eine kurze Bewertung.",
   "fieldReleaseUnconfirmed": "Unbestätigte Plätze freigeben",
   "fieldReleaseUnconfirmedHint": "Etwa 3 Tage vorher werden Teilnehmende gefragt, ob sie noch kommen. 24 Stunden vor Beginn gehen die Plätze derer, die nicht geantwortet haben, an die Warteliste (nur wenn jemand wartet).",
   "insightsTitle": "Event-Statistik",

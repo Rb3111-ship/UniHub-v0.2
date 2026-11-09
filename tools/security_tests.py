@@ -1084,6 +1084,47 @@ def run(s: Sim, tag: str) -> None:
     s.user(w1); _, err = s.call("select public.submit_review(%s, 5, 'nice')", [ev_c])
     check("a cancelled event cannot be reviewed", err is not None and "reviews_not_allowed" in err, str(err))
 
+    print("\n[30] 'How was it?' review invitations")
+    r_scan, r_noscan, r_open, r_wait, r_done, r_off = (mk_user(f"rv{i}-{tag}@example.com") for i in range(1, 7))
+    ended = dict(start="now() - interval '4 hours'", end="now() - interval '2 hours'")
+    ev_qr = mk_event(commercial, None, "Scanned event", capacity=3, **ended)
+    ev_open = mk_event(commercial, None, "Open event", qr=False, capacity=1, **ended)
+    ev_norev = mk_event(commercial, None, "No reviews", qr=False, reviews=False, **ended)
+    ev_soon = mk_event(commercial, None, "Just ended", qr=False, start="now() - interval '2 hours'", end="now() - interval '10 minutes'")
+    ev_ancient = mk_event(commercial, None, "Long ago", qr=False, start="now() - interval '10 days'", end="now() - interval '10 days' + interval '2 hours'")
+    s.postgres()
+    def seat(u, e, status="registered"):
+        rid = s.scalar("insert into public.registrations (event_id, user_id, status) values (%s, %s, %s::public.registration_status) returning id", [e, u, status])
+        if status == "registered":
+            s.c.execute("insert into public.tickets (registration_id, event_id, user_id) values (%s, %s, %s)", [rid, e, u])
+    for u in (r_scan, r_noscan, r_done, r_off):
+        seat(u, ev_qr)
+    seat(r_open, ev_open); seat(r_wait, ev_open, "waitlisted")
+    seat(r_open, ev_norev); seat(r_open, ev_soon); seat(r_open, ev_ancient)
+    s.c.execute("update public.tickets set checked_in_at = now() - interval '3 hours' where event_id = %s and user_id <> %s", [ev_qr, r_noscan])
+    s.c.execute("insert into public.reviews (event_id, ticket_id, user_id, rating, comment, claimed_attendance, is_verified) "
+                "select event_id, id, user_id, 5, 'great', true, true from public.tickets where event_id = %s and user_id = %s", [ev_qr, r_done])
+    s.c.execute("update public.profiles set notify_reminders = false where id = %s", [r_off])
+    s.user(r_scan)
+    s.fails("a user cannot run the review invitation job", "select public.queue_review_prompts()", contains="permission denied")
+    s.postgres()
+    s.scalar("select public.queue_review_prompts()")
+    prompted = lambda u, e: s.scalar("select count(*) from public.notifications where user_id = %s and event_id = %s and kind = 'review_prompt'", [u, e])
+    check("people scanned in at the door are invited to review", prompted(r_scan, ev_qr) == 1)
+    check("people never scanned in at a scanning event are not invited", prompted(r_noscan, ev_qr) == 0)
+    check("at events without scanning, registered people are invited", prompted(r_open, ev_open) == 1)
+    check("people on the waitlist are not invited", prompted(r_wait, ev_open) == 0)
+    check("people who already reviewed are not invited", prompted(r_done, ev_qr) == 0)
+    check("people who turned off reminders are not invited", prompted(r_off, ev_qr) == 0)
+    check("events without reviews send no invitation", prompted(r_open, ev_norev) == 0)
+    check("invitations wait about an hour after the end", prompted(r_open, ev_soon) == 0)
+    check("old events send no invitation", prompted(r_open, ev_ancient) == 0)
+    s.c.execute("delete from public.notifications where user_id = %s and kind = 'review_prompt'", [r_scan])
+    s.scalar("select public.queue_review_prompts()")
+    check("each person is invited only once, even after deleting it", prompted(r_scan, ev_qr) == 0)
+    check("the invitation job runs every 10 minutes",
+          s.scalar("select count(*) from cron.job where jobname = 'unihub-review-prompts' and schedule = '*/10 * * * *'") == 1)
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {

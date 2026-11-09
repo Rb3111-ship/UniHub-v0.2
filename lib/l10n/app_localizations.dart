@@ -3020,6 +3020,18 @@ abstract class AppLocalizations {
   /// **'You didn\'t confirm your seat for {title}, so it went to the waitlist.'**
   String notifSeatReleasedBody(Object title);
 
+  /// No description provided for @notifReviewPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How was it?'**
+  String get notifReviewPromptTitle;
+
+  /// No description provided for @notifReviewPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is over. Tap to leave a quick review.'**
+  String notifReviewPromptBody(Object title);
+
   /// No description provided for @fieldReleaseUnconfirmed.
   ///
   /// In en, this message translates to:

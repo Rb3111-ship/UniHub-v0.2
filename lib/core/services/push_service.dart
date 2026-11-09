@@ -13,8 +13,9 @@ class PushMessage {
   final String body;
   final String? eventId;
   final bool opened; // true = the user tapped it
+  final String? kind; // e.g. 'review_prompt'
 
-  const PushMessage({required this.title, required this.body, required this.eventId, required this.opened});
+  const PushMessage({required this.title, required this.body, required this.eventId, required this.opened, this.kind});
 }
 
 /// Connects the app to Firebase Cloud Messaging. Without Firebase settings in
@@ -76,6 +77,7 @@ class PushService {
         body: m.notification?.body ?? '',
         eventId: m.data['event_id'] as String?,
         opened: opened,
+        kind: m.data['kind'] as String?,
       );
 
   /// Called before signing out: this device stops receiving the account's messages.

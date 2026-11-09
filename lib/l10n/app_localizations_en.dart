@@ -1612,6 +1612,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notifReviewPromptTitle => 'How was it?';
+
+  @override
+  String notifReviewPromptBody(Object title) {
+    return '$title is over. Tap to leave a quick review.';
+  }
+
+  @override
   String get fieldReleaseUnconfirmed => 'Free unconfirmed seats';
 
   @override

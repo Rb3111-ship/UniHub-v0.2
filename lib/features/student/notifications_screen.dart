@@ -7,6 +7,7 @@ import '../../core/auth/user_role.dart';
 import '../../core/models/notification_model.dart';
 import '../../core/services/push_service.dart';
 import 'details_screen.dart';
+import 'review_screen.dart';
 
 /// Title and text of a notification in the app's language (push messages use the same wording).
 (String, String) notificationText(AppLocalizations l10n, AppNotification n) {
@@ -21,6 +22,7 @@ import 'details_screen.dart';
     'event_removed' => (l10n.notifEventRemovedTitle, l10n.notifEventRemovedBody(t)),
     'confirm_attendance' => (l10n.notifConfirmTitle, l10n.notifConfirmBody(t)),
     'seat_released' => (l10n.notifSeatReleasedTitle, l10n.notifSeatReleasedBody(t)),
+    'review_prompt' => (l10n.notifReviewPromptTitle, l10n.notifReviewPromptBody(t)),
     _ => (l10n.notificationsTitle, t),
   };
 }
@@ -42,11 +44,13 @@ IconData _icon(String kind) => switch (kind) {
       'request_rejected' => Icons.info_outline_rounded,
       'confirm_attendance' => Icons.help_outline_rounded,
       'seat_released' => Icons.event_seat_rounded,
+      'review_prompt' => Icons.star_rate_rounded,
       _ => Icons.notifications_rounded,
     };
 
-/// Opens the event a notification or push message points to.
-Future<void> openNotificationEvent(BuildContext context, String eventId) async {
+/// Opens the event a notification or push message points to. A review invitation
+/// opens the review form instead, unless the review was already written.
+Future<void> openNotificationEvent(BuildContext context, String eventId, {String? kind}) async {
   final appState = context.read<AppState>();
   final messenger = ScaffoldMessenger.of(context);
   final navigator = Navigator.of(context);
@@ -54,6 +58,10 @@ Future<void> openNotificationEvent(BuildContext context, String eventId) async {
   final event = await appState.eventById(eventId);
   if (event == null) {
     messenger.showSnackBar(SnackBar(content: Text(gone)));
+    return;
+  }
+  if (kind == 'review_prompt' && !appState.hasReviewed(event.id)) {
+    navigator.push(MaterialPageRoute(builder: (_) => StudentReviewScreen(event: event)));
     return;
   }
   navigator.push(MaterialPageRoute(builder: (_) => EventDetailsScreen(event: event)));
@@ -167,7 +175,7 @@ class NotificationsScreen extends StatelessWidget {
                         : Icon(Icons.circle, size: 10, color: theme.colorScheme.primary),
                     onTap: () {
                       appState.markNotificationsRead([n.id]);
-                      if (n.eventId != null) openNotificationEvent(context, n.eventId!);
+                      if (n.eventId != null) openNotificationEvent(context, n.eventId!, kind: n.kind);
                     },
                     ),
                   );

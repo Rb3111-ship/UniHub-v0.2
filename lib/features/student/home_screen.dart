@@ -16,6 +16,9 @@ class StudentHomeScreen extends StatefulWidget {
   State<StudentHomeScreen> createState() => _StudentHomeScreenState();
 }
 
+/// Width of the event column on wide screens.
+const double _columnWidth = 760;
+
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   final _searchController = TextEditingController();
   bool _searching = false;
@@ -142,7 +145,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 Text(
                   appState.getTenantDisplayName(),
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.brightness == Brightness.dark ? theme.colorScheme.secondary : appState.getActiveTenantColor(),
+                    color: theme.brightness == Brightness.dark
+                        ? theme.colorScheme.secondary
+                        : appState.getActiveTenantColor(),
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -154,106 +159,119 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             ],
           );
 
+    final appBar = AppBar(
+      title: titleWidget,
+      actions: [
+        if (!guest && !_searching)
+          IconButton(
+            tooltip: _savedOnly ? localizations.savedShowAll : localizations.savedShowOnly,
+            isSelected: _savedOnly,
+            icon: Icon(_savedOnly ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                color: _savedOnly ? Colors.redAccent : null),
+            onPressed: () => setState(() => _savedOnly = !_savedOnly),
+          ),
+        IconButton(
+          tooltip: _searching ? localizations.searchClose : localizations.searchOpen,
+          icon: Icon(_searching ? Icons.close_rounded : Icons.search_rounded),
+          onPressed: _searching ? _closeSearch : () => setState(() => _searching = true),
+        ),
+      ],
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(guest ? 52 : 108),
+        child: Column(
+          children: [
+            // Category Selector Row
+            SizedBox(
+              height: 44,
+              child: ListView.separated(
+                key: const Key('categoryChips'),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: categories.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final cat = categories[index];
+                  final key = cat['key'] as String;
+                  final isSelected = key == 'Other' ? (selected == 'Other' || customSelected) : selected == key;
+                  final scheme = theme.colorScheme;
+
+                  return ChoiceChip(
+                    showCheckmark: false,
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          cat['icon'] as IconData,
+                          size: 16,
+                          color: isSelected ? scheme.onPrimary : scheme.secondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(cat['label'] as String),
+                      ],
+                    ),
+                    selected: isSelected,
+                    selectedColor: scheme.primary,
+                    backgroundColor: theme.cardTheme.color,
+                    labelStyle: TextStyle(
+                      color: isSelected ? scheme.onPrimary : scheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                    onSelected: (_) {
+                      if (key == 'Other') {
+                        _showOtherCategories(appState, localizations);
+                      } else {
+                        appState.setSelectedCategory(key);
+                      }
+                    },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Main Feeds TabBar
+            if (!guest)
+              TabBar(
+                tabs: [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.school_rounded, size: 18),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(localizations.tabCampusHub, overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.public_rounded, size: 18),
+                        const SizedBox(width: 8),
+                        Flexible(child: Text(localizations.tabPublicEvents, overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: titleWidget,
-          actions: [
-            if (!guest && !_searching)
-              IconButton(
-                tooltip: _savedOnly ? localizations.savedShowAll : localizations.savedShowOnly,
-                isSelected: _savedOnly,
-                icon: Icon(_savedOnly ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: _savedOnly ? Colors.redAccent : null),
-                onPressed: () => setState(() => _savedOnly = !_savedOnly),
-              ),
-            IconButton(
-              tooltip: _searching ? localizations.searchClose : localizations.searchOpen,
-              icon: Icon(_searching ? Icons.close_rounded : Icons.search_rounded),
-              onPressed: _searching ? _closeSearch : () => setState(() => _searching = true),
-            ),
-          ],
-          bottom: PreferredSize(
-            preferredSize: Size.fromHeight(guest ? 52 : 108),
-            child: Column(
-              children: [
-                // Category Selector Row
-                SizedBox(
-                  height: 44,
-                  child: ListView.separated(
-                    key: const Key('categoryChips'),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: categories.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final cat = categories[index];
-                      final key = cat['key'] as String;
-                      final isSelected = key == 'Other' ? (selected == 'Other' || customSelected) : selected == key;
-                      final scheme = theme.colorScheme;
-
-                      return ChoiceChip(
-                        showCheckmark: false,
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              cat['icon'] as IconData,
-                              size: 16,
-                              color: isSelected ? scheme.onPrimary : scheme.secondary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(cat['label'] as String),
-                          ],
-                        ),
-                        selected: isSelected,
-                        selectedColor: scheme.primary,
-                        backgroundColor: theme.cardTheme.color,
-                        labelStyle: TextStyle(
-                          color: isSelected ? scheme.onPrimary : scheme.onSurface,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                        onSelected: (_) {
-                          if (key == 'Other') {
-                            _showOtherCategories(appState, localizations);
-                          } else {
-                            appState.setSelectedCategory(key);
-                          }
-                        },
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Main Feeds TabBar
-                if (!guest)
-                  TabBar(
-                    tabs: [
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.school_rounded, size: 18),
-                            const SizedBox(width: 8),
-                            Flexible(child: Text(localizations.tabCampusHub, overflow: TextOverflow.ellipsis)),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.public_rounded, size: 18),
-                            const SizedBox(width: 8),
-                            Flexible(child: Text(localizations.tabPublicEvents, overflow: TextOverflow.ellipsis)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
+        // On wide screens the header lines up with the event column below it
+        // instead of stretching across the whole window.
+        appBar: PreferredSize(
+          preferredSize: appBar.preferredSize,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: _columnWidth + 32),
+              child: appBar,
             ),
           ),
         ),
@@ -301,7 +319,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           const SizedBox(height: 40),
-          EmptyState(icon: Icons.school_outlined, title: l10n.campusNoUniversityTitle, body: l10n.campusNoUniversityBody),
+          EmptyState(
+              icon: Icons.school_outlined, title: l10n.campusNoUniversityTitle, body: l10n.campusNoUniversityBody),
         ],
       );
     }
@@ -331,7 +350,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
     // The soonest event with a poster leads (or simply the soonest one).
     final featured = events.take(5).firstWhere((e) => e.imageUrl != null, orElse: () => events.first);
-    final rest = [for (final e in events) if (e.id != featured.id) e];
+    final rest = [
+      for (final e in events)
+        if (e.id != featured.id) e
+    ];
     final theme = Theme.of(context);
 
     return RefreshIndicator(
@@ -342,7 +364,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         children: [
           Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
+              constraints: const BoxConstraints(maxWidth: _columnWidth),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

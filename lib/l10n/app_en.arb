@@ -701,6 +701,8 @@
   "notifConfirmBody": "{title}: please confirm your seat or free it for someone else.",
   "notifSeatReleasedTitle": "Seat released",
   "notifSeatReleasedBody": "You didn't confirm your seat for {title}, so it went to the waitlist.",
+  "notifReviewPromptTitle": "How was it?",
+  "notifReviewPromptBody": "{title} is over. Tap to leave a quick review.",
   "fieldReleaseUnconfirmed": "Free unconfirmed seats",
   "fieldReleaseUnconfirmedHint": "About 3 days before, attendees are asked if they're still coming. 24 hours before the start, seats of people who didn't answer go to the waitlist (only if someone is waiting).",
   "insightsTitle": "Event statistics",

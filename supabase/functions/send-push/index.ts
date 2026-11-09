@@ -57,6 +57,9 @@ function text(row: Row, locale: string): { title: string; body: string } {
     case "seat_released":
       return de ? { title: "Platz freigegeben", body: `Du hast deinen Platz für ${t} nicht bestätigt, er ging an die Warteliste.` }
                 : { title: "Seat released", body: `You didn't confirm your seat for ${t}, so it went to the waitlist.` };
+    case "review_prompt":
+      return de ? { title: "Wie war's?", body: `${t} ist vorbei. Tippe hier für eine kurze Bewertung.` }
+                : { title: "How was it?", body: `${t} is over. Tap to leave a quick review.` };
     default:
       return { title: "UniHub", body: t };
   }

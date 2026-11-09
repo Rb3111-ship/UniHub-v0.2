@@ -48,7 +48,7 @@ class _ShellScreenState extends State<ShellScreen> {
     if (!mounted) return;
     final eventId = m.eventId;
     if (m.opened) {
-      if (eventId != null) openNotificationEvent(context, eventId);
+      if (eventId != null) openNotificationEvent(context, eventId, kind: m.kind);
       return;
     }
     // Phones do not show push messages while the app is open, so show it here.
@@ -57,7 +57,8 @@ class _ShellScreenState extends State<ShellScreen> {
       content: Text(m.body.isEmpty ? m.title : '${m.title}: ${m.body}'),
       action: eventId == null
           ? null
-          : SnackBarAction(label: l10n.notificationsView, onPressed: () => openNotificationEvent(context, eventId)),
+          : SnackBarAction(
+              label: l10n.notificationsView, onPressed: () => openNotificationEvent(context, eventId, kind: m.kind)),
     ));
   }
 
