@@ -93,7 +93,6 @@ How the owner runs the website themselves (PowerShell): `cd D:\UniHub_v0.2`, the
 
 ## Open items (as of 2026-11-09, version 0.2.16)
 
-- **Redeploy `send-push`.** The `review_prompt` text is in the code but not deployed yet, so phone pushes for it show only "UniHub" plus the event title. The in-app bell is already correct. This needs the owner to log in to the Supabase CLI.
 - **Hosting the website so the owner can send the school a link.**
   - Choose a host and a domain. HTTPS is required (the camera scanner needs it).
   - Add security headers.
