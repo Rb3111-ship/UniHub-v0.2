@@ -767,5 +767,7 @@
   "adminUnblockBody": "{email} will be able to sign up again.",
   "@adminUnblockBody": {"placeholders": {"email": {"type": "String"}}},
   "adminUnblocked": "{email} is unblocked",
-  "@adminUnblocked": {"placeholders": {"email": {"type": "String"}}}
+  "@adminUnblocked": {"placeholders": {"email": {"type": "String"}}},
+  "campusNoUniversityTitle": "Campus events need a university email",
+  "campusNoUniversityBody": "Your account isn't linked to a university, so you see public events only. Sign up with your university email to see your campus events."
 }

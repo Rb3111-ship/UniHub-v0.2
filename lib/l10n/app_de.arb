@@ -543,5 +543,7 @@
   "adminUnblock": "Entsperren",
   "adminUnblockTitle": "Adresse entsperren?",
   "adminUnblockBody": "{email} kann sich dann wieder registrieren.",
-  "adminUnblocked": "{email} ist entsperrt"
+  "adminUnblocked": "{email} ist entsperrt",
+  "campusNoUniversityTitle": "Campus-Events brauchen eine Uni-E-Mail",
+  "campusNoUniversityBody": "Dein Konto ist mit keiner Hochschule verknüpft, deshalb siehst du nur öffentliche Events. Registriere dich mit deiner Uni-E-Mail, um die Events deines Campus zu sehen."
 }

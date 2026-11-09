@@ -254,6 +254,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         websiteUrl: EventContact.website(_websiteController.text),
       );
       await appState.updateEvent(updated);
+      final oldPath = original.imagePath;
+      if (oldPath != null && oldPath != imagePath) appState.deleteEventImage(oldPath); // replaced poster
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text(l10n.eventSaved)));
       navigator.pop();
     } catch (e) {

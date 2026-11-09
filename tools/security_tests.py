@@ -1060,6 +1060,30 @@ def run(s: Sim, tag: str) -> None:
     check("a platform admin sees every block", bad2_mail in mails, str(mails))
     r, _ = s.call("select public.admin_unblock_email(%s)", [bad2_mail]); check("a platform admin lifts any block", r is True, str(r))
 
+    print("\n[29] Pre-launch review fixes")
+    s.postgres()
+    w1 = mk_user(f"w1-{tag}@example.com"); w2 = mk_user(f"w2-{tag}@example.com")
+    ev_old = mk_event(commercial, None, "Over with waitlist", capacity=1,
+                      start="now() - interval '3 hours'", end="now() - interval '1 hour'")
+    s.c.execute("insert into public.registrations (event_id, user_id, status) values (%s, %s, 'registered'), (%s, %s, 'waitlisted')",
+                [ev_old, w1, ev_old, w2])
+    s.user(w1); _, err = s.call("select public.cancel_registration(%s)", [ev_old])
+    s.postgres()
+    check("cancelling after an event ended moves nobody up from the waitlist",
+          err is None and s.scalar("select status::text from public.registrations where event_id = %s and user_id = %s", [ev_old, w2]) == "waitlisted", str(err))
+    check("so nobody gets a 'You got a spot!' for an event that is over",
+          s.scalar("select count(*) from public.notifications where user_id = %s and kind = 'waitlist_promoted'", [w2]) == 0)
+
+    ev_c = mk_event(commercial, None, "Cancelled after start", qr=False,
+                    start="now() - interval '1 hour'", end="now() + interval '1 hour'")
+    s.user(w1); s.call("select public.register_for_event(%s)", [ev_c])
+    s.user(commercial); _, err = s.call("update public.events set status = 'cancelled' where id = %s", [ev_c])
+    check("the organizer can cancel their event", err is None, str(err))
+    _, err = s.call("update public.events set title = 'Renamed after cancel' where id = %s", [ev_c])
+    check("a cancelled event can no longer be edited", err is not None and "cancelled_is_final" in err, str(err))
+    s.user(w1); _, err = s.call("select public.submit_review(%s, 5, 'nice')", [ev_c])
+    check("a cancelled event cannot be reviewed", err is not None and "reviews_not_allowed" in err, str(err))
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {

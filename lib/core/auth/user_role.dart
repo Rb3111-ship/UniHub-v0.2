@@ -120,6 +120,10 @@ class AppState extends ChangeNotifier {
 
   bool get usesBackend => _client != null;
 
+  /// False once the account that started a request has signed out or changed,
+  /// so a slow answer for the previous account is never shown to the next one.
+  bool _stillSignedInAs(String? uid) => uid != null && uid == currentUserId;
+
   /// Id of the signed-in user (null in demo mode or when signed out).
   String? get currentUserId => _client?.auth.currentUser?.id;
 
@@ -297,8 +301,11 @@ class AppState extends ChangeNotifier {
   Future<void> refreshNotifications() async {
     final repo = _notificationRepository;
     if (repo == null || _session == null) return;
+    final uid = currentUserId;
     try {
-      _notifications = await repo.fetch().timeout(_requestTimeout);
+      final list = await repo.fetch().timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      _notifications = list;
       notifyListeners();
     } catch (_) {
       // Shown again on the next refresh.
@@ -371,8 +378,11 @@ class AppState extends ChangeNotifier {
   Future<void> refreshFavorites() async {
     final repo = _communityRepository;
     if (repo == null) return;
+    final uid = currentUserId;
     try {
-      _favoriteIds = await repo.fetchFavoriteIds();
+      final ids = await repo.fetchFavoriteIds().timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      _favoriteIds = ids;
       notifyListeners();
     } catch (_) {
       // Shown again on the next refresh.
@@ -411,9 +421,9 @@ class AppState extends ChangeNotifier {
       // An admin's own reports are visible to them as the reporter; only show
       // the ones they may act on.
       final me = currentUserId;
-      _reports = (await repo.fetchReports().timeout(_requestTimeout))
-          .where((r) => r.reporterId != me || isPlatformAdmin)
-          .toList();
+      final reports = await repo.fetchReports().timeout(_requestTimeout);
+      if (!_stillSignedInAs(me)) return;
+      _reports = reports.where((r) => r.reporterId != me || isPlatformAdmin).toList();
       notifyListeners();
     } catch (_) {
       _adminError = true;
@@ -632,8 +642,11 @@ class AppState extends ChangeNotifier {
   Future<void> refreshMyRequest() async {
     final repo = _accountRepository;
     if (repo == null) return;
+    final uid = currentUserId;
     try {
-      _myRequest = await repo.fetchMyLatestRequest();
+      final request = await repo.fetchMyLatestRequest().timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      _myRequest = request;
       notifyListeners();
     } catch (_) {
       // Shown again on the next refresh.
@@ -662,8 +675,10 @@ class AppState extends ChangeNotifier {
     _adminLoading = true;
     _adminError = false;
     notifyListeners();
+    final uid = currentUserId;
     try {
-      _requests = await repo.fetchRequests().timeout(_requestTimeout);
+      final requests = await repo.fetchRequests().timeout(_requestTimeout);
+      if (_stillSignedInAs(uid)) _requests = requests;
     } catch (_) {
       _adminError = true;
     } finally {
@@ -692,8 +707,11 @@ class AppState extends ChangeNotifier {
   Future<void> refreshUsers(String search) async {
     final repo = _accountRepository;
     if (repo == null || !isAdmin) return;
+    final uid = currentUserId;
     try {
-      _adminUsers = await repo.listUsers(search);
+      final users = await repo.listUsers(search).timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      _adminUsers = users;
       notifyListeners();
     } catch (_) {
       _adminError = true;
@@ -869,8 +887,11 @@ class AppState extends ChangeNotifier {
   Future<void> refreshRegistrations() async {
     final repo = _registrationRepository;
     if (repo == null) return;
+    final uid = currentUserId;
     try {
-      _registrations = await repo.fetchMine();
+      final registrations = await repo.fetchMine().timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      _registrations = registrations;
       notifyListeners();
     } catch (_) {
       // Keep showing the last known list; pull-to-refresh retries.
@@ -1103,8 +1124,11 @@ class AppState extends ChangeNotifier {
   Future<void> refreshMyReviews() async {
     final repo = _insightsRepository;
     if (repo == null) return;
+    final uid = currentUserId;
     try {
-      _myReviewedEventIds = await repo.fetchMyReviewedEventIds();
+      final ids = await repo.fetchMyReviewedEventIds().timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      _myReviewedEventIds = ids;
       notifyListeners();
     } catch (_) {
       // Retried on the next refresh.
@@ -1158,6 +1182,14 @@ class AppState extends ChangeNotifier {
   Future<String> uploadEventImage(Uint8List bytes, String contentType, String extension) =>
       _eventRepository.uploadImage(bytes, contentType, extension);
 
+  /// Deletes a poster that is no longer used (after it was replaced). Best effort:
+  /// a leftover file is invisible and removed with the organizer's account.
+  Future<void> deleteEventImage(String path) async {
+    try {
+      await _client?.storage.from('event-images').remove([path]);
+    } catch (_) {}
+  }
+
   /// Saves edits. Throws PostgrestException if not allowed.
   Future<void> updateEvent(Event event) async {
     final saved = await _eventRepository.update(event);
@@ -1191,6 +1223,7 @@ class AppState extends ChangeNotifier {
     _dashboardLoading = true;
     _dashboardError = false;
     notifyListeners();
+    final uid = currentUserId;
     try {
       final results = await Future.wait([
         repo.fetchStats(),
@@ -1198,6 +1231,7 @@ class AppState extends ChangeNotifier {
         repo.fetchFeedback(),
         _registrationRepository?.fetchManagedEvents() ?? Future.value(<Event>[]),
       ]).timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
       final stats = results[0] as List<EventStat>;
       final managedIds = stats.map((s) => s.eventId).toSet();
       _dashboard = DashboardData(stats: stats, scans: results[1] as List<ScanEntry>);

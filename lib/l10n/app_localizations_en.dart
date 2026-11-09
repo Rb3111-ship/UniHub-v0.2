@@ -1837,4 +1837,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String adminUnblocked(String email) {
     return '$email is unblocked';
   }
+
+  @override
+  String get campusNoUniversityTitle => 'Campus events need a university email';
+
+  @override
+  String get campusNoUniversityBody =>
+      'Your account isn\'t linked to a university, so you see public events only. Sign up with your university email to see your campus events.';
 }

@@ -137,7 +137,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!guest)
+              // Accounts without a university (e.g. Gmail) get no empty line here.
+              if (!guest && appState.getTenantDisplayName().isNotEmpty)
                 Text(
                   appState.getTenantDisplayName(),
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -291,6 +292,17 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             FilledButton(onPressed: appState.refreshEvents, child: Text(l10n.authRetry)),
           ],
         ),
+      );
+    }
+    // Campus events only exist for accounts with a university email; say so
+    // instead of suggesting the category is just empty.
+    if (isOfficialFeed && appState.usesBackend && appState.currentTenant.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          const SizedBox(height: 40),
+          EmptyState(icon: Icons.school_outlined, title: l10n.campusNoUniversityTitle, body: l10n.campusNoUniversityBody),
+        ],
       );
     }
     if (events.isEmpty) {

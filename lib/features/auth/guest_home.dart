@@ -40,8 +40,10 @@ class GuestHome extends StatelessWidget {
                       icon: const Icon(Icons.language_rounded),
                       onPressed: () => showLanguagePicker(context, appState),
                     ),
-                    Flexible(
-                      flex: 2,
+                    // Capped width, so on wide screens it stays at the right edge
+                    // (a Flexible share pushed it into the middle).
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 200),
                       child: FilledButton(
                         onPressed: appState.leaveGuestMode,
                         child: Text(l10n.guestSignInButton, maxLines: 1, overflow: TextOverflow.ellipsis),

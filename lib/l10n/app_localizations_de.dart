@@ -1868,4 +1868,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String adminUnblocked(String email) {
     return '$email ist entsperrt';
   }
+
+  @override
+  String get campusNoUniversityTitle =>
+      'Campus-Events brauchen eine Uni-E-Mail';
+
+  @override
+  String get campusNoUniversityBody =>
+      'Dein Konto ist mit keiner Hochschule verknüpft, deshalb siehst du nur öffentliche Events. Registriere dich mit deiner Uni-E-Mail, um die Events deines Campus zu sehen.';
 }

@@ -35,6 +35,7 @@ class PlannerDashboardScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (appState.getTenantDisplayName().isNotEmpty)
                 Text(
                   appState.getTenantDisplayName(),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(

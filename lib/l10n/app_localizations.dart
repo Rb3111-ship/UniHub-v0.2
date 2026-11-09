@@ -3368,6 +3368,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{email} is unblocked'**
   String adminUnblocked(String email);
+
+  /// No description provided for @campusNoUniversityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Campus events need a university email'**
+  String get campusNoUniversityTitle;
+
+  /// No description provided for @campusNoUniversityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account isn\'t linked to a university, so you see public events only. Sign up with your university email to see your campus events.'**
+  String get campusNoUniversityBody;
 }
 
 class _AppLocalizationsDelegate

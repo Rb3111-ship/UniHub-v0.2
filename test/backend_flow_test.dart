@@ -362,8 +362,9 @@ void main() {
     expect(find.text('Are you still coming?'), findsOneWidget);
     expect(find.textContaining('may go to people on the waitlist'), findsNothing); // organizer did not opt in
     await tester.tap(find.text("Yes, I'm coming"));
-    await _settle(tester, rounds: 4);
+    await _settle(tester, rounds: 10); // confirm, then reload the tickets
     expect(backend.requests, contains('POST /rest/v1/rpc/confirm_attendance'));
+    expect(find.text('Thanks! Your seat is confirmed.'), findsOneWidget);
     expect(backend.bodies['/rest/v1/rpc/confirm_attendance'], contains('22222222-2222-2222-2222-222222222222'));
     await _finish(tester);
   });

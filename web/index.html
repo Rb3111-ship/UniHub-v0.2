@@ -32,16 +32,29 @@
 
   <title>UNIHUB</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* Loading screen shown until the app is ready (removed by flutter_bootstrap.js). */
+    html, body { margin: 0; height: 100%; background: #F6F7FB; }
+    #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+               justify-content: center; gap: 22px; background: #F6F7FB; transition: opacity .3s ease; z-index: 10; }
+    #loading.done { opacity: 0; }
+    #loading img { width: 88px; height: 88px; border-radius: 22px; }
+    #loading .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid rgba(63, 81, 224, .2);
+                        border-top-color: #3F51E0; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-color-scheme: dark) {
+      html, body, #loading { background: #0D0D12; }
+      #loading .spinner { border-color: rgba(200, 240, 74, .2); border-top-color: #C8F04A; }
+    }
+    @media (prefers-reduced-motion: reduce) { #loading .spinner { animation-duration: 2.4s; } }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <!-- Loading screen; flutter_bootstrap.js removes it once the app is ready. -->
+  <div id="loading" role="status" aria-label="Loading UniHub">
+    <img src="icons/Icon-192.png" alt="">
+    <div class="spinner"></div>
+  </div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
