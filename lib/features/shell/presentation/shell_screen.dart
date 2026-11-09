@@ -117,18 +117,26 @@ class _ShellScreenState extends State<ShellScreen> {
                     size: 28,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    localizations.appTitle,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
+                  Expanded(
+                    child: Text(
+                      localizations.appTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Spacer(),
                   if (appState.usesBackend) const NotificationBell(),
-                  Flexible(flex: 3, child: _buildProfileSwitcher(context, appState)),
+                  // Capped width, so on wide screens the bell and account button stay
+                  // at the right edge (a Flexible share pushed them into the middle).
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    child: _buildProfileSwitcher(context, appState),
+                  ),
                 ],
               ),
             ),
