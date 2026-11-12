@@ -420,7 +420,7 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
                       color: _isScanning ? Colors.white : Colors.green, 
                       width: 2,
                     ),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
 

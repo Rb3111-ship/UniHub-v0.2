@@ -1,6 +1,6 @@
 name: uni_events_app
 description: A multi-tenant university events app with role-based shell navigation and dual-language localization.
-version: 0.2.16+17
+version: 0.2.23+24
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -49,3 +49,8 @@ flutter:
           weight: 700
         - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
           weight: 800
+    - family: SpaceMono
+      fonts:
+        - asset: assets/fonts/SpaceMono-Regular.ttf
+        - asset: assets/fonts/SpaceMono-Bold.ttf
+          weight: 700

@@ -23,7 +23,6 @@ enum UserRole { student, planner }
 enum PlannerType { universityAdmin, commercialPlanner }
 /// Saved by name on the device, so existing names must not be renamed.
 /// cyberAurora = "Sunset", frostedGeometry = "Grid", minimalVelvet = "None".
-enum WallpaperPattern { cyberAurora, frostedGeometry, minimalVelvet, dots, waves, aurora, ocean, bubbles }
 enum ProfileType { student, universityOrganizer, commercialPlanner }
 
 class MockProfile {
@@ -754,7 +753,6 @@ class AppState extends ChangeNotifier {
   String _currentTenant = 'TUM'; // Munich Tech University (Example Tenant)
   PlannerType _currentPlannerType = PlannerType.universityAdmin;
   ThemeMode _themeMode = ThemeMode.system;
-  WallpaperPattern _selectedWallpaper = WallpaperPattern.minimalVelvet;
   int _activeProfileIndex = 0;
 
   final List<MockProfile> mockProfiles = const [
@@ -1087,7 +1085,7 @@ class AppState extends ChangeNotifier {
     } else if (key.contains('hamburg') || key.contains('uhh') || key.contains('uni-hamburg.de')) {
       return const Color(0xFFE2001A); // Hamburg Crimson Red
     }
-    return const Color(0xFF6B7280); // Default Slate
+    return const Color(0xFF1F2A6B); // no university: the app's own navy
   }
 
   Color getActiveTenantColor() {
@@ -1248,6 +1246,14 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Admins only: removes one review (for example an abusive one).
+  Future<void> deleteReview(String reviewId) async {
+    await _insightsRepository!.deleteReview(reviewId).timeout(_requestTimeout);
+    _feedback = _feedback.where((f) => f.review.id != reviewId).toList();
+    notifyListeners();
+    refreshDashboard(); // star averages and counts changed
+  }
+
   List<Review> getReviewsForEvent(String eventId) {
     return _reviews.where((r) => r.eventId == eventId).toList();
   }
@@ -1278,33 +1284,15 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  /// Background behind the main screens (student and organizer view).
-  WallpaperPattern get selectedWallpaper => _selectedWallpaper;
-
-  void setWallpaper(WallpaperPattern pattern) {
-    if (_selectedWallpaper != pattern) {
-      _selectedWallpaper = pattern;
-      notifyListeners();
-      _saveLookPreference('wallpaper', pattern.name);
-    }
-  }
-
-  // Theme and wallpaper are per device (stored locally), not part of the account.
+  // The theme is per device (stored locally), not part of the account.
   Future<void> _loadLookPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final theme = prefs.getString('look.theme');
-      final wallpaper = prefs.getString('look.wallpaper');
       var changed = false;
       for (final m in ThemeMode.values) {
         if (m.name == theme && m != _themeMode) {
           _themeMode = m;
-          changed = true;
-        }
-      }
-      for (final w in WallpaperPattern.values) {
-        if (w.name == wallpaper && w != _selectedWallpaper) {
-          _selectedWallpaper = w;
           changed = true;
         }
       }

@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../../../app/config/theme.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/services/push_service.dart';
-import '../../../core/widgets/wallpaper.dart';
 import '../../student/home_screen.dart';
 import '../../student/tickets_screen.dart';
 import '../../student/profile_screen.dart';
@@ -149,6 +149,24 @@ class _ShellScreenState extends State<ShellScreen> {
           // Left Hand Navigation Rail for larger screens (Tablets/Desktops)
           if (isDesktop)
             NavigationRail(
+              // Navy menu with typewriter labels; it spells the labels out beside
+              // the icons once the window is wide enough.
+              extended: mediaQuery.size.width >= 1100,
+              minExtendedWidth: 200,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF121219) : AppTheme.ink,
+              indicatorColor: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.16)
+                  : Colors.white,
+              selectedIconTheme: IconThemeData(
+                  size: 22,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.primary
+                      : AppTheme.ink),
+              unselectedIconTheme: const IconThemeData(size: 22, color: Color(0xFFB9C0E6)),
+              selectedLabelTextStyle: const TextStyle(
+                  fontFamily: AppTheme.monoFamily, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.6, color: Colors.white),
+              unselectedLabelTextStyle: const TextStyle(
+                  fontFamily: AppTheme.monoFamily, fontSize: 11.5, letterSpacing: 0.6, color: Color(0xFFB9C0E6)),
               selectedIndex: activeIndex,
               onDestinationSelected: (idx) {
                 setState(() {
@@ -159,23 +177,20 @@ class _ShellScreenState extends State<ShellScreen> {
                   }
                 });
               },
-              labelType: NavigationRailLabelType.all,
+              labelType: mediaQuery.size.width >= 1100 ? NavigationRailLabelType.none : NavigationRailLabelType.all,
               destinations: destinations
                   .map((d) => NavigationRailDestination(
                         icon: Icon(d.icon),
                         selectedIcon: Icon(d.selectedIcon),
-                        label: Text(d.label),
+                        label: Text(d.label.toUpperCase()),
                       ))
                   .toList(),
             ),
 
-          // Main Screen view, with the chosen wallpaper behind it (both views)
           Expanded(
-            child: WallpaperArea(
-              child: IndexedStack(
-                index: activeIndex,
-                children: activeScreens,
-              ),
+            child: IndexedStack(
+              index: activeIndex,
+              children: activeScreens,
             ),
           ),
         ],
@@ -246,7 +261,7 @@ class _ShellScreenState extends State<ShellScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
           ),
           child: Row(
@@ -289,7 +304,7 @@ class _ShellScreenState extends State<ShellScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
         ),
         child: Row(

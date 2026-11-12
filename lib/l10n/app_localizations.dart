@@ -464,30 +464,6 @@ abstract class AppLocalizations {
   /// **'Theme Mode'**
   String get prefThemeMode;
 
-  /// No description provided for @prefWallpaper.
-  ///
-  /// In en, this message translates to:
-  /// **'Wallpaper Overlay'**
-  String get prefWallpaper;
-
-  /// No description provided for @wallpaperNone.
-  ///
-  /// In en, this message translates to:
-  /// **'None'**
-  String get wallpaperNone;
-
-  /// No description provided for @wallpaperGrid.
-  ///
-  /// In en, this message translates to:
-  /// **'Grid'**
-  String get wallpaperGrid;
-
-  /// No description provided for @wallpaperSunset.
-  ///
-  /// In en, this message translates to:
-  /// **'Sunset'**
-  String get wallpaperSunset;
-
   /// No description provided for @themeSystem.
   ///
   /// In en, this message translates to:
@@ -1478,12 +1454,6 @@ abstract class AppLocalizations {
   /// **'No university - public account. Sign up with your university email to join one.'**
   String get universityNone;
 
-  /// No description provided for @wallpaperHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Shown behind the main screens in both views. Saved on this device.'**
-  String get wallpaperHint;
-
   /// No description provided for @privacyTitle.
   ///
   /// In en, this message translates to:
@@ -1529,7 +1499,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyLocalBody.
   ///
   /// In en, this message translates to:
-  /// **'Your theme and wallpaper choice are stored on this device, not in your account.'**
+  /// **'Your theme choice is stored on this device, not in your account.'**
   String get privacyLocalBody;
 
   /// No description provided for @privacyExport.
@@ -2084,6 +2054,84 @@ abstract class AppLocalizations {
   /// **'The start time is in the past. Please pick a later time.'**
   String get formStartInPast;
 
+  /// No description provided for @adminRemoveReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove review'**
+  String get adminRemoveReview;
+
+  /// No description provided for @adminRemoveReviewConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This review will be deleted for good. Its stars no longer count.'**
+  String get adminRemoveReviewConfirm;
+
+  /// No description provided for @adminReviewRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Review removed.'**
+  String get adminReviewRemoved;
+
+  /// No description provided for @profileNameNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'This name cannot be used. Please choose another one.'**
+  String get profileNameNotAllowed;
+
+  /// No description provided for @homeNextTicket.
+  ///
+  /// In en, this message translates to:
+  /// **'Your next ticket'**
+  String get homeNextTicket;
+
+  /// No description provided for @homeNoTicketYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No ticket yet. Register for an event and it shows up here.'**
+  String get homeNoTicketYet;
+
+  /// No description provided for @homeSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get homeSavedTitle;
+
+  /// No description provided for @homeSavedNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the heart on an event to keep it here.'**
+  String get homeSavedNone;
+
+  /// No description provided for @ticketAdmitOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Admit one'**
+  String get ticketAdmitOne;
+
+  /// No description provided for @profileRoleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get profileRoleLabel;
+
+  /// No description provided for @formCapacityBelowRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 person is} other{{count} people are}} already registered. The limit cannot be lower than that.'**
+  String formCapacityBelowRegistered(int count);
+
+  /// No description provided for @formCapacityBelowRegisteredUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'The limit cannot be lower than the number of people already registered.'**
+  String get formCapacityBelowRegisteredUnknown;
+
+  /// No description provided for @formCapacityError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number from 1 to {max}.'**
+  String formCapacityError(int max);
+
   /// No description provided for @formNoLimit.
   ///
   /// In en, this message translates to:
@@ -2191,36 +2239,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Says they attended'**
   String get dashboardClaimedAttendance;
-
-  /// No description provided for @wallpaperDots.
-  ///
-  /// In en, this message translates to:
-  /// **'Dots'**
-  String get wallpaperDots;
-
-  /// No description provided for @wallpaperWaves.
-  ///
-  /// In en, this message translates to:
-  /// **'Waves'**
-  String get wallpaperWaves;
-
-  /// No description provided for @wallpaperAurora.
-  ///
-  /// In en, this message translates to:
-  /// **'Aurora'**
-  String get wallpaperAurora;
-
-  /// No description provided for @wallpaperOcean.
-  ///
-  /// In en, this message translates to:
-  /// **'Ocean'**
-  String get wallpaperOcean;
-
-  /// No description provided for @wallpaperBubbles.
-  ///
-  /// In en, this message translates to:
-  /// **'Bubbles'**
-  String get wallpaperBubbles;
 
   /// No description provided for @formCustomCategoryLabel.
   ///

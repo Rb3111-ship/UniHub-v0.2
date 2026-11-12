@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../../core/widgets/page_width.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -130,7 +131,7 @@ class _OrganizerApplicationScreenState extends State<OrganizerApplicationScreen>
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.organizerBecomeTitle)),
-      body: Form(
+      body: PageWidth(maxWidth: 720, child: Form(
         key: _formKey,
         // A Column (not a lazy ListView) so every field stays built and is validated on submit.
         child: SingleChildScrollView(
@@ -248,7 +249,7 @@ class _OrganizerApplicationScreenState extends State<OrganizerApplicationScreen>
           ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

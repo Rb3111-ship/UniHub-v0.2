@@ -195,18 +195,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prefThemeMode => 'Theme Mode';
 
   @override
-  String get prefWallpaper => 'Wallpaper Overlay';
-
-  @override
-  String get wallpaperNone => 'None';
-
-  @override
-  String get wallpaperGrid => 'Grid';
-
-  @override
-  String get wallpaperSunset => 'Sunset';
-
-  @override
   String get themeSystem => 'System';
 
   @override
@@ -762,10 +750,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'No university - public account. Sign up with your university email to join one.';
 
   @override
-  String get wallpaperHint =>
-      'Shown behind the main screens in both views. Saved on this device.';
-
-  @override
   String get privacyTitle => 'Privacy & data';
 
   @override
@@ -790,7 +774,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyLocalBody =>
-      'Your theme and wallpaper choice are stored on this device, not in your account.';
+      'Your theme choice is stored on this device, not in your account.';
 
   @override
   String get privacyExport => 'Copy my data';
@@ -1093,6 +1077,59 @@ class AppLocalizationsEn extends AppLocalizations {
       'The start time is in the past. Please pick a later time.';
 
   @override
+  String get adminRemoveReview => 'Remove review';
+
+  @override
+  String get adminRemoveReviewConfirm =>
+      'This review will be deleted for good. Its stars no longer count.';
+
+  @override
+  String get adminReviewRemoved => 'Review removed.';
+
+  @override
+  String get profileNameNotAllowed =>
+      'This name cannot be used. Please choose another one.';
+
+  @override
+  String get homeNextTicket => 'Your next ticket';
+
+  @override
+  String get homeNoTicketYet =>
+      'No ticket yet. Register for an event and it shows up here.';
+
+  @override
+  String get homeSavedTitle => 'Saved';
+
+  @override
+  String get homeSavedNone => 'Tap the heart on an event to keep it here.';
+
+  @override
+  String get ticketAdmitOne => 'Admit one';
+
+  @override
+  String get profileRoleLabel => 'Role';
+
+  @override
+  String formCapacityBelowRegistered(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count people are',
+      one: '1 person is',
+    );
+    return '$_temp0 already registered. The limit cannot be lower than that.';
+  }
+
+  @override
+  String get formCapacityBelowRegisteredUnknown =>
+      'The limit cannot be lower than the number of people already registered.';
+
+  @override
+  String formCapacityError(int max) {
+    return 'Enter a number from 1 to $max.';
+  }
+
+  @override
   String get formNoLimit => 'No attendee limit';
 
   @override
@@ -1147,21 +1184,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashboardClaimedAttendance => 'Says they attended';
-
-  @override
-  String get wallpaperDots => 'Dots';
-
-  @override
-  String get wallpaperWaves => 'Waves';
-
-  @override
-  String get wallpaperAurora => 'Aurora';
-
-  @override
-  String get wallpaperOcean => 'Ocean';
-
-  @override
-  String get wallpaperBubbles => 'Bubbles';
 
   @override
   String get formCustomCategoryLabel => 'Your own category (optional)';

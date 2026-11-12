@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/core/auth/user_role.dart';
-import 'package:uni_events_app/core/widgets/wallpaper.dart';
 import 'package:uni_events_app/features/student/details_screen.dart';
 import 'package:uni_events_app/main.dart';
 
@@ -312,6 +311,9 @@ void main() {
 
     // The language is picked from a list, so more languages can be added later.
     await tester.scrollUntilVisible(find.text('Language'), 200, scrollable: find.byType(Scrollable).last);
+    // The profile page builds all rows at once, so scroll the row itself into view.
+    await tester.ensureVisible(find.text('Language'));
+    await _settle(tester, rounds: 2);
     await tester.tap(find.text('Language'));
     await _settle(tester, rounds: 3);
     expect(find.text('English'), findsWidgets);
@@ -323,6 +325,8 @@ void main() {
 
     await tester.scrollUntilVisible(find.byIcon(Icons.dark_mode_rounded), 200,
         scrollable: find.byType(Scrollable).last);
+    await tester.ensureVisible(find.byIcon(Icons.dark_mode_rounded));
+    await _settle(tester, rounds: 2);
     await tester.tap(find.byIcon(Icons.dark_mode_rounded));
     await _settle(tester, rounds: 3);
     expect(state.themeMode, ThemeMode.dark);
@@ -423,7 +427,7 @@ void main() {
     expect(find.text('23%'), findsOneWidget); // 9 of 40 seat holders did not come
     expect(find.textContaining('38 asked'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('4.5 average from 2 ratings'), 200, scrollable: find.byType(Scrollable).last);
-    expect(find.text('Sign-ups per day'), findsOneWidget);
+    expect(find.text('SIGN-UPS PER DAY'), findsOneWidget); // section headings are shown in capitals
     expect(backend.requests, contains('POST /rest/v1/rpc/event_insights'));
     await _finish(tester);
   });
@@ -475,7 +479,7 @@ void main() {
     await _finish(tester);
   });
 
-  testWidgets('admin profile: photo button, 3-field password dialog, privacy page, wallpaper', (tester) async {
+  testWidgets('admin profile: photo button, 3-field password dialog, privacy page', (tester) async {
     final state = await launchSignedIn(tester);
     await tester.tap(find.byIcon(Icons.person_outline_rounded));
     await _settle(tester, rounds: 3);
@@ -496,27 +500,7 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await _settle(tester, rounds: 3);
 
-    // The wallpaper choices are folded away until the card is opened.
-    expect(find.text('Grid'), findsNothing);
-    await tester.dragUntilVisible(find.text('Wallpaper Overlay'), find.byType(ListView).first, const Offset(0, -250));
-    await _settle(tester, rounds: 10);
-    await tester.tap(find.text('Wallpaper Overlay'));
-    await _settle(tester, rounds: 4);
-    await tester.dragUntilVisible(find.text('Grid'), find.byType(ListView).first, const Offset(0, -250));
-    await _settle(tester, rounds: 10);
-    await tester.tap(find.text('Grid'));
-    await _settle(tester, rounds: 2);
-    expect(state.selectedWallpaper, WallpaperPattern.frostedGeometry);
-    // The organizer view paints the wallpaper too (not only the student feed).
-    expect(state.currentRole, UserRole.planner);
-    expect(
-        find.byWidgetPredicate(
-            (w) => w is Wallpaper && w.pattern == WallpaperPattern.frostedGeometry && w.scale == 1),
-        findsOneWidget);
-    for (final name in ['Dots', 'Waves', 'Sunset', 'Aurora', 'Ocean', 'Bubbles']) {
-      expect(find.text(name), findsOneWidget);
-    }
-
+    expect(find.text('Wallpaper Overlay'), findsNothing); // removed on the owner's request
     await tester.dragUntilVisible(find.text('Privacy & data'), find.byType(ListView).first, const Offset(0, -250));
     await _settle(tester, rounds: 10); // let the list stop moving; a tap on a moving list only stops it
     await tester.tap(find.text('Privacy & data'));

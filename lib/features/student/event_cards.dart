@@ -5,7 +5,8 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../app/config/theme.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
-import '../../../core/widgets/event_image.dart';
+import '../../../core/models/categories.dart';
+import '../../../core/widgets/ticket_stub.dart';
 import 'community_actions.dart';
 import 'register_action.dart';
 import 'details_screen.dart';
@@ -24,49 +25,6 @@ String _month(Event e, String locale) => DateFormat.MMM(locale).format(e.date).r
 
 /// "Sat, 18:00 · Stadtpark"
 String eventWhenWhere(Event e, String locale) => '${DateFormat('EEE, HH:mm', locale).format(e.date)} · ${e.location}';
-
-/// White tile with month and day, e.g. NOV / 14.
-class DateBadge extends StatelessWidget {
-  const DateBadge({super.key, required this.event, this.size = 54, this.tinted = false});
-
-  final Event event;
-  final double size;
-  final bool tinted; // soft university tint instead of the card colour
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dark = theme.brightness == Brightness.dark;
-    final locale = Localizations.localeOf(context).toString();
-    final uni = context.read<AppState>().getUniversityColor(event.universityDomain);
-    final bg = tinted
-        ? (dark ? theme.colorScheme.surfaceContainer : Color.lerp(uni, Colors.white, 0.88)!)
-        : theme.cardTheme.color ?? Colors.white;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(size * 0.28)),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            _month(event, locale),
-            style: TextStyle(
-              fontSize: size * 0.2,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.4,
-              color: dark ? AppTheme.neon : AppTheme.urgentText,
-            ),
-          ),
-          Text(
-            '${event.date.day}',
-            style: TextStyle(fontSize: size * 0.37, fontWeight: FontWeight.w800, height: 1.05),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// The one short label a card shows: your event, registered, waitlisted, full,
 /// or "12 seats left" when it is filling up.
@@ -109,7 +67,7 @@ class EventStatusPill extends StatelessWidget {
     if (text == null) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -145,9 +103,10 @@ class OfficialBadge extends StatelessWidget {
   }
 }
 
-/// Big card at the top of the feed: poster, date badge, title and status.
-class FeaturedEventCard extends StatelessWidget {
-  const FeaturedEventCard({super.key, required this.event});
+/// An event drawn as a ticket: category colour on the left edge, the details in
+/// the middle and the date on a tear-off stub.
+class EventStubCard extends StatelessWidget {
+  const EventStubCard({super.key, required this.event});
 
   final Event event;
 
@@ -157,136 +116,65 @@ class FeaturedEventCard extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).toString();
-    final uni = appState.getUniversityColor(event.universityDomain);
+    final dark = theme.brightness == Brightness.dark;
+    final muted = theme.colorScheme.secondary;
+    final ink = dark ? theme.colorScheme.onSurface : AppTheme.ink;
+    final category = event.categories.isEmpty ? null : event.categories.first;
     final host = appState.hostOf(event.organizerId);
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(26),
-        side: theme.brightness == Brightness.dark ? const BorderSide(color: AppTheme.darkBorder) : BorderSide.none,
+    return TicketStub(
+      edgeColor: categoryColor(category),
+      onTap: () => openEvent(context, appState, event),
+      stub: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('${event.date.day}'.padLeft(2, '0'),
+              style: monoStyle(size: 26, color: ink, weight: FontWeight.w700, spacing: 0).copyWith(height: 1)),
+          const SizedBox(height: 3),
+          Text(_month(event, locale), style: monoStyle(size: 10, color: ink, weight: FontWeight.w700, spacing: 1.6)),
+        ],
       ),
-      child: InkWell(
-        onTap: () => openEvent(context, appState, event),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: 190,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Hero(
-                    tag: 'event-image-${event.id}',
-                    child: EventImage(url: event.imageUrl, color: uni, seed: event.id),
-                  ),
-                  Positioned(top: 14, left: 14, child: DateBadge(event: event)),
-                  Positioned(top: 10, right: 10, child: FavoriteButton(event: event, onImage: true)),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  OfficialBadge(event: event),
-                  if (event.isUniversityOfficial) const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 2,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (category != null)
+                        Text(categoryLabel(l10n, category).toUpperCase(),
+                            style: monoStyle(
+                                size: 10, color: categoryColor(category, dark: dark), weight: FontWeight.w700, spacing: 0.8)),
+                      OfficialBadge(event: event),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
                   Text(event.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.2, letterSpacing: -0.2)),
                   const SizedBox(height: 4),
-                  Text(eventWhenWhere(event, locale),
-                      maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13, color: theme.colorScheme.secondary)),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: host == null
-                            ? const SizedBox.shrink()
-                            : Text(l10n.byOrganizer(host.label),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.secondary)),
-                      ),
-                      EventStatusPill(event: event),
-                    ],
-                  ),
+                  Text(eventWhenWhere(event, locale).toUpperCase(),
+                      maxLines: 1, overflow: TextOverflow.ellipsis, style: monoStyle(size: 10.5, color: muted, spacing: 0.3)),
+                  if (host != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(l10n.byOrganizer(host.label),
+                          maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: muted)),
+                    ),
+                  const SizedBox(height: 6),
+                  EventStatusPill(event: event),
                 ],
               ),
             ),
+            FavoriteButton(event: event, color: muted),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Compact list row: poster thumbnail with date, title, time and place, status.
-class EventRowCard extends StatelessWidget {
-  const EventRowCard({super.key, required this.event});
-
-  final Event event;
-
-  @override
-  Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final locale = Localizations.localeOf(context).toString();
-    final uni = appState.getUniversityColor(event.universityDomain);
-    final host = appState.hostOf(event.organizerId);
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => openEvent(context, appState, event),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 84,
-                height: 84,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Hero(
-                        tag: 'event-image-${event.id}',
-                        child: EventImage(url: event.imageUrl, color: uni, seed: event.id, iconSize: 24),
-                      ),
-                    ),
-                    Positioned(left: 6, top: 6, child: DateBadge(event: event, size: 38)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    OfficialBadge(event: event),
-                    Text(event.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.25)),
-                    const SizedBox(height: 3),
-                    Text(eventWhenWhere(event, locale),
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
-                    if (host != null)
-                      Text(l10n.byOrganizer(host.label),
-                          maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
-                    const SizedBox(height: 6),
-                    EventStatusPill(event: event),
-                  ],
-                ),
-              ),
-              FavoriteButton(event: event, color: theme.colorScheme.secondary),
-            ],
-          ),
         ),
       ),
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/ticket_stub.dart';
+import '../../core/widgets/page_width.dart';
 import '../../../core/widgets/empty_state.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -120,7 +122,7 @@ class NotificationsScreen extends StatelessWidget {
             ),
         ],
       ),
-      body: RefreshIndicator(
+      body: PageWidth(maxWidth: 760, child: RefreshIndicator(
         onRefresh: appState.refreshNotifications,
         child: items.isEmpty
             ? ListView(children: [
@@ -129,7 +131,7 @@ class NotificationsScreen extends StatelessWidget {
               ])
             : ListView.separated(
                 itemCount: items.length + 1,
-                separatorBuilder: (_, i) => i == 0 ? const SizedBox.shrink() : const Divider(height: 1),
+                separatorBuilder: (_, i) => SizedBox(height: i == 0 ? 0 : 8),
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return Padding(
@@ -162,26 +164,41 @@ class NotificationsScreen extends StatelessWidget {
                         messenger.showSnackBar(SnackBar(content: Text(failed)));
                       }
                     },
-                    child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: theme.colorScheme.primaryContainer,
-                      child: Icon(_icon(n.kind), color: theme.colorScheme.onPrimaryContainer),
-                    ),
-                    title: Text(title, style: TextStyle(fontWeight: n.isRead ? FontWeight.normal : FontWeight.bold)),
-                    subtitle: Text('$body\n${dateFormat.format(n.createdAt)}'),
-                    isThreeLine: true,
-                    trailing: n.isRead
-                        ? null
-                        : Icon(Icons.circle, size: 10, color: theme.colorScheme.primary),
-                    onTap: () {
-                      appState.markNotificationsRead([n.id]);
-                      if (n.eventId != null) openNotificationEvent(context, n.eventId!, kind: n.kind);
-                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Material(
+                        color: theme.cardTheme.color,
+                        borderRadius: BorderRadius.circular(12),
+                        clipBehavior: Clip.antiAlias,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: theme.colorScheme.primaryContainer,
+                            child: Icon(_icon(n.kind), color: theme.colorScheme.onPrimaryContainer),
+                          ),
+                          title: Text(title, style: TextStyle(fontWeight: n.isRead ? FontWeight.w500 : FontWeight.w800)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(body),
+                              const SizedBox(height: 2),
+                              Text(dateFormat.format(n.createdAt).toUpperCase(),
+                                  style: monoStyle(size: 10, color: theme.colorScheme.secondary, spacing: 0.6)),
+                            ],
+                          ),
+                          isThreeLine: true,
+                          trailing:
+                              n.isRead ? null : Icon(Icons.circle, size: 10, color: theme.colorScheme.primary),
+                          onTap: () {
+                            appState.markNotificationsRead([n.id]);
+                            if (n.eventId != null) openNotificationEvent(context, n.eventId!, kind: n.kind);
+                          },
+                        ),
+                      ),
                     ),
                   );
                 },
               ),
-      ),
+      )),
     );
   }
 

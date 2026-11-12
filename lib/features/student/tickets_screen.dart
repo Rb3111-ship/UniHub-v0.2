@@ -8,7 +8,9 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../app/config/theme.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
+import '../../../core/models/categories.dart';
 import '../../../core/models/registration_model.dart';
+import '../../../core/widgets/ticket_stub.dart';
 import 'attendance_confirm_card.dart';
 import 'qr_fullscreen.dart';
 import 'register_action.dart';
@@ -77,13 +79,29 @@ class StudentTicketsScreen extends StatelessWidget {
                   body: localizations.ticketsEmptyBody,
                 ),
               ),
-            for (var i = 0; i < upcoming.length; i++) ...[
-              if (i > 0) const SizedBox(height: 20),
-              _buildUpcoming(context, upcoming[i], appState),
-            ],
+            // Tickets keep a ticket's width: one per row on a phone, two or three
+            // side by side on a PC instead of one stretched across the window.
+            LayoutBuilder(
+              builder: (context, box) {
+                const gap = 20.0;
+                final columns = (box.maxWidth / 440).floor().clamp(1, 3);
+                final width = ((box.maxWidth - gap * (columns - 1)) / columns).clamp(0, 460).toDouble();
+                return Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    for (final e in upcoming) SizedBox(width: width, child: _buildUpcoming(context, e, appState)),
+                  ],
+                );
+              },
+            ),
             if (past.isNotEmpty) ...[
               const SizedBox(height: 24),
-              Theme(
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: Theme(
                 // No divider lines around the expandable section.
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
@@ -100,6 +118,8 @@ class StudentTicketsScreen extends StatelessWidget {
                         child: _buildPastCard(context, e, appState),
                       ),
                   ],
+                ),
+              ),
                 ),
               ),
             ],
@@ -209,8 +229,6 @@ class StudentTicketsScreen extends StatelessWidget {
     }
     final isScanned = appState.isTicketScanned(ticketId);
 
-    // Dynamic color matching event's tenant
-    final brandColor = appState.getUniversityColor(event.universityDomain);
     final qrPayload = appState.qrPayload(event.id);
 
 
@@ -219,19 +237,20 @@ class StudentTicketsScreen extends StatelessWidget {
     final ended = event.endDate.isBefore(DateTime.now());
 
     final isDark = theme.brightness == Brightness.dark;
-    // Coloured ticket header: the university colour by day, deep violet at night.
-    final headerColor = isDark ? const Color(0xFF1B1530) : brandColor;
-    final headerSoft = isDark ? AppTheme.darkMuted : Colors.white.withOpacity(0.8);
+    // Ticket header: navy by day, deep violet at night.
+    final headerColor = isDark ? const Color(0xFF1B1530) : AppTheme.ink;
+    final headerSoft = isDark ? AppTheme.darkMuted : const Color(0xFFB9C0E6);
+    final category = event.categories.isEmpty ? null : event.categories.first;
     final headerAccent = isDark ? AppTheme.neon : Colors.white;
     return Container(
       decoration: BoxDecoration(
         color: theme.cardTheme.color ?? Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(16),
         border: isDark ? Border.all(color: AppTheme.darkBorder) : null,
         boxShadow: isDark ? null : const [BoxShadow(color: Color(0x1412141C), blurRadius: 24, offset: Offset(0, 8))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(16),
         child: Column(
           children: [
             // Upper part: coloured header with the event
@@ -261,20 +280,29 @@ class StudentTicketsScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: isScanned ? Colors.green : (isDark ? AppTheme.neon : Colors.white),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           isScanned
                               ? localizations.ticketCheckedInBadge
                               : (ended ? localizations.ticketEndedBadge : localizations.ticketConfirmedBadge),
                           style: TextStyle(
-                            color: isScanned ? Colors.white : (isDark ? AppTheme.darkBackground : brandColor),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
+                            fontFamily: AppTheme.monoFamily,
+                            color: isScanned ? Colors.white : (isDark ? AppTheme.darkBackground : AppTheme.ink),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ),
                       const SizedBox(height: 12),
+                      Text(
+                        [if (category != null) categoryLabel(localizations, category), localizations.ticketAdmitOne]
+                            .join(' · ')
+                            .toUpperCase(),
+                        style: monoStyle(size: 10, color: headerSoft, spacing: 1.0),
+                      ),
+                      const SizedBox(height: 4),
                       Text(
                         event.title,
                         style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
@@ -539,7 +567,7 @@ class StudentTicketsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: labelColor)),
+          Text(label.toUpperCase(), style: monoStyle(size: 9.5, color: labelColor, spacing: 1.2)),
           const SizedBox(height: 2),
           Text(value,
               maxLines: 2,
@@ -623,20 +651,16 @@ class StudentTicketsScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-              letterSpacing: 1.0,
-            ),
+            label.toUpperCase(),
+            style: monoStyle(size: 9.5, color: Theme.of(context).colorScheme.secondary, spacing: 1.2),
           ),
           const SizedBox(height: 3),
           Text(
             value,
             style: TextStyle(
+              fontFamily: AppTheme.monoFamily,
               fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: Theme.of(context).colorScheme.onSurface,
             ),
             maxLines: 1,

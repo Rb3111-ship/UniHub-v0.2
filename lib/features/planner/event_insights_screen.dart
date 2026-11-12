@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/page_width.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../../../core/widgets/ticket_stub.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/dashboard_model.dart';
 import 'charts.dart';
@@ -55,7 +57,7 @@ class _EventInsightsScreenState extends State<EventInsightsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.insightsTitle)),
-      body: RefreshIndicator(
+      body: PageWidth(maxWidth: 900, child: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -122,7 +124,7 @@ class _EventInsightsScreenState extends State<EventInsightsScreen> {
             const SizedBox(height: 32),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -203,8 +205,8 @@ class _EventInsightsScreenState extends State<EventInsightsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              const SizedBox(height: 10),
+              StubSectionHeader(title),
+              const SizedBox(height: 12),
               ...children,
             ],
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/page_width.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -67,7 +68,7 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
       appBar: AppBar(
         title: Text(localizations.reviewTitle),
       ),
-      body: SingleChildScrollView(
+      body: PageWidth(maxWidth: 640, child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Form(
           key: _formKey,
@@ -216,7 +217,7 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 }

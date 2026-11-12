@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../app/config/theme.dart';
 import '../../../core/auth/user_role.dart';
+import '../../../core/widgets/ticket_stub.dart';
 import '../../../core/models/review_model.dart';
 import '../../../core/models/dashboard_model.dart';
 import 'charts.dart';
@@ -24,8 +25,7 @@ class PlannerDashboardScreen extends StatelessWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverAppBar(
-            // Solid and pinned so the cards never show through the title. Not
-            // scaffoldBackgroundColor: under the wallpaper that is transparent.
+            // Solid and pinned so the cards never show through the title.
             pinned: true,
             toolbarHeight: 68,
             backgroundColor: Theme.of(context).brightness == Brightness.dark
@@ -350,7 +350,8 @@ class PlannerDashboardScreen extends StatelessWidget {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1.3,
+          // Fixed tile height: on a wide PC window a width-based ratio made the tiles far too tall.
+          childAspectRatio: ((constraints.maxWidth - 12 * (crossAxisCount - 1)) / crossAxisCount) / 112,
           children: [
             _buildStatCard(context, localizations.dashboardTotalRsvps, rsvps.toString(), Icons.confirmation_number_rounded, const Color(0xFF636AE8)),
             _buildStatCard(context, localizations.dashboardTotalCheckins, checkIns.toString(), Icons.qr_code_scanner_rounded, const Color(0xFFF15A24)),
@@ -390,7 +391,8 @@ class PlannerDashboardScreen extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, idx) {
               final item = publicReviews[idx];
-              return _buildPublicReviewCard(context, item.review, item.eventTitle, theme, localizations);
+              return _withRemoveButton(context, appState, localizations, item.review,
+                  _buildPublicReviewCard(context, item.review, item.eventTitle, theme, localizations));
             },
           ),
         const SizedBox(height: 28),
@@ -432,11 +434,60 @@ class PlannerDashboardScreen extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, idx) {
               final item = privateReviews[idx];
-              return _buildPrivateFeedbackCard(context, item.review, item.eventTitle, theme, localizations);
+              return _withRemoveButton(context, appState, localizations, item.review,
+                  _buildPrivateFeedbackCard(context, item.review, item.eventTitle, theme, localizations));
             },
           ),
       ],
     );
+  }
+
+  /// Admins get a "Remove review" button under each review.
+  Widget _withRemoveButton(
+      BuildContext context, AppState appState, AppLocalizations l10n, Review review, Widget card) {
+    if (!appState.usesBackend || !appState.isAdmin) return card;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        card,
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            key: ValueKey('remove-review-${review.id}'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: Text(l10n.adminRemoveReview),
+            onPressed: () => _removeReview(context, appState, l10n, review),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _removeReview(BuildContext context, AppState appState, AppLocalizations l10n, Review review) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.adminRemoveReview),
+        content: Text(l10n.adminRemoveReviewConfirm),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.adminRemoveReview),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await appState.deleteReview(review.id);
+      messenger.showSnackBar(SnackBar(content: Text(l10n.adminReviewRemoved)));
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
+    }
   }
 
   Widget _buildEmptyFeedback(ThemeData theme, String text) {
@@ -658,12 +709,7 @@ class PlannerDashboardScreen extends StatelessWidget {
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-    );
+    return StubSectionHeader(title);
   }
 
   Widget _buildEventStatusRow(

@@ -230,7 +230,6 @@ def run(s: Sim, tag: str) -> None:
     check("student CAN rename self", err is None, str(err))
     _, err = s.call("update public.profiles set locale = 'de' where id = %s", [stu_pub]); check("student CAN save their language", err is None, str(err))
     s.fails("an unsupported language is rejected", "update public.profiles set locale = 'xx' where id = %s", [stu_pub])
-    s.fails("a 81-character name is rejected", "update public.profiles set display_name = %s where id = %s", ["n" * 81, stu_pub])
     s.affects_nothing("student cannot rename someone else", "update public.profiles set display_name='hacked' where id = %s", [stu_tum])
     check("student reads only own profile", s.scalar("select count(*) from public.profiles") == 1)
     s.fails("student cannot publish events", "insert into public.events (organizer_id,tenant_id,title,location,starts_at,ends_at) "
@@ -418,6 +417,57 @@ def run(s: Sim, tag: str) -> None:
     _, err = s.call("select public.admin_set_role(%s,'tenant_admin',true)", [stu_haw]); check("tenant admin cannot create other tenant admins", err is not None)
     s.user(p_admin)
     _, err = s.call("select public.admin_set_role(%s,'commercial_planner',true)", [stu_pub]); check("platform admin can set any role", err is None, str(err))
+
+    # Pen test 2026-11-11 (S1): a university admin must not touch other admins.
+    root_haw = mk_user(f"root2-{tag}@haw-hamburg.de"); promote(root_haw, "platform_admin")
+    t_admin_b = mk_user(f"admin2-{tag}@haw-hamburg.de"); promote(t_admin_b, "tenant_admin")
+    biz_haw = mk_user(f"biz2-{tag}@haw-hamburg.de"); promote(biz_haw, "commercial_planner")
+    org_x = mk_user(f"orgx-{tag}@haw-hamburg.de"); promote(org_x, "organizer")
+
+    def role_of(uid):
+        s.postgres()
+        return s.scalar("select role::text from public.profiles where id = %s", [uid])
+
+    s.user(t_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [root_haw])
+    check("tenant admin cannot demote a platform admin of the same university", err is not None and "not_authorized" in err and role_of(root_haw) == "platform_admin", str(err))
+    s.user(t_admin)
+    _, err = s.call("select public.admin_set_role(%s,'organizer',true)", [root_haw])
+    check("tenant admin cannot turn a platform admin into an organizer", err is not None and role_of(root_haw) == "platform_admin", str(err))
+    s.user(t_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [t_admin_b])
+    check("tenant admin cannot demote another tenant admin", err is not None and "not_authorized" in err and role_of(t_admin_b) == "tenant_admin", str(err))
+    s.user(t_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [biz_haw])
+    check("tenant admin cannot demote a commercial planner", err is not None and role_of(biz_haw) == "commercial_planner", str(err))
+    s.user(t_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [t_admin])
+    check("tenant admin cannot change their own role", err is not None and role_of(t_admin) == "tenant_admin", str(err))
+    s.user(t_admin)
+    _, err = s.call("select public.admin_delete_user(%s, true)", [root_haw])
+    check("so a tenant admin can never remove a platform admin", err is not None and role_of(root_haw) == "platform_admin", str(err))
+    s.user(t_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [org_x])
+    check("tenant admin can still take organizer rights away", err is None and role_of(org_x) == "student", str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [t_admin_b])
+    check("platform admin can still demote a tenant admin", err is None and role_of(t_admin_b) == "student", str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [root_haw])
+    check("platform admin can demote another platform admin while one remains", err is None and role_of(root_haw) == "student", str(err))
+
+    # Pen test 2026-11-11 (S4): the platform must always keep one platform admin.
+    s.postgres()
+    others = [r[0] for r in s.rows("select id from public.profiles where role = 'platform_admin' and id <> %s", [p_admin])]
+    s.c.execute("update public.profiles set role = 'student' where id = any(%s)", [others])
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [p_admin])
+    check("the last platform admin cannot demote themselves", err is not None and "last_admin" in err and role_of(p_admin) == "platform_admin", str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'platform_admin',true)", [p_admin])
+    check("the last platform admin can still re-save their own role", err is None, str(err))
+    s.postgres()
+    s.c.execute("update public.profiles set role = 'platform_admin' where id = any(%s)", [others])
     s.postgres()
     s.user(stu_tum)
     s.affects_nothing("student cannot change a university's name", "update public.tenants set name_en='pwned'")
@@ -1125,6 +1175,230 @@ def run(s: Sim, tag: str) -> None:
     check("the invitation job runs every 10 minutes",
           s.scalar("select count(*) from cron.job where jobname = 'unihub-review-prompts' and schedule = '*/10 * * * *'") == 1)
 
+    print("\n[30] Organizers who lost their rights (pen test S2)")
+    def upd(q, args=None):
+        """Rows changed, or the error text when the statement is refused."""
+        try:
+            with s.c.transaction():
+                return s.c.execute(q, args).rowcount
+        except psycopg.Error as e:
+            return str(e).splitlines()[0]
+
+    ex_org = mk_user(f"exorg-{tag}@haw-hamburg.de"); promote(ex_org, "organizer")
+    ex_fan = mk_user(f"exfan-{tag}@haw-hamburg.de")
+    ex_live = mk_event(ex_org, haw, "Ex live", capacity=5)
+    ex_draft = mk_event(ex_org, haw, "Ex draft", status="draft")
+    ex_draft2 = mk_event(ex_org, haw, "Ex draft 2", status="draft")
+    s.user(ex_fan); s.call("select public.register_for_event(%s)", [ex_live])
+    ex_code = code_of(ex_fan, ex_live)
+    s.user(ex_org)
+    check("an organizer in good standing edits their event", upd("update public.events set title = 'Ex live 2' where id = %s", [ex_live]) == 1)
+    check("... and sees who registered", len(s.rows("select 1 from public.registrations where event_id = %s", [ex_live])) == 1)
+    s.user(p_admin); s.call("select public.admin_set_role(%s,'student',false)", [ex_org])
+    s.user(ex_org)
+    check("a demoted organizer cannot edit their published event", upd("update public.events set title = 'Hacked' where id = %s", [ex_live]) != 1)
+    check("a demoted organizer cannot publish a draft", upd("update public.events set status = 'published' where id = %s", [ex_draft]) != 1)
+    check("a demoted organizer cannot cancel-and-rename an event", upd("update public.events set status = 'cancelled', title = 'Rude words' where id = %s", [ex_live]) != 1)
+    _, err = s.call("select public.check_in_ticket(%s,%s)", [ex_code, ex_live])
+    check("a demoted organizer cannot scan tickets", err is not None and "not_authorized" in err, str(err))
+    check("a demoted organizer no longer sees the attendee list", len(s.rows("select 1 from public.registrations where event_id = %s", [ex_live])) == 0)
+    check("a demoted organizer no longer sees attendees' tickets", len(s.rows("select 1 from public.tickets where event_id = %s", [ex_live])) == 0)
+    check("a demoted organizer still sees their own events", len(s.rows("select 1 from public.events where organizer_id = %s", [ex_org])) == 3)
+    check("a demoted organizer can delete their own draft", upd("delete from public.events where id = %s", [ex_draft2]) == 1)
+    check("a demoted organizer cannot delete a published event", upd("delete from public.events where id = %s", [ex_live]) != 1)
+    s.postgres()
+    check("nothing was changed by the demoted organizer",
+          s.scalar("select title || '/' || status::text from public.events where id = %s", [ex_live]) == "Ex live 2/published"
+          and s.scalar("select status::text from public.events where id = %s", [ex_draft]) == "draft"
+          and s.scalar("select checked_in_at is null from public.tickets where code = %s", [ex_code]))
+    s.user(t_admin)
+    check("the university admin can still manage that event", upd("update public.events set title = 'Ex live 3' where id = %s", [ex_live]) == 1)
+    s.user(p_admin)
+    check("the platform admin can still manage that event", upd("update public.events set title = 'Ex live 4' where id = %s", [ex_live]) == 1)
+    s.user(p_admin); s.call("select public.admin_set_role(%s,'organizer',true)", [ex_org])
+    s.user(ex_org)
+    check("rights given back: the organizer can edit again", upd("update public.events set title = 'Ex live 5' where id = %s", [ex_live]) == 1)
+    _, err = s.call("select public.check_in_ticket(%s,%s)", [ex_code, ex_live])
+    check("rights given back: the organizer can scan again", err is None, str(err))
+    cap_org0 = mk_user(f"caporg0-{tag}@haw-hamburg.de"); promote(cap_org0, "organizer")
+    ex_biz = mk_user(f"exbiz-{tag}@example.com"); promote(ex_biz, "commercial_planner")
+    ex_pub = mk_event(ex_biz, None, "Ex public")
+    promote(ex_biz, "commercial_planner", verified=False)
+    s.user(ex_biz)
+    check("a commercial planner whose approval was withdrawn cannot edit", upd("update public.events set title = 'Hacked' where id = %s", [ex_pub]) != 1)
+    s.user(cap_org0)
+    check("another organizer of the same university still cannot edit it", upd("update public.events set title = 'Hacked' where id = %s", [ex_live]) != 1)
+    s.user(ex_org)
+    r, err = s.call("insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, status) "
+                    "values (%s,%s,'Ex new draft','Somewhere',now()+interval '1 day',now()+interval '2 days','draft') returning id", [haw, ex_org])
+    check("saving a draft returns the new event to its creator (B5)", err is None and r is not None, str(err))
+
+    print("\n[31] Seat limit cannot drop below the people registered (pen test B2)")
+    cap_org = mk_user(f"caporg-{tag}@haw-hamburg.de"); promote(cap_org, "organizer")
+    cap_ev = mk_event(cap_org, haw, "Cap floor", capacity=5)
+    cap_a = mk_user(f"capa-{tag}@haw-hamburg.de"); cap_b = mk_user(f"capb-{tag}@haw-hamburg.de")
+    for u in (cap_a, cap_b):
+        s.user(u); s.call("select public.register_for_event(%s)", [cap_ev])
+    s.user(cap_org)
+    r = upd("update public.events set capacity = 1 where id = %s", [cap_ev])
+    check("limit 5 -> 1 with 2 registered is refused", isinstance(r, str) and "capacity_below_registered" in r, str(r))
+    s.user(p_admin)
+    r = upd("update public.events set capacity = 1 where id = %s", [cap_ev])
+    check("... also for an admin", isinstance(r, str) and "capacity_below_registered" in r, str(r))
+    s.user(cap_org)
+    check("limit 5 -> 2 (exactly the number registered) is allowed", upd("update public.events set capacity = 2 where id = %s", [cap_ev]) == 1)
+    check("raising the limit is allowed", upd("update public.events set capacity = 50 where id = %s", [cap_ev]) == 1)
+    check("removing the limit is allowed", upd("update public.events set capacity = null where id = %s", [cap_ev]) == 1)
+    check("other edits are not affected", upd("update public.events set title = 'Cap floor 2' where id = %s", [cap_ev]) == 1)
+
+    print("\n[32] Asking first whether the account may be deleted (pen test B1)")
+    s.anon()
+    s.fails("anonymous cannot ask", "select public.delete_my_account(true)", contains="permission denied")
+    s.user(cap_org)
+    _, err = s.call("select public.delete_my_account(true)")
+    check("asking first: an organizer with events is told no", err is not None and "has_events" in err, str(err))
+    s.user(cap_a)
+    _, err = s.call("select public.delete_my_account(true)")
+    s.postgres()
+    check("asking first: a student is told yes and nothing is deleted",
+          err is None and s.scalar("select count(*) from auth.users where id = %s", [cap_a]) == 1, str(err))
+    s.user(cap_a)
+    _, err = s.call("select public.delete_my_account()")
+    s.postgres()
+    check("the real call still deletes the account", err is None and s.scalar("select count(*) from auth.users where id = %s", [cap_a]) == 0, str(err))
+
+    print("\n[33] Display names (pen test S7, B3)")
+    def name_of(uid):
+        s.postgres()
+        return s.scalar("select display_name from public.profiles where id = %s", [uid])
+
+    def mk_named(email, name):
+        s.postgres()
+        uid = uuid.uuid4()
+        c.execute(
+            "insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_user_meta_data, created_at, updated_at) "
+            "values ('00000000-0000-0000-0000-000000000000', %s, 'authenticated', 'authenticated', %s, now(), %s::jsonb, now(), now())",
+            [uid, email, json.dumps({"display_name": name})])
+        return uid
+
+    nm = mk_named(f"nm-{tag}@haw-hamburg.de", "Nora Muster")
+    for label, bad in (("'UniHub Admin' with a check mark", "UniHub Admin \u2713"), ("a blank name", "   "),
+                       ("'Moderator Max'", "Moderator Max"), ("'ADMINISTRATOR'", "ADMINISTRATOR"),
+                       ("a name with an invisible character", "Ma\u200bx"), ("a name with a green tick", "Max \u2705")):
+        s.user(nm)
+        r = upd("update public.profiles set display_name = %s where id = %s", [bad, nm])
+        check(f"a student cannot rename themselves to {label}", isinstance(r, str) and "name_not_allowed" in r and name_of(nm) == "Nora Muster", str(r))
+    s.user(nm)
+    r = upd("update public.profiles set display_name = %s where id = %s", ["  Anna   Schmidt ", nm])
+    check("an ordinary name is saved, tidied up", r == 1 and name_of(nm) == "Anna Schmidt", f"{r} {name_of(nm)!r}")
+    s.user(nm)
+    r = upd("update public.profiles set display_name = %s where id = %s", ["x" * 81, nm])
+    check("a name over 80 letters is cut to 80", r == 1 and len(name_of(nm)) == 80, str(r))
+    s.user(p_admin)
+    r = upd("update public.profiles set display_name = 'UniHub Admin' where id = %s", [p_admin])
+    check("a real admin may call themselves 'UniHub Admin'", r == 1, str(r))
+    s.user(p_admin)
+    r = upd("update public.profiles set display_name = '  ' where id = %s", [p_admin])
+    check("... but not leave the name blank", isinstance(r, str) and "name_not_allowed" in r, str(r))
+    s.user(nm)
+    check("changing other settings still works", upd("update public.profiles set locale = 'de' where id = %s", [nm]) == 1)
+    long_u = mk_named(f"long-{tag}@example.org", "y" * 200)
+    check("sign-up with a 200-letter name works; the name is cut to 80", len(name_of(long_u)) == 80)
+    fake_u = mk_named(f"faker-{tag}@example.org", "UniHub Admin \u2713")
+    check("sign-up as 'UniHub Admin' works but the name is replaced", name_of(fake_u) == f"faker-{tag}", str(name_of(fake_u)))
+    fake_u2 = mk_named(f"admin-x{tag}@example.org", "   ")
+    check("... and falls back to 'User' when the address is no better", name_of(fake_u2) == "User", str(name_of(fake_u2)))
+
+    print("\n[34] E-mail changes (pen test S5, S6)")
+    def tenant_of(uid):
+        s.postgres()
+        return s.scalar("select tenant_id from public.profiles where id = %s", [uid])
+
+    s.postgres()
+    c.execute("insert into public.blocked_emails (email) values (%s)", [f"banned-{tag}@example.org"])
+    ch = mk_user(f"changer-{tag}@example.org")
+    s.postgres()
+    r = upd("update auth.users set email = %s where id = %s", [f"banned-{tag}@example.org", ch])
+    check("an account cannot change its e-mail to a blocked address", isinstance(r, str) and "email_blocked" in r, str(r))
+    r = upd("update auth.users set email = %s where id = %s", [f"BANNED-{tag}@Example.org", ch])
+    check("... also not in capital letters", isinstance(r, str) and "email_blocked" in r, str(r))
+    r = upd("update auth.users set email = %s where id = %s", [f"changer2-{tag}@example.org", ch])
+    check("changing to an ordinary address works", r == 1, str(r))
+    mover = mk_user(f"mover-{tag}@haw-hamburg.de")
+    check("a HAW address gives HAW membership", tenant_of(mover) == haw)
+    s.postgres(); c.execute("update auth.users set updated_at = now(), email = email where id = %s", [mover])
+    check("saving the same address again changes nothing", tenant_of(mover) == haw)
+    s.postgres(); c.execute("update auth.users set email = %s where id = %s", [f"mover-{tag}@gmail.com", mover])
+    check("changing from HAW to gmail ends the HAW membership", tenant_of(mover) is None, str(tenant_of(mover)))
+    s.user(mover)
+    check("... so campus events are no longer visible", len(s.rows("select 1 from public.events where tenant_id = %s", [haw])) == 0)
+    s.postgres(); c.execute("update auth.users set email = %s where id = %s", [f"mover-{tag}@tum.de", mover])
+    check("changing to a TUM address gives TUM membership", tenant_of(mover) == tum)
+    s.postgres(); c.execute("update auth.users set email = %s where id = %s", [f"mover-{tag}@stud.haw-hamburg.de", mover])
+    check("changing to a HAW sub-domain gives HAW membership", tenant_of(mover) == haw)
+    unconf = mk_user(f"unconf-{tag}@gmail.com", confirmed=False)
+    s.postgres(); c.execute("update auth.users set email = %s where id = %s", [f"unconf-{tag}@haw-hamburg.de", unconf])
+    check("an UNCONFIRMED account gains no membership by changing its address", tenant_of(unconf) is None)
+    ex_mail_org = mk_user(f"mailorg-{tag}@haw-hamburg.de"); promote(ex_mail_org, "organizer")
+    ev_mail = mk_event(ex_mail_org, haw, "Mail org event")
+    s.postgres(); c.execute("update auth.users set email = %s where id = %s", [f"mailorg-{tag}@gmail.com", ex_mail_org])
+    s.user(ex_mail_org)
+    check("an organizer who leaves the university's address can no longer edit its events",
+          upd("update public.events set title = 'Hacked' where id = %s", [ev_mail]) != 1)
+
+    print("\n[35] Removing a single review, and the feedback list (pen test S8, B4)")
+    rv_org = mk_user(f"rvorg-{tag}@tum.de"); promote(rv_org, "organizer")
+    rv_org2 = mk_user(f"rvorg2-{tag}@tum.de"); promote(rv_org2, "organizer")
+    rv_t_admin = mk_user(f"rvadm-{tag}@tum.de"); promote(rv_t_admin, "tenant_admin")
+    rv_ev = mk_event(rv_org, tum, "Review removal", start="now() - interval '1 hour'", end="now() + interval '2 hours'", qr=False)
+    rv_ev2 = mk_event(rv_org2, tum, "Other reviews", start="now() - interval '1 hour'", end="now() + interval '2 hours'", qr=False)
+    rv_users = [mk_user(f"rv{i}-{tag}@tum.de") for i in range(3)]
+    for u in rv_users:
+        for ev in (rv_ev, rv_ev2):
+            s.user(u); s.call("select public.register_for_event(%s)", [ev])
+            s.user(u); s.call("select public.submit_review(%s,1,'rude words',true)", [ev])
+    s.postgres()
+    rv_ids = [r[0] for r in s.rows("select id from public.reviews where event_id = %s order by created_at, id", [rv_ev])]
+    check("three reviews exist to work with", len(rv_ids) == 3, str(len(rv_ids)))
+
+    def review_exists(rid):
+        s.postgres()
+        return s.scalar("select count(*) from public.reviews where id = %s", [rid]) == 1
+
+    s.anon()
+    s.fails("anonymous cannot remove a review", "select public.admin_delete_review(%s)", [rv_ids[0]], contains="permission denied")
+    s.fails("anonymous cannot read the feedback list", "select * from public.my_event_feedback()", contains="permission denied")
+    for who, uid in (("a student", rv_users[0]), ("the event's organizer", rv_org), ("a university admin of ANOTHER university", t_admin)):
+        s.user(uid)
+        _, err = s.call("select public.admin_delete_review(%s)", [rv_ids[0]])
+        check(f"{who} cannot remove a review", err is not None and "not_authorized" in err and review_exists(rv_ids[0]), str(err))
+    s.user(rv_users[0])
+    check("the author cannot delete the row directly either", upd("delete from public.reviews where id = %s", [rv_ids[0]]) != 1 and review_exists(rv_ids[0]))
+    s.user(rv_t_admin)
+    _, err = s.call("select public.admin_delete_review(%s)", [rv_ids[0]])
+    check("the university's own admin removes a review", err is None and not review_exists(rv_ids[0]), str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_delete_review(%s)", [rv_ids[1]])
+    check("the platform admin removes a review", err is None and not review_exists(rv_ids[1]), str(err))
+    check("the other reviews are untouched", review_exists(rv_ids[2]))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_delete_review(%s)", [rv_ids[1]])
+    check("removing a review that is gone says not_found", err is not None and "not_found" in err, str(err))
+
+    s.user(rv_org)
+    fb = s.rows("select event_id, event_title, comment from public.my_event_feedback()")
+    check("an organizer's feedback list holds only THEIR events", len(fb) == 1 and all(r[0] == rv_ev for r in fb), str(fb))
+    check("... with the event title", bool(fb) and fb[0][1] == "Review removal")
+    s.user(rv_org2)
+    fb = s.rows("select event_id from public.my_event_feedback()")
+    check("another organizer gets only their own", len(fb) == 3 and all(r[0] == rv_ev2 for r in fb), str(fb))
+    check("the list size can be limited", len(s.rows("select 1 from public.my_event_feedback(2)")) == 2)
+    s.user(rv_users[0])
+    check("a student gets an empty feedback list", len(s.rows("select 1 from public.my_event_feedback()")) == 0)
+    s.postgres()
+    cols = {r[0] for r in s.rows("select unnest(proargnames) from pg_proc where proname = 'my_event_feedback'")}
+    check("the feedback list does not reveal who wrote a review", "user_id" not in cols and "event_title" in cols, str(cols))
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
@@ -1137,7 +1411,8 @@ def run(s: Sim, tag: str) -> None:
                           "may_have_avatar", "can_have_avatar", "categories_ok", "my_organizer_doc_count",
                           "can_moderate_event", "report_event", "resolve_report",
                           "register_push_token", "unregister_push_token", "confirm_attendance", "event_insights",
-                          "event_seat_counts", "admin_delete_user", "admin_list_blocked_emails", "admin_unblock_email"},
+                          "event_seat_counts", "admin_delete_user", "admin_list_blocked_emails", "admin_unblock_email",
+                          "admin_delete_review", "my_event_feedback"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")

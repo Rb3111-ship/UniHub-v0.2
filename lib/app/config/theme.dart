@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 /// Both share the font, shapes and spacing; only the colours differ.
 class AppTheme {
   static const fontFamily = 'PlusJakartaSans';
+  /// Typewriter face for small labels, times and ticket numbers.
+  static const monoFamily = 'SpaceMono';
+  /// Deep navy used for ticket headers, date stubs and the side menu.
+  static const ink = Color(0xFF1F2A6B);
 
   // Light ("Clean & Calm")
-  static const lightBackground = Color(0xFFF6F7FB);
+  static const lightBackground = Color(0xFFE9ECF2);
   static const lightText = Color(0xFF12141C);
   static const lightMuted = Color(0xFF5B6070);
-  static const lightChip = Color(0xFFECEEF5);
+  static const lightChip = Color(0xFFDDE1EA);
 
   // Dark ("After Dark")
   static const darkBackground = Color(0xFF0D0D12);
@@ -95,20 +99,20 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         color: card,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(14),
           side: light ? BorderSide.none : BorderSide(color: border),
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: card,
         side: light ? BorderSide.none : BorderSide(color: border),
-        shape: const StadiumBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         labelStyle: TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w600, color: onSurface),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(64, 48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700, fontSize: 15),
         ),
       ),
@@ -117,14 +121,14 @@ class AppTheme {
           elevation: 0,
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(64, 48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           side: BorderSide(color: border ?? const Color(0xFFD5D9E5)),
           textStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700),
         ),
@@ -133,40 +137,42 @@ class AppTheme {
         filled: true,
         fillColor: card,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(10),
           borderSide: light ? BorderSide.none : BorderSide(color: border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: border ?? const Color(0xFFE3E6EF)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: light ? Colors.white : const Color(0xFF121219),
+        // Navy bar with typewriter labels, matching the side menu on PC.
+        backgroundColor: light ? ink : const Color(0xFF121219),
         surfaceTintColor: Colors.transparent,
-        elevation: light ? 3 : 0,
-        shadowColor: const Color(0x1A12141C),
-        indicatorColor: scheme.primary.withOpacity(0.16),
+        elevation: 0,
+        indicatorColor: light ? Colors.white : scheme.primary.withOpacity(0.16),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
+            // Not the typewriter face: with five tabs its wide letters do not fit.
             fontFamily: fontFamily,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-            fontSize: 12,
-            color: selected ? (light ? scheme.primary : onSurface) : muted,
+            fontSize: 11,
+            color: selected ? (light ? Colors.white : onSurface) : (light ? const Color(0xFFB9C0E6) : muted),
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return IconThemeData(color: selected ? scheme.primary : muted, size: 24);
+          return IconThemeData(
+              color: selected ? (light ? ink : scheme.primary) : (light ? const Color(0xFFB9C0E6) : muted), size: 24);
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -184,8 +190,8 @@ class AppTheme {
         unselectedLabelColor: muted,
         indicatorColor: scheme.primary,
         dividerColor: Colors.transparent,
-        labelStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w700, fontSize: 13),
-        unselectedLabelStyle: const TextStyle(fontFamily: fontFamily, fontWeight: FontWeight.w600, fontSize: 13),
+        labelStyle: const TextStyle(fontFamily: monoFamily, fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 0.4),
+        unselectedLabelStyle: const TextStyle(fontFamily: monoFamily, fontWeight: FontWeight.w400, fontSize: 12, letterSpacing: 0.4),
       ),
       textTheme: base.textTheme
           .copyWith(

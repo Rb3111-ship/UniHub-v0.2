@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/page_width.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -61,7 +62,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.privacyTitle)),
-      body: ListView(
+      body: PageWidth(maxWidth: 760, child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           section(Icons.storage_rounded, l10n.privacyWhatTitle, l10n.privacyWhatBody),
@@ -79,7 +80,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
           const SizedBox(height: 16),
           Text(l10n.privacyDeleteHint, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
         ],
-      ),
+      )),
     );
   }
 }

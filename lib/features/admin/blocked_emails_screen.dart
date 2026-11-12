@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/page_width.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -110,6 +111,6 @@ class _BlockedEmailsScreenState extends State<BlockedEmailsScreen> {
               ),
       );
     }
-    return Scaffold(appBar: AppBar(title: Text(l10n.adminBlockedTitle)), body: body);
+    return Scaffold(appBar: AppBar(title: Text(l10n.adminBlockedTitle)), body: PageWidth(maxWidth: 760, child: body));
   }
 }

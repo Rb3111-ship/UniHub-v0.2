@@ -72,17 +72,16 @@ class InsightsRepository {
   /// Feedback (verified and unverified) on events the current user manages,
   /// newest first, paired with the event title.
   Future<List<({Review review, String eventTitle})>> fetchFeedback() async {
-    final rows = await _client
-        .from('reviews')
-        .select('*, events(title)')
-        .order('created_at', ascending: false)
-        .limit(100);
+    // The server returns only reviews of events this user manages.
+    final rows = await _client.rpc('my_event_feedback', params: {'p_limit': 100}) as List;
     return rows.map((r) {
-      final event = r['events'];
-      return (
-        review: Review.fromRow(r),
-        eventTitle: event is Map ? (event['title'] as String? ?? '') : '',
-      );
+      final row = r as Map<String, dynamic>;
+      return (review: Review.fromRow(row), eventTitle: row['event_title'] as String? ?? '');
     }).toList();
+  }
+
+  /// Removes one review. Only admins are allowed to; the server checks that.
+  Future<void> deleteReview(String reviewId) async {
+    await _client.rpc('admin_delete_review', params: {'p_review': reviewId});
   }
 }

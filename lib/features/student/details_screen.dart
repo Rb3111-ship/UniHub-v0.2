@@ -9,9 +9,9 @@ import '../../../core/models/event_host.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/utils/add_to_calendar.dart';
 import '../../../core/utils/open_link.dart';
+import '../../../core/widgets/ticket_stub.dart';
 import '../../../core/widgets/event_image.dart';
 import '../../../core/widgets/poster_viewer.dart';
-import '../../../core/widgets/wallpaper.dart';
 import 'attendance_confirm_card.dart';
 import 'community_actions.dart';
 import 'register_action.dart';
@@ -41,266 +41,285 @@ class EventDetailsScreen extends StatelessWidget {
     final dateStr = '${DateFormat.yMMMEd(locale).format(event.date)}, '
         '${DateFormat.Hm(locale).format(event.date)} - ${DateFormat.Hm(locale).format(event.endDate)}';
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Wallpaper(pattern: appState.selectedWallpaper, brand: appState.getActiveTenantColor()),
-          ),
-          Column(
-            children: [
-              Expanded(
-                child: CustomScrollView(
-                  slivers: [
-                    SliverAppBar(
-                      expandedHeight: 280.0,
-                      pinned: true,
-                      backgroundColor: isDark ? const Color(0xFF1B1530) : brandColor,
-                      iconTheme: const IconThemeData(color: Colors.white),
-                      actions: [
-                        if (event.imageUrl != null)
-                          IconButton(
-                            tooltip: l10n.posterShowFull,
-                            icon: const Icon(Icons.open_in_full_rounded, color: Colors.white),
-                            onPressed: () => showPoster(context, event.imageUrl!, 'event-image-${event.id}'),
-                          ),
-                        if (appState.usesBackend && !appState.isGuest) FavoriteButton(event: event),
-                        // Reporting: not for your own events, and only while the event is live.
-                        if (appState.usesBackend && !appState.isGuest && !appState.isOwnEvent(event) && !event.isCancelled)
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                            onSelected: (_) => reportEventDialog(context, appState, event),
-                            itemBuilder: (_) => [
-                              PopupMenuItem(
-                                value: 'report',
-                                child: Row(children: [
-                                  const Icon(Icons.flag_outlined, size: 20),
-                                  const SizedBox(width: 12),
-                                  Text(l10n.reportTitle),
-                                ]),
-                              ),
-                            ],
-                          ),
-                      ],
-                      flexibleSpace: FlexibleSpaceBar(
-                        background: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            // Tap the poster to see all of it (the header crops it).
-                            GestureDetector(
-                              onTap: event.imageUrl == null
-                                  ? null
-                                  : () => showPoster(context, event.imageUrl!, 'event-image-${event.id}'),
-                              child: Hero(
-                                tag: 'event-image-${event.id}',
-                                child: EventImage(url: event.imageUrl, color: brandColor, iconSize: 72),
-                              ),
-                            ),
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.black.withOpacity(0.4),
-                                      Colors.transparent,
-                                      Colors.black.withOpacity(0.7)
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                  ),
-                                ),
-                              ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 16,
-                              left: 16,
-                              right: 16,
-                              child: Text(
-                                event.title,
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  decoration: event.isCancelled ? TextDecoration.lineThrough : null,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.all(16.0),
-                      sliver: SliverList(
-                        delegate: SliverChildListDelegate([
-                          if (appState.registrationFor(event.id)?.needsConfirmation ?? false) ...[
-                            AttendanceConfirmCard(registration: appState.registrationFor(event.id)!),
-                            const SizedBox(height: 16),
-                          ],
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: event.isUniversityOfficial
-                                      ? brandColor.withOpacity(isDark ? 0.25 : 0.12)
-                                      : theme.colorScheme.surfaceContainer,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  event.isUniversityOfficial
-                                      ? l10n.badgeOfficial(event.universityDomain.toUpperCase())
-                                      : l10n.badgePublic,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: event.isUniversityOfficial
-                                        ? (isDark ? Color.lerp(brandColor, Colors.white, 0.55) : brandColor)
-                                        : theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: event.categories
-                                        .map((c) => Container(
-                                              margin: const EdgeInsets.only(right: 6),
-                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: theme.colorScheme.surfaceContainer,
-                                                borderRadius: BorderRadius.circular(10),
-                                              ),
-                                              child: Text(
-                                                categoryLabel(l10n, c),
-                                                style: TextStyle(
-                                                    fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
-                                              ),
-                                            ))
-                                        .toList(),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (event.isModerated) ...[
-                            const SizedBox(height: 12),
-                            _notice(
-                                context,
-                                Icons.gpp_bad_outlined,
-                                (event.moderationNote ?? '').isEmpty
-                                    ? l10n.detailsModeratedBody
-                                    : '${l10n.detailsModeratedBody} ${event.moderationNote}',
-                                Colors.red),
-                          ] else if (event.isCancelled) ...[
-                            const SizedBox(height: 12),
-                            _notice(context, Icons.event_busy_rounded, l10n.detailsCancelledBody, Colors.red),
-                          ] else if (event.endDate.isBefore(DateTime.now())) ...[
-                            const SizedBox(height: 12),
-                            _notice(context, Icons.history_rounded, l10n.detailsEndedBody, Colors.grey),
-                          ],
-                          const SizedBox(height: 20),
-                          _buildGlassmorphicCard(
-                            context,
-                            child: Column(
-                              children: [
-                                _buildDetailRow(context, Icons.calendar_month_rounded, l10n.detailsDateTime, dateStr),
-                                const Divider(height: 20, thickness: 0.5),
-                                _buildDetailRow(context, Icons.location_on_rounded, l10n.detailsLocation, event.location),
-                                const Divider(height: 20, thickness: 0.5),
-                                _buildDetailRow(
-                                  context,
-                                  Icons.groups_rounded,
-                                  '',
-                                  event.capacity == null ? l10n.detailsUnlimited : l10n.detailsCapacity(event.capacity!),
-                                  hideLabel: true,
-                                ),
-                                const Divider(height: 20, thickness: 0.5),
-                                _buildDetailRow(
-                                  context,
-                                  Icons.star_rounded,
-                                  l10n.detailsEventRating,
-                                  rating == null
-                                      ? l10n.detailsNoRatings
-                                      : "${averageRating.toStringAsFixed(1)} / 5.0 (${l10n.detailsReviewCount(rating.count)})",
-                                  customTrailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: List.generate(5, (starIdx) {
-                                      return Icon(
-                                        Icons.star_rounded,
-                                        size: 16,
-                                        color: starIdx < averageRating.round() ? Colors.amber.shade700 : Colors.grey.shade400,
-                                      );
-                                    }),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (event.capacity != null && appState.seatsLeft(event) != null && !event.isCancelled)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: _SeatBar(event: event, left: appState.seatsLeft(event)!),
-                            ),
-                          if (!event.isCancelled && event.endDate.isAfter(DateTime.now()))
-                            Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: OutlinedButton.icon(
-                                onPressed: () => addToCalendar(context, event),
-                                icon: const Icon(Icons.event_available_rounded),
-                                label: Text(l10n.addToCalendar),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: isDark ? theme.colorScheme.onSurface : theme.colorScheme.primary,
-                                  backgroundColor: theme.cardTheme.color,
-                                  minimumSize: const Size(double.infinity, 50),
-                                ),
-                              ),
-                            ),
-                          if (event.organizerId != null) _HostCard(organizerId: event.organizerId!),
-                          if (event.hasContact) _ContactCard(event: event, color: brandColor),
-                          const SizedBox(height: 24),
-                          if (event.description.trim().isNotEmpty) ...[
-                            Text(l10n.detailsAbout,
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8),
-                            Text(event.description, style: theme.textTheme.bodyLarge?.copyWith(height: 1.6)),
-                            const SizedBox(height: 24),
-                          ],
-                          // Only real pictures of this event; no stock photos.
-                          if (gallery.isNotEmpty) ...[
-                            Text(l10n.detailsGallery,
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              height: 130,
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: gallery.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                                itemBuilder: (context, idx) => ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: SizedBox(width: 180, child: EventImage(url: gallery[idx], color: brandColor)),
-                                ),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 40),
-                        ]),
-                      ),
-                    ),
-                  ],
+    final category = event.categories.isEmpty ? null : event.categories.first;
+
+    // Kicker and title, like the top of a ticket.
+    final heading = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (category != null)
+          Text(categoryLabel(l10n, category).toUpperCase(),
+              style: monoStyle(
+                  size: 11, color: categoryColor(category, dark: isDark), weight: FontWeight.w700, spacing: 1.2)),
+        const SizedBox(height: 4),
+        // The save heart sits right beside the title it belongs to.
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                event.title,
+                style: TextStyle(
+                  fontSize: 26,
+                  height: 1.15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  decoration: event.isCancelled ? TextDecoration.lineThrough : null,
                 ),
               ),
-              _buildStickyBottomBar(context, appState, brandColor, l10n),
-            ],
+            ),
+            if (appState.usesBackend && !appState.isGuest)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Material(
+                  color: theme.cardTheme.color,
+                  shape: const CircleBorder(),
+                  elevation: isDark ? 0 : 1,
+                  child: FavoriteButton(event: event, color: theme.colorScheme.onSurface),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+      ],
+    );
+
+    final info = <Widget>[
+      if (appState.registrationFor(event.id)?.needsConfirmation ?? false) ...[
+        AttendanceConfirmCard(registration: appState.registrationFor(event.id)!),
+        const SizedBox(height: 16),
+      ],
+      Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: event.isUniversityOfficial
+                  ? brandColor.withOpacity(isDark ? 0.25 : 0.12)
+                  : theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              event.isUniversityOfficial
+                  ? l10n.badgeOfficial(event.universityDomain.toUpperCase())
+                  : l10n.badgePublic,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: event.isUniversityOfficial
+                    ? (isDark ? Color.lerp(brandColor, Colors.white, 0.55) : brandColor)
+                    : theme.colorScheme.onSurface,
+              ),
+            ),
           ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: event.categories
+                    .map((c) => Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            categoryLabel(l10n, c),
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+      if (event.isModerated) ...[
+        const SizedBox(height: 12),
+        _notice(
+            context,
+            Icons.gpp_bad_outlined,
+            (event.moderationNote ?? '').isEmpty
+                ? l10n.detailsModeratedBody
+                : '${l10n.detailsModeratedBody} ${event.moderationNote}',
+            Colors.red),
+      ] else if (event.isCancelled) ...[
+        const SizedBox(height: 12),
+        _notice(context, Icons.event_busy_rounded, l10n.detailsCancelledBody, Colors.red),
+      ] else if (event.endDate.isBefore(DateTime.now())) ...[
+        const SizedBox(height: 12),
+        _notice(context, Icons.history_rounded, l10n.detailsEndedBody, Colors.grey),
+      ],
+      const SizedBox(height: 20),
+      _buildGlassmorphicCard(
+        context,
+        child: Column(
+          children: [
+            _buildDetailRow(context, Icons.calendar_month_rounded, l10n.detailsDateTime, dateStr),
+            const Divider(height: 20, thickness: 0.5),
+            _buildDetailRow(context, Icons.location_on_rounded, l10n.detailsLocation, event.location),
+            const Divider(height: 20, thickness: 0.5),
+            _buildDetailRow(
+              context,
+              Icons.groups_rounded,
+              '',
+              event.capacity == null ? l10n.detailsUnlimited : l10n.detailsCapacity(event.capacity!),
+              hideLabel: true,
+            ),
+            const Divider(height: 20, thickness: 0.5),
+            _buildDetailRow(
+              context,
+              Icons.star_rounded,
+              l10n.detailsEventRating,
+              rating == null
+                  ? l10n.detailsNoRatings
+                  : "${averageRating.toStringAsFixed(1)} / 5.0 (${l10n.detailsReviewCount(rating.count)})",
+              customTrailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (starIdx) {
+                  return Icon(
+                    Icons.star_rounded,
+                    size: 16,
+                    color: starIdx < averageRating.round() ? Colors.amber.shade700 : Colors.grey.shade400,
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
+      ),
+      if (event.capacity != null && appState.seatsLeft(event) != null && !event.isCancelled)
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: _SeatBar(event: event, left: appState.seatsLeft(event)!),
+        ),
+      if (!event.isCancelled && event.endDate.isAfter(DateTime.now()))
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: OutlinedButton.icon(
+            onPressed: () => addToCalendar(context, event),
+            icon: const Icon(Icons.event_available_rounded),
+            label: Text(l10n.addToCalendar),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: isDark ? theme.colorScheme.onSurface : theme.colorScheme.primary,
+              backgroundColor: theme.cardTheme.color,
+              minimumSize: const Size(double.infinity, 50),
+            ),
+          ),
+        ),
+      if (event.organizerId != null) _HostCard(organizerId: event.organizerId!),
+      if (event.hasContact) _ContactCard(event: event, color: brandColor),
+      const SizedBox(height: 24),
+      if (event.description.trim().isNotEmpty) ...[
+        StubSectionHeader(l10n.detailsAbout),
+        const SizedBox(height: 8),
+        Text(event.description, style: theme.textTheme.bodyLarge?.copyWith(height: 1.6)),
+        const SizedBox(height: 24),
+      ],
+      // Only real pictures of this event; no stock photos.
+      if (gallery.isNotEmpty) ...[
+        StubSectionHeader(l10n.detailsGallery),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 130,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: gallery.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, idx) => ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(width: 180, child: EventImage(url: gallery[idx], color: brandColor)),
+            ),
+          ),
+        ),
+      ],
+      const SizedBox(height: 40),
+    ];
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: isDark ? const Color(0xFF1B1530) : AppTheme.ink,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          // Reporting: not for your own events, and only while the event is live.
+          if (appState.usesBackend && !appState.isGuest && !appState.isOwnEvent(event) && !event.isCancelled)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+              onSelected: (_) => reportEventDialog(context, appState, event),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'report',
+                  child: Row(children: [
+                    const Icon(Icons.flag_outlined, size: 20),
+                    const SizedBox(width: 12),
+                    Text(l10n.reportTitle),
+                  ]),
+                ),
+              ],
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            // The poster is always shown whole, never cropped. On a phone it sits
+            // above the details; on a PC it stays on the left while the details scroll.
+            child: LayoutBuilder(
+              builder: (context, box) {
+                if (box.maxWidth < 900) {
+                  return ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 760),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              heading,
+                              _Poster(event: event, color: brandColor, maxHeight: (box.maxHeight * 0.62).clamp(220, 560)),
+                              const SizedBox(height: 16),
+                              ...info,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1240),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: (box.maxWidth * 0.42).clamp(340, 540),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 24, 8, 24),
+                            child: _Poster(event: event, color: brandColor, maxHeight: box.maxHeight - 48),
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.fromLTRB(16, 24, 24, 24),
+                            children: [heading, ...info],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          _buildStickyBottomBar(context, appState, brandColor, l10n),
         ],
       ),
     );
@@ -330,7 +349,7 @@ class EventDetailsScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(14),
         border: isDark ? Border.all(color: theme.colorScheme.outlineVariant) : null,
         boxShadow: isDark ? null : const [BoxShadow(color: Color(0x0F12141C), blurRadius: 12, offset: Offset(0, 3))],
       ),
@@ -355,7 +374,7 @@ class EventDetailsScreen extends StatelessWidget {
           height: 42,
           decoration: BoxDecoration(
             color: isDark ? theme.colorScheme.surfaceContainer : theme.colorScheme.primary.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: theme.colorScheme.primary, size: 20),
         ),
@@ -365,10 +384,7 @@ class EventDetailsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!hideLabel) ...[
-                Text(
-                  label,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: theme.colorScheme.secondary),
-                ),
+                Text(label.toUpperCase(), style: monoStyle(size: 10, color: theme.colorScheme.secondary, spacing: 1.2)),
                 const SizedBox(height: 2),
               ],
               Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
@@ -651,7 +667,7 @@ class _ContactCard extends StatelessWidget {
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: color.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: color.withOpacity(0.35), width: 1.5),
         ),
         child: Column(
@@ -670,6 +686,60 @@ class _ContactCard extends StatelessWidget {
               link(Icons.phone_rounded, l10n.contactPhone, phone,
                   Uri(scheme: 'tel', path: phone.replaceAll(RegExp(r'[^0-9+]'), ''))),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The event poster, shown whole (never cropped) inside a dark frame. Tap it to
+/// zoom. Events without a poster get the small built-in artwork instead.
+class _Poster extends StatelessWidget {
+  const _Poster({required this.event, required this.color, required this.maxHeight});
+
+  final Event event;
+  final Color color;
+  final double maxHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = event.imageUrl;
+    final tag = 'event-image-${event.id}';
+    if (url == null || url.isEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          height: maxHeight.clamp(0, 180).toDouble(),
+          child: Hero(tag: tag, child: EventImage(url: null, color: color, seed: event.id, iconSize: 72)),
+        ),
+      );
+    }
+    final l10n = AppLocalizations.of(context)!;
+    return Tooltip(
+      message: l10n.posterShowFull,
+      child: GestureDetector(
+        onTap: () => showPoster(context, url, tag),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: ColoredBox(
+            color: const Color(0xFF10131F),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: Hero(
+                tag: tag,
+                child: Image.network(
+                  url,
+                  width: double.infinity,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, progress) => progress == null
+                      ? child
+                      : const SizedBox(height: 200, child: Center(child: CircularProgressIndicator(color: Colors.white))),
+                  errorBuilder: (_, __, ___) =>
+                      SizedBox(height: 180, child: EventImage(url: null, color: color, seed: event.id, iconSize: 72)),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

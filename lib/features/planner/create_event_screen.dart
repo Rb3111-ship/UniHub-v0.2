@@ -1,10 +1,11 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../../../core/widgets/ticket_stub.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/categories.dart';
 import '../../../core/models/event_host.dart';
@@ -34,7 +35,10 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
   final _websiteController = TextEditingController();
 
   final List<String> _selectedCategories = ['Sports'];
-  double _capacity = 100;
+  // Typed attendee limit (a number box with -/+ buttons instead of a slider).
+  final _capacityController = TextEditingController(text: '100');
+  static const _maxCapacity = 10000;
+  int get _capacity => int.tryParse(_capacityController.text.trim()) ?? 0;
   DateTime _selectedDate = _defaultStart();
   DateTime _endDate = _defaultStart().add(const Duration(hours: 2));
 
@@ -81,7 +85,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
       _allowReviews = e.allowReviews;
       _releaseUnconfirmed = e.releaseUnconfirmed;
       _unlimited = e.capacity == null;
-      _capacity = (e.capacity ?? 100).clamp(1, 1000).toDouble();
+      _capacityController.text = '${e.capacity ?? 100}';
       _imagePath = e.imagePath;
       _existingImageUrl = e.imageUrl;
       _contactEmailController.text = e.contactEmail ?? '';
@@ -93,6 +97,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     _descController.addListener(() => setState(() {}));
     _locationController.addListener(() => setState(() {}));
     _customCategoryController.addListener(() => setState(() {}));
+    _capacityController.addListener(() => setState(() {}));
   }
 
   @override
@@ -104,6 +109,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     _contactEmailController.dispose();
     _contactPhoneController.dispose();
     _websiteController.dispose();
+    _capacityController.dispose();
     super.dispose();
   }
 
@@ -244,7 +250,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         allowReviews: _allowReviews,
         releaseUnconfirmed: !_unlimited && _releaseUnconfirmed,
         categories: _categoriesForSave(),
-        capacity: _unlimited ? null : _capacity.round(),
+        capacity: _unlimited ? null : _capacity,
         priceCents: original.priceCents,
         status: original.status,
         imageUrl: original.imageUrl,
@@ -260,9 +266,16 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
       navigator.pop();
     } catch (e) {
       final denied = e is PostgrestException && e.code == '42501';
+      // The server refuses a seat limit below the number of people already registered.
+      final tooFewSeats = e is PostgrestException && e.message == 'capacity_below_registered';
+      final registered = tooFewSeats ? int.tryParse('${e.details ?? ''}') : null;
       messenger.showSnackBar(SnackBar(
         backgroundColor: Colors.red,
-        content: Text(denied ? l10n.eventPublishNotAllowed : l10n.eventPublishFailed),
+        content: Text(tooFewSeats
+            ? (registered == null ? l10n.formCapacityBelowRegisteredUnknown : l10n.formCapacityBelowRegistered(registered))
+            : denied
+                ? l10n.eventPublishNotAllowed
+                : l10n.eventPublishFailed),
       ));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -479,34 +492,14 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
               const SizedBox(height: 16),
 
               // Sliders & Toggles section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(child: _buildSectionHeader(localizations.formFieldCapacity)),
-                  Text(
-                    _unlimited ? '\u221e' : _capacity.round().toString(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: appState.getActiveTenantColor(),
-                    ),
-                  ),
-                ],
-              ),
+              _buildSectionHeader(localizations.formFieldCapacity),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
                 title: Text(localizations.formNoLimit, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                 value: _unlimited,
                 onChanged: (val) => setState(() => _unlimited = val),
               ),
-              Slider(
-                value: _capacity,
-                min: 1,
-                max: 1000,
-                label: _capacity.round().toString(),
-                activeColor: appState.getActiveTenantColor(),
-                onChanged: _unlimited ? null : (val) => setState(() => _capacity = val),
-              ),
+              if (!_unlimited) _buildCapacityInput(localizations, appState.getActiveTenantColor()),
               const SizedBox(height: 8),
 
               // Inferred Official Status Banner
@@ -654,7 +647,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       allowReviews: _allowReviews,
                       releaseUnconfirmed: !_unlimited && _releaseUnconfirmed,
                       categories: _categoriesForSave(),
-                      capacity: _unlimited ? null : _capacity.round(),
+                      capacity: _unlimited ? null : _capacity,
                       endDate: _endDate,
                       imagePath: imagePath,
                       contactEmail: EventContact.email(_contactEmailController.text),
@@ -701,7 +694,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                       _releaseUnconfirmed = false;
                       _selectedCategories.clear();
                       _selectedCategories.add('Sports');
-                      _capacity = 100;
+                      _capacityController.text = '100';
                       _unlimited = false;
                       _pickedBytes = null;
                       _selectedDate = _defaultStart();
@@ -803,17 +796,66 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     );
   }
 
+  /// Sets the attendee limit, kept between 1 and [_maxCapacity].
+  void _setCapacity(int value) {
+    final v = value.clamp(1, _maxCapacity);
+    _capacityController.value = TextEditingValue(
+      text: '$v',
+      selection: TextSelection.collapsed(offset: '$v'.length),
+    );
+  }
+
+  /// A number box with - and + buttons on each side for the attendee limit.
+  Widget _buildCapacityInput(AppLocalizations l10n, Color color) {
+    final current = _capacity;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        IconButton.filledTonal(
+          tooltip: '-1',
+          onPressed: current > 1 ? () => _setCapacity(current - 1) : null,
+          icon: const Icon(Icons.remove_rounded),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 120,
+          child: TextFormField(
+            key: const ValueKey('capacity-field'),
+            controller: _capacityController,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(5),
+            ],
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
+            decoration: const InputDecoration(
+              isDense: true,
+              errorMaxLines: 3,
+              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+            ),
+            validator: (val) {
+              if (_unlimited) return null;
+              final n = int.tryParse((val ?? '').trim());
+              return n == null || n < 1 || n > _maxCapacity ? l10n.formCapacityError(_maxCapacity) : null;
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          tooltip: '+1',
+          onPressed: current < _maxCapacity ? () => _setCapacity(current + 1) : null,
+          icon: const Icon(Icons.add_rounded),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(left: 2.0),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey,
-        ),
-      ),
+      child: Text(title.toUpperCase(),
+          style: monoStyle(size: 11, color: Theme.of(context).colorScheme.secondary, weight: FontWeight.w700, spacing: 1.4)),
     );
   }
 
@@ -834,7 +876,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     return Container(
       decoration: BoxDecoration(
         color: theme.cardTheme.color ?? Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isOfficial
               ? universityColor
@@ -850,7 +892,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

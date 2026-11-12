@@ -7,7 +7,10 @@ import '../../../core/models/event_model.dart';
 import '../../../core/models/event_search.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/motion.dart';
+import 'package:intl/intl.dart';
+import '../../../core/widgets/ticket_stub.dart';
 import 'event_cards.dart';
+import 'home_side_panel.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -16,8 +19,17 @@ class StudentHomeScreen extends StatefulWidget {
   State<StudentHomeScreen> createState() => _StudentHomeScreenState();
 }
 
-/// Width of the event column on wide screens.
+/// Width of the event column when tickets are shown one per row.
 const double _columnWidth = 760;
+
+/// Widest the whole page (events plus side column) gets on large monitors.
+const double _pageWidth = 1240;
+
+/// From this width on, tickets sit two per row.
+const double _twoColumnsFrom = 680;
+
+/// From this width on, the "next ticket / saved" column is shown.
+const double _sidePanelFrom = 1000;
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   final _searchController = TextEditingController();
@@ -267,25 +279,53 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
         // instead of stretching across the whole window.
         appBar: PreferredSize(
           preferredSize: appBar.preferredSize,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: _columnWidth + 32),
-              child: appBar,
+          child: LayoutBuilder(
+            builder: (context, box) => Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: box.maxWidth >= _twoColumnsFrom ? _pageWidth : _columnWidth + 32),
+                child: appBar,
+              ),
             ),
           ),
         ),
-        // The wallpaper is painted behind this screen by the surrounding WallpaperArea.
-        body: guest
-            ? _buildEventGrid(context, publicEvents, false, appState)
-            : TabBarView(
-                children: [
-                  // Feed 1: Campus Hub (University Official)
-                  _buildEventGrid(context, campusEvents, true, appState),
-                  // Feed 2: Public Events (Commercial/Public)
-                  _buildEventGrid(context, publicEvents, false, appState),
-                ],
+        // A PC window is not a wide phone: the events take the middle and, when
+        // there is room, the next ticket and saved events sit beside them.
+        body: LayoutBuilder(
+          builder: (context, box) {
+            final feed = guest
+                ? _buildEventGrid(context, publicEvents, false, appState)
+                : TabBarView(
+                    children: [
+                      // Feed 1: Campus Hub (University Official)
+                      _buildEventGrid(context, campusEvents, true, appState),
+                      // Feed 2: Public Events (Commercial/Public)
+                      _buildEventGrid(context, publicEvents, false, appState),
+                    ],
+                  );
+            if (guest || box.maxWidth < _sidePanelFrom) {
+              // Keep the tickets under the header instead of spreading over a huge monitor.
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: _pageWidth), child: feed),
+              );
+            }
+            return Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _pageWidth),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: feed),
+                    const SizedBox(width: 320, child: HomeSidePanel()),
+                  ],
+                ),
               ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -348,41 +388,59 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       );
     }
 
-    // The soonest event with a poster leads (or simply the soonest one).
-    final featured = events.take(5).firstWhere((e) => e.imageUrl != null, orElse: () => events.first);
-    final rest = [
-      for (final e in events)
-        if (e.id != featured.id) e
-    ];
-    final theme = Theme.of(context);
+    // Tickets grouped by month, one or two per row depending on the room.
+    final locale = Localizations.localeOf(context).toString();
+    final months = <String, List<Event>>{};
+    for (final e in events) {
+      months.putIfAbsent(DateFormat.yMMMM(locale).format(e.date), () => []).add(e);
+    }
 
     return RefreshIndicator(
       onRefresh: appState.refreshEvents,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-        children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: _columnWidth),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  FadeSlideIn(child: PressScale(child: FeaturedEventCard(event: featured))),
-                  if (rest.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Text(l10n.homeComingUp, style: theme.textTheme.titleLarge),
-                    const SizedBox(height: 10),
-                    for (final (i, e) in rest.indexed) ...[
-                      FadeSlideIn(index: i + 1, child: PressScale(child: EventRowCard(event: e))),
-                      const SizedBox(height: 10),
-                    ],
-                  ],
-                ],
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final columns = box.maxWidth >= _twoColumnsFrom ? 2 : 1;
+          var shown = 0;
+          final children = <Widget>[];
+          for (final entry in months.entries) {
+            if (children.isNotEmpty) children.add(const SizedBox(height: 22));
+            children.add(StubSectionHeader(entry.key));
+            children.add(const SizedBox(height: 12));
+            final list = entry.value;
+            for (var i = 0; i < list.length; i += columns) {
+              final rowEvents = list.skip(i).take(columns).toList();
+              final cards = [
+                for (final e in rowEvents)
+                  FadeSlideIn(index: shown++, child: PressScale(child: EventStubCard(event: e))),
+              ];
+              children.add(columns == 1
+                  ? cards.first
+                  : IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: cards[0]),
+                          const SizedBox(width: 14),
+                          Expanded(child: cards.length > 1 ? cards[1] : const SizedBox.shrink()),
+                        ],
+                      ),
+                    ));
+              children.add(const SizedBox(height: 12));
+            }
+          }
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: columns == 1 ? _columnWidth : double.infinity),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

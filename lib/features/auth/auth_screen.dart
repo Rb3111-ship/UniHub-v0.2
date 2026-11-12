@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/ticket_stub.dart';
+import '../../app/config/theme.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -190,6 +193,7 @@ class _AuthScreenState extends State<AuthScreen> {
         return [
           TextFormField(
             controller: _name,
+            inputFormatters: [LengthLimitingTextInputFormatter(80)],
             textCapitalization: TextCapitalization.words,
             autofillHints: const [AutofillHints.name],
             decoration: InputDecoration(labelText: l10n.authDisplayName, border: const OutlineInputBorder()),
@@ -283,26 +287,42 @@ class _AuthScreenState extends State<AuthScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Material(
+                color: theme.cardTheme.color,
+                elevation: theme.brightness == Brightness.dark ? 0 : 2,
+                shadowColor: const Color(0x3312141C),
+                borderRadius: BorderRadius.circular(16),
+                clipBehavior: Clip.antiAlias,
+                child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(Icons.school_rounded, size: 48, color: theme.colorScheme.primary),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.authWelcome,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                    // Navy header, like the top of a ticket.
+                    Container(
+                      color: theme.brightness == Brightness.dark ? const Color(0xFF1B1530) : AppTheme.ink,
+                      padding: const EdgeInsets.fromLTRB(24, 22, 24, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.school_rounded, size: 34, color: Colors.white),
+                          const SizedBox(height: 10),
+                          Text(
+                            l10n.authWelcome,
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(l10n.authTagline.toUpperCase(),
+                              style: monoStyle(size: 10.5, color: const Color(0xFFB9C0E6), spacing: 1.0)),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.authTagline,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: theme.colorScheme.secondary),
-                    ),
-                    const SizedBox(height: 28),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                     Text(title, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
                     ..._fields(l10n, appState),
@@ -324,8 +344,12 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 8),
                     ..._links(l10n, appState),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
+              ),
               ),
             ),
           ),

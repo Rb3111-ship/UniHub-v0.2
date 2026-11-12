@@ -197,18 +197,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get prefThemeMode => 'Design-Modus';
 
   @override
-  String get prefWallpaper => 'Hintergrundmuster';
-
-  @override
-  String get wallpaperNone => 'Keines';
-
-  @override
-  String get wallpaperGrid => 'Gitter';
-
-  @override
-  String get wallpaperSunset => 'Sonnenuntergang';
-
-  @override
   String get themeSystem => 'System';
 
   @override
@@ -779,10 +767,6 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine Hochschule - öffentliches Konto. Registriere dich mit deiner Hochschul-E-Mail, um beizutreten.';
 
   @override
-  String get wallpaperHint =>
-      'Wird in beiden Ansichten hinter den Hauptseiten angezeigt. Auf diesem Gerät gespeichert.';
-
-  @override
   String get privacyTitle => 'Datenschutz & Daten';
 
   @override
@@ -808,7 +792,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get privacyLocalBody =>
-      'Design und Hintergrund werden auf diesem Gerät gespeichert, nicht in deinem Konto.';
+      'Dein Design wird auf diesem Gerät gespeichert, nicht in deinem Konto.';
 
   @override
   String get privacyExport => 'Meine Daten kopieren';
@@ -1114,6 +1098,60 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Beginn liegt in der Vergangenheit. Bitte wähle eine spätere Zeit.';
 
   @override
+  String get adminRemoveReview => 'Bewertung entfernen';
+
+  @override
+  String get adminRemoveReviewConfirm =>
+      'Diese Bewertung wird endgültig gelöscht. Ihre Sterne zählen nicht mehr.';
+
+  @override
+  String get adminReviewRemoved => 'Bewertung entfernt.';
+
+  @override
+  String get profileNameNotAllowed =>
+      'Dieser Name kann nicht verwendet werden. Bitte wähle einen anderen.';
+
+  @override
+  String get homeNextTicket => 'Dein nächstes Ticket';
+
+  @override
+  String get homeNoTicketYet =>
+      'Noch kein Ticket. Melde dich für ein Event an, dann erscheint es hier.';
+
+  @override
+  String get homeSavedTitle => 'Gemerkt';
+
+  @override
+  String get homeSavedNone =>
+      'Tippe bei einem Event auf das Herz, um es hier zu merken.';
+
+  @override
+  String get ticketAdmitOne => 'Einlass für eine Person';
+
+  @override
+  String get profileRoleLabel => 'Rolle';
+
+  @override
+  String formCapacityBelowRegistered(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Personen sind',
+      one: '1 Person ist',
+    );
+    return '$_temp0 bereits angemeldet. Das Limit kann nicht darunter liegen.';
+  }
+
+  @override
+  String get formCapacityBelowRegisteredUnknown =>
+      'Das Limit kann nicht unter der Zahl der bereits angemeldeten Personen liegen.';
+
+  @override
+  String formCapacityError(int max) {
+    return 'Bitte eine Zahl von 1 bis $max eingeben.';
+  }
+
+  @override
   String get formNoLimit => 'Keine Teilnehmerbegrenzung';
 
   @override
@@ -1168,21 +1206,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dashboardClaimedAttendance => 'Gibt Teilnahme an';
-
-  @override
-  String get wallpaperDots => 'Punkte';
-
-  @override
-  String get wallpaperWaves => 'Wellen';
-
-  @override
-  String get wallpaperAurora => 'Polarlicht';
-
-  @override
-  String get wallpaperOcean => 'Ozean';
-
-  @override
-  String get wallpaperBubbles => 'Blasen';
 
   @override
   String get formCustomCategoryLabel => 'Eigene Kategorie (optional)';

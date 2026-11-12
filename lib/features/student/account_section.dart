@@ -16,32 +16,48 @@ class AccountSection extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final appState = context.watch<AppState>();
 
-    Widget tile(IconData icon, String title, VoidCallback onTap, {String? subtitle}) => Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: subtitle == null ? null : Text(subtitle),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: onTap,
-          ),
+    Widget tile(IconData icon, String title, VoidCallback onTap, {String? subtitle}) => ListTile(
+          leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          subtitle: subtitle == null ? null : Text(subtitle),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: onTap,
         );
+
+    final rows = [
+      tile(Icons.badge_outlined, l10n.profileEditName, () => _editName(context, appState, l10n),
+          subtitle: appState.activeProfile.name),
+      tile(Icons.lock_outline_rounded, l10n.profileChangePassword, () => _changePassword(context, appState, l10n)),
+      if (appState.canSwitchView)
+        tile(
+          Icons.swap_horiz_rounded,
+          appState.currentRole == UserRole.student ? l10n.profileSwitchToOrganizer : l10n.profileSwitchToStudent,
+          () => appState.setRole(
+            appState.currentRole == UserRole.student ? UserRole.planner : UserRole.student,
+          ),
+        ),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        tile(Icons.badge_outlined, l10n.profileEditName, () => _editName(context, appState, l10n),
-            subtitle: appState.activeProfile.name),
-        tile(Icons.lock_outline_rounded, l10n.profileChangePassword, () => _changePassword(context, appState, l10n)),
-        if (appState.canSwitchView)
-          tile(
-            Icons.swap_horiz_rounded,
-            appState.currentRole == UserRole.student ? l10n.profileSwitchToOrganizer : l10n.profileSwitchToStudent,
-            () => appState.setRole(
-              appState.currentRole == UserRole.student ? UserRole.planner : UserRole.student,
-            ),
+        // One card with the rows separated by thin lines, like a settings list.
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (final (i, row) in rows.indexed) ...[
+                if (i > 0) const Divider(height: 1, indent: 56),
+                row,
+              ],
+            ],
           ),
-        if (appState.dbRole == 'student') _BecomeOrganizerCard(appState: appState),
+        ),
+        if (appState.dbRole == 'student') ...[
+          const SizedBox(height: 12),
+          _BecomeOrganizerCard(appState: appState),
+        ],
       ],
     );
   }
@@ -80,8 +96,12 @@ class AccountSection extends StatelessWidget {
     try {
       await appState.updateDisplayName(name);
       messenger.showSnackBar(SnackBar(content: Text(l10n.profileSaved)));
-    } catch (_) {
-      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.authErrGeneric)));
+    } catch (e) {
+      final refused = e is PostgrestException && e.message == 'name_not_allowed';
+      messenger.showSnackBar(SnackBar(
+        backgroundColor: Colors.red,
+        content: Text(refused ? l10n.profileNameNotAllowed : l10n.authErrGeneric),
+      ));
     }
   }
 

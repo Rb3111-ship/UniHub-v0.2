@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/page_width.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_events_app/l10n/app_localizations.dart';
@@ -318,11 +319,11 @@ class _AdminScreenState extends State<AdminScreen> {
             Tab(text: l10n.adminUsers),
           ]),
         ),
-        body: TabBarView(children: [
+        body: PageWidth(maxWidth: 1100, child: TabBarView(children: [
           _requests(appState, l10n, theme),
           _reportsList(appState, l10n, theme),
           _users(appState, l10n, theme),
-        ]),
+        ])),
       ),
     );
   }

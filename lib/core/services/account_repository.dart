@@ -48,6 +48,9 @@ class AccountRepository {
   /// Removes the account and all of the user's data. Files the user uploaded are
   /// deleted first because the database cannot delete storage blobs itself.
   Future<void> deleteMyAccount() async {
+    // Ask the server first. It throws (has_events / last_admin) when the account
+    // may not be deleted, before any file is touched.
+    await _client.rpc('delete_my_account', params: {'p_dry_run': true});
     for (final name in ['event-images', 'avatars', 'organizer-docs']) {
       final bucket = _client.storage.from(name);
       final files = await bucket.list(path: _uid);

@@ -41,12 +41,12 @@ How the owner runs the website themselves (PowerShell): `cd D:\UniHub_v0.2`, the
 
 ## Database (Supabase project ref `xwdaygcezdbneoubimgv`)
 
-- Migrations are in `supabase/migrations/`, named `YYYYMMDDHHMMSS_name.sql`. The newest is `20261111000000_review_prompts.sql`. All of them have been applied to the live database.
+- Migrations are in `supabase/migrations/`, named `YYYYMMDDHHMMSS_name.sql`. The newest is `20261114000100_name_guard_definer.sql`. All of them have been applied to the live database.
 - To apply a new migration:
   1. `PYTHONIOENCODING=utf-8 python tools/dbtool.py apply supabase/migrations/<file>.sql`
   2. `python tools/dbtool.py baseline <version>`
 - To read data: `python tools/dbtool.py query "select ..."`.
-- Security tests: `PYTHONIOENCODING=utf-8 python tools/security_tests.py`. 674 checks must pass. They run against the live database inside a transaction that is rolled back.
+- Security tests: `PYTHONIOENCODING=utf-8 python tools/security_tests.py`. 776 checks must pass. They run against the live database inside a transaction that is rolled back.
 - **New functions and tables are not public by default.** Every new function needs `revoke all ... from public, anon, authenticated` plus explicit `grant`s. Then add it to `allowed_exec` in `tools/security_tests.py` (in the "[13] Privileges audit" section) if users may call it. New tables need RLS and appear in the `expected` table list there.
 - New SECURITY DEFINER functions use `set search_path = ''` with fully qualified names.
 - Background jobs use pg_cron. The jobs are `unihub-reminders`, `unihub-push-retry`, `unihub-notifications-cleanup`, `unihub-attendance-checks`, `unihub-purge-unconfirmed` (deletes sign-ups never confirmed after 20 minutes) and `unihub-review-prompts`.
@@ -70,7 +70,8 @@ How the owner runs the website themselves (PowerShell): `cd D:\UniHub_v0.2`, the
 - `lib/core/services/*_repository.dart` hold the Supabase calls. `lib/core/models/` holds the data classes.
 - `lib/features/` is split into student, planner (organizer), admin, auth and shell. The shell has the top bar and navigation: a bottom bar on phones and a side rail at 600 px and wider.
 - Texts must exist in both English and German (`lib/l10n/*.arb`).
-- **Wallpaper gotcha:** screens sit inside `WallpaperArea`, which makes `scaffoldBackgroundColor` transparent. When something needs a solid background (e.g. a pinned header), use `AppTheme.darkBackground` or `AppTheme.lightBackground`.
+- **Look ("ticket stub", chosen by the owner 2026-11-11):** events are drawn as tickets (`lib/core/widgets/ticket_stub.dart`, `EventStubCard`), with a category colour edge, a navy (`AppTheme.ink`) accent and Space Mono (`AppTheme.monoFamily`, `monoStyle`) for small labels. So far only the home and ticket screens use it; other screens follow once the owner approves. The wallpaper setting was removed on the owner's request.
+- **PC layout:** the home screen shows tickets two per row from 680 px and adds a right column (`HomeSidePanel`: next ticket, saved events) from 1000 px. The side menu spells out its labels from 1100 px.
 - **Wide-screen gotcha:** in a `Row`, don't give buttons a `Flexible` share. That pushes them into the middle on desktop. Use `ConstrainedBox(maxWidth: ...)` instead.
 - Tests (`test/backend_flow_test.dart`) use a fake backend and `_settle(tester, rounds: n)`, where each round is about 100 ms. Calls with `.timeout()` need more rounds.
 
