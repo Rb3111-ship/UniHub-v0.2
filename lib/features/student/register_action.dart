@@ -56,6 +56,7 @@ Future<void> registerWithFeedback(BuildContext context, AppState appState, Event
     final text = switch (e is PostgrestException ? e.message : '') {
       'event_over' => l10n.registerEventOver,
       'own_event' => l10n.registerOwnEvent,
+      'account_suspended' => l10n.suspendedAction,
       'event_not_available' => l10n.registerEventUnavailable,
       'paid_events_not_supported_yet' => l10n.registerPaidNotSupported,
       _ => l10n.registerFailed,

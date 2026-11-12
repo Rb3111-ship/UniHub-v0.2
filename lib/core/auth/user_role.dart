@@ -170,6 +170,10 @@ class AppState extends ChangeNotifier {
       _guest = true; // back to the public feed
       _avatarPath = null;
       _organizerVerified = false;
+      _suspended = false;
+      _emailCheckedAt = null;
+      _emailCheckExempt = false;
+      _emailCheckLapsed = false;
       _currentRole = UserRole.student;
       _currentTenant = '';
       _tenantId = null;
@@ -211,7 +215,8 @@ class AppState extends ChangeNotifier {
     try {
       final row = await c
           .from('profiles')
-          .select('display_name, role, tenant_id, locale, avatar_path, organizer_verified, '
+          .select('display_name, role, tenant_id, locale, avatar_path, organizer_verified, suspended_at, '
+              'email_checked_at, email_check_exempt, email_check_lapsed_at, '
               'notify_reminders, notify_updates, tenants(slug)')
           .eq('id', user.id)
           .single();
@@ -222,6 +227,11 @@ class AppState extends ChangeNotifier {
       _tenantId = row['tenant_id'] as String?;
       _avatarPath = row['avatar_path'] as String?;
       _organizerVerified = row['organizer_verified'] as bool? ?? false;
+      _suspended = row['suspended_at'] != null;
+      final checked = row['email_checked_at'] as String?;
+      _emailCheckedAt = checked == null ? null : DateTime.parse(checked).toLocal();
+      _emailCheckExempt = row['email_check_exempt'] as bool? ?? false;
+      _emailCheckLapsed = row['email_check_lapsed_at'] != null;
       _notifyReminders = row['notify_reminders'] as bool? ?? true;
       _notifyUpdates = row['notify_updates'] as bool? ?? true;
       final savedLocale = row['locale'] as String?;
@@ -306,6 +316,13 @@ class AppState extends ChangeNotifier {
       if (!_stillSignedInAs(uid)) return;
       _notifications = list;
       notifyListeners();
+      // A suspension or reinstatement arrived while the app was open: reload the profile.
+      for (final n in list) {
+        if (n.kind == 'account_suspended' || n.kind == 'account_reinstated') {
+          if ((n.kind == 'account_suspended') != _suspended) loadProfile();
+          break; // the list is newest first
+        }
+      }
     } catch (_) {
       // Shown again on the next refresh.
     }
@@ -496,6 +513,43 @@ class AppState extends ChangeNotifier {
   // Profile photo: organizers (once approved) and admins only; the database enforces it too.
   String? _avatarPath;
   bool _organizerVerified = false;
+
+  /// An admin paused this account while looking into reports. The server
+  /// refuses sign-ups, reviews, reports and publishing until it is lifted.
+  bool _suspended = false;
+  bool get isSuspended => _suspended;
+
+  // Yearly check that the university address still works (the server decides;
+  // this only tells the app when to ask).
+  static const emailCheckEvery = Duration(days: 365);
+  DateTime? _emailCheckedAt;
+  bool _emailCheckExempt = false;
+  bool _emailCheckLapsed = false;
+
+  String get accountEmail => _client?.auth.currentUser?.email ?? '';
+
+  /// The year is over and the person should confirm their address now.
+  bool get emailCheckDue =>
+      _tenantId != null &&
+      !_emailCheckExempt &&
+      _dbRole != 'platform_admin' &&
+      _emailCheckedAt != null &&
+      DateTime.now().isAfter(_emailCheckedAt!.add(emailCheckEvery));
+
+  /// The check was missed, so the account no longer belongs to its university.
+  bool get emailCheckLapsed => _emailCheckLapsed && _tenantId == null;
+
+  /// Sends a code to the account's own address.
+  Future<void> sendEmailCheckCode() =>
+      _client!.auth.signInWithOtp(email: accountEmail, shouldCreateUser: false).timeout(_requestTimeout);
+
+  /// Signs in again with the e-mailed code (the proof), then tells the server.
+  Future<void> confirmEmailCheck(String code) async {
+    await _client!.auth.verifyOTP(email: accountEmail, token: code.trim(), type: OtpType.email).timeout(_requestTimeout);
+    await _client!.rpc('confirm_university_email').timeout(_requestTimeout);
+    await loadProfile();
+    refreshEvents();
+  }
 
   bool get canHaveAvatar =>
       usesBackend &&
@@ -689,9 +743,9 @@ class AppState extends ChangeNotifier {
   /// Network calls give up after this long so a dropped connection never leaves a spinner forever.
   static const _requestTimeout = Duration(seconds: 20);
 
-  Future<void> reviewRequest(String id, bool approve, String? note) async {
+  Future<void> reviewRequest(String id, bool approve, String? note, {bool exempt = false}) async {
     final repo = _accountRepository!;
-    await repo.reviewRequest(id, approve, note);
+    await repo.reviewRequest(id, approve, note, exempt: exempt);
     // The documents were only needed for the decision, so they are deleted now.
     final docs = [for (final r in _requests) if (r.id == id) ...r.documents];
     try {
@@ -723,6 +777,20 @@ class AppState extends ChangeNotifier {
     await refreshUsers(search);
   }
 
+  /// Admin: switches the yearly e-mail check off or on for an organizer.
+  Future<void> setUserEmailCheckExempt(String userId, bool exempt, String search) async {
+    await _accountRepository!.setEmailCheckExempt(userId, exempt);
+    await refreshUsers(search);
+  }
+
+  /// Admin: pauses an account (reason required) or lifts the pause. Nothing is deleted.
+  Future<void> setUserSuspended(String userId, bool suspend, String? note, String search) async {
+    await _accountRepository!.setSuspended(userId, suspend, note);
+    await refreshUsers(search);
+    await refreshReports();
+    refreshEvents();
+  }
+
   /// Admin: deletes a user's account and events, optionally blocking the address.
   Future<void> removeUser(String userId, {required bool block, required String search}) async {
     await _accountRepository!.deleteUser(userId, block: block);
@@ -733,6 +801,9 @@ class AppState extends ChangeNotifier {
   }
 
   Future<List<BlockedEmail>> loadBlockedEmails() => _accountRepository!.listBlockedEmails();
+
+  /// Removed events and users with the reports about them, newest first.
+  Future<List<ModerationCase>> loadCaseFiles() => _communityRepository!.fetchCases().timeout(_requestTimeout);
 
   Future<void> unblockEmail(String email) => _accountRepository!.unblockEmail(email);
 

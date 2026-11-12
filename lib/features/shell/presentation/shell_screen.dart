@@ -9,6 +9,7 @@ import '../../student/home_screen.dart';
 import '../../student/tickets_screen.dart';
 import '../../student/profile_screen.dart';
 import '../../student/notifications_screen.dart';
+import '../../student/email_check_dialog.dart';
 import '../../planner/dashboard_screen.dart';
 import '../../planner/create_event_screen.dart';
 import '../../planner/qr_scanner_screen.dart';
@@ -188,9 +189,55 @@ class _ShellScreenState extends State<ShellScreen> {
             ),
 
           Expanded(
-            child: IndexedStack(
-              index: activeIndex,
-              children: activeScreens,
+            child: Column(
+              children: [
+                if (appState.isSuspended)
+                  Material(
+                    color: const Color(0xFFFFE9B8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.pause_circle_filled_rounded, color: Color(0xFF7A4B00), size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(localizations.suspendedBanner,
+                                style: const TextStyle(color: Color(0xFF4A2E00), fontSize: 13, fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (appState.emailCheckDue)
+                  Material(
+                    color: const Color(0xFFDCE6FF),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.mark_email_unread_rounded, color: AppTheme.ink, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(localizations.emailCheckBanner,
+                                style: const TextStyle(color: AppTheme.ink, fontSize: 13, fontWeight: FontWeight.w600)),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(foregroundColor: AppTheme.ink),
+                            onPressed: () => showEmailCheckDialog(context),
+                            child: Text(localizations.emailCheckConfirm),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: IndexedStack(
+                    index: activeIndex,
+                    children: activeScreens,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

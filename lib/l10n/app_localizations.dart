@@ -2114,6 +2114,384 @@ abstract class AppLocalizations {
   /// **'Role'**
   String get profileRoleLabel;
 
+  /// No description provided for @adminOpenCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} open'**
+  String adminOpenCount(int count);
+
+  /// No description provided for @adminReportsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{reports, plural, =1{1 report} other{{reports} reports}} on {events, plural, =1{1 event} other{{events} events}}'**
+  String adminReportsSummary(int reports, int events);
+
+  /// No description provided for @adminDismissAllBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The event stays online. All {count} open reports about it are closed.'**
+  String adminDismissAllBody(int count);
+
+  /// No description provided for @adminUnknownOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown organizer'**
+  String get adminUnknownOrganizer;
+
+  /// No description provided for @adminNeedsUniversity.
+  ///
+  /// In en, this message translates to:
+  /// **'University roles need an account with a university email.'**
+  String get adminNeedsUniversity;
+
+  /// No description provided for @caseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Case files'**
+  String get caseTitle;
+
+  /// No description provided for @caseIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Every suspension, reinstatement, removed event and removed user is recorded here together with the reports about them, as proof of why it happened. Who reported is not stored. Entries are kept for 12 months.'**
+  String get caseIntro;
+
+  /// No description provided for @caseEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No case files yet'**
+  String get caseEmpty;
+
+  /// No description provided for @caseUserRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'User removed'**
+  String get caseUserRemoved;
+
+  /// No description provided for @caseEventRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Event removed'**
+  String get caseEventRemoved;
+
+  /// No description provided for @caseBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Address blocked'**
+  String get caseBlocked;
+
+  /// No description provided for @caseReports.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No reports} =1{1 report} other{{count} reports}}'**
+  String caseReports(int count);
+
+  /// No description provided for @caseNoReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody had reported this account or its events.'**
+  String get caseNoReports;
+
+  /// No description provided for @caseAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get caseAbout;
+
+  /// No description provided for @caseDecided.
+  ///
+  /// In en, this message translates to:
+  /// **'Decided'**
+  String get caseDecided;
+
+  /// No description provided for @caseNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get caseNote;
+
+  /// No description provided for @caseEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get caseEvent;
+
+  /// No description provided for @caseCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy as text'**
+  String get caseCopy;
+
+  /// No description provided for @caseCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied.'**
+  String get caseCopied;
+
+  /// No description provided for @caseUserSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'User suspended'**
+  String get caseUserSuspended;
+
+  /// No description provided for @caseUserReinstated.
+  ///
+  /// In en, this message translates to:
+  /// **'User reinstated'**
+  String get caseUserReinstated;
+
+  /// No description provided for @adminSuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend'**
+  String get adminSuspend;
+
+  /// No description provided for @adminSuspendOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend organizer'**
+  String get adminSuspendOrganizer;
+
+  /// No description provided for @adminReinstate.
+  ///
+  /// In en, this message translates to:
+  /// **'Reinstate'**
+  String get adminReinstate;
+
+  /// No description provided for @adminSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended'**
+  String get adminSuspended;
+
+  /// No description provided for @adminSuspendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend {name}?'**
+  String adminSuspendTitle(String name);
+
+  /// No description provided for @adminSuspendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'While suspended, this account cannot sign up, review, report or publish, and its events are hidden from the feed. People who already have a ticket keep it. Nothing is deleted, and you can reinstate the account at any time.'**
+  String get adminSuspendBody;
+
+  /// No description provided for @adminSuspendNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason (required, kept in the case file)'**
+  String get adminSuspendNoteHint;
+
+  /// No description provided for @adminReinstateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reinstate {name}?'**
+  String adminReinstateTitle(String name);
+
+  /// No description provided for @adminReinstateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The account works normally again and its events return to the feed.'**
+  String get adminReinstateBody;
+
+  /// No description provided for @adminReinstateNoteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What did the check find? (optional)'**
+  String get adminReinstateNoteHint;
+
+  /// No description provided for @adminUserSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is suspended'**
+  String adminUserSuspended(String name);
+
+  /// No description provided for @adminUserReinstated.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is reinstated'**
+  String adminUserReinstated(String name);
+
+  /// No description provided for @suspendedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is suspended while we look into reports about it. Until this is decided you cannot sign up for events, write reviews or publish events. Tickets you already have stay valid.'**
+  String get suspendedBanner;
+
+  /// No description provided for @suspendedAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is suspended, so this is not possible right now.'**
+  String get suspendedAction;
+
+  /// No description provided for @notifSuspendedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account suspended'**
+  String get notifSuspendedTitle;
+
+  /// No description provided for @notifSuspendedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is suspended while we look into reports about it. Tickets you already have stay valid.'**
+  String get notifSuspendedBody;
+
+  /// No description provided for @notifReinstatedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account reinstated'**
+  String get notifReinstatedTitle;
+
+  /// No description provided for @notifReinstatedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The check is finished. You can use UniHub normally again.'**
+  String get notifReinstatedBody;
+
+  /// No description provided for @notifEmailCheckDueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your university email'**
+  String get notifEmailCheckDueTitle;
+
+  /// No description provided for @notifEmailCheckDueBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm within 30 days that your university address still works. You can do it in your profile.'**
+  String get notifEmailCheckDueBody;
+
+  /// No description provided for @notifEmailCheckLapsedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'University access paused'**
+  String get notifEmailCheckLapsedTitle;
+
+  /// No description provided for @notifEmailCheckLapsedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your university address was not confirmed, so you now see public events only. You can confirm it any time in your profile.'**
+  String get notifEmailCheckLapsedBody;
+
+  /// No description provided for @emailCheckBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly check: please confirm that your university email still works.'**
+  String get emailCheckBanner;
+
+  /// No description provided for @emailCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your university email'**
+  String get emailCheckTitle;
+
+  /// No description provided for @emailCheckBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Once a year we check that university addresses still work. We send a code to {email}. Type it in here and you are done for another year.'**
+  String emailCheckBody(String email);
+
+  /// No description provided for @emailCheckSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get emailCheckSend;
+
+  /// No description provided for @emailCheckResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again'**
+  String get emailCheckResend;
+
+  /// No description provided for @emailCheckSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent. Please check your inbox (and the spam folder).'**
+  String get emailCheckSent;
+
+  /// No description provided for @emailCheckCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Code from the email'**
+  String get emailCheckCodeHint;
+
+  /// No description provided for @emailCheckConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get emailCheckConfirm;
+
+  /// No description provided for @emailCheckDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you. Your university email is confirmed.'**
+  String get emailCheckDone;
+
+  /// No description provided for @emailCheckWrongCode.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is wrong or has expired.'**
+  String get emailCheckWrongCode;
+
+  /// No description provided for @emailCheckSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The code could not be sent. Please try again in a minute.'**
+  String get emailCheckSendFailed;
+
+  /// No description provided for @universityCheckDue.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly check due. Tap to confirm your email.'**
+  String get universityCheckDue;
+
+  /// No description provided for @universityLapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not confirmed this year. Tap to confirm your university email.'**
+  String get universityLapsed;
+
+  /// No description provided for @adminPermanentAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanent organization address (for example AStA): no yearly email check'**
+  String get adminPermanentAddress;
+
+  /// No description provided for @adminNoYearlyCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'No yearly email check'**
+  String get adminNoYearlyCheck;
+
+  /// No description provided for @adminYearlyCheckOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch yearly email check off'**
+  String get adminYearlyCheckOff;
+
+  /// No description provided for @adminYearlyCheckOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch yearly email check on'**
+  String get adminYearlyCheckOn;
+
+  /// No description provided for @adminYearlyCheckIsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly email check is off for this account.'**
+  String get adminYearlyCheckIsOff;
+
+  /// No description provided for @adminYearlyCheckIsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Yearly email check is on for this account.'**
+  String get adminYearlyCheckIsOn;
+
+  /// No description provided for @ticketsPastHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Past events stay here for 90 days.'**
+  String get ticketsPastHint;
+
   /// No description provided for @formCapacityBelowRegistered.
   ///
   /// In en, this message translates to:

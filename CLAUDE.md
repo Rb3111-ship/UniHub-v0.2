@@ -33,7 +33,7 @@ F=/c/src/flutter/bin/flutter
 |---|---|
 | Regenerate translations after editing `lib/l10n/app_en.arb` / `app_de.arb` | `$F gen-l10n` |
 | Analyze | `$F analyze` (only "info" messages are expected, no errors or warnings) |
-| App tests | `$F test` (46 tests) |
+| App tests | `$F test` (47 tests) |
 | APK | `$F build apk --release` (5–7 minutes; run in the background), then copy `build/app/outputs/flutter-apk/app-release.apk` to `D:/UniHub_APK/UniHub-v<version>.apk` |
 | Web build | `$F build web`, then serve `build/web` (e.g. `python -m http.server 8080 --bind 127.0.0.1`) |
 
@@ -41,15 +41,15 @@ How the owner runs the website themselves (PowerShell): `cd D:\UniHub_v0.2`, the
 
 ## Database (Supabase project ref `xwdaygcezdbneoubimgv`)
 
-- Migrations are in `supabase/migrations/`, named `YYYYMMDDHHMMSS_name.sql`. The newest is `20261114000100_name_guard_definer.sql`. All of them have been applied to the live database.
+- Migrations are in `supabase/migrations/`, named `YYYYMMDDHHMMSS_name.sql`. The newest is `20261118000000_yearly_email_check.sql`. All of them have been applied to the live database.
 - To apply a new migration:
   1. `PYTHONIOENCODING=utf-8 python tools/dbtool.py apply supabase/migrations/<file>.sql`
   2. `python tools/dbtool.py baseline <version>`
 - To read data: `python tools/dbtool.py query "select ..."`.
-- Security tests: `PYTHONIOENCODING=utf-8 python tools/security_tests.py`. 776 checks must pass. They run against the live database inside a transaction that is rolled back.
+- Security tests: `PYTHONIOENCODING=utf-8 python tools/security_tests.py`. 920 checks must pass (takes about 3 minutes; run it in the background). They run against the live database inside a transaction that is rolled back.
 - **New functions and tables are not public by default.** Every new function needs `revoke all ... from public, anon, authenticated` plus explicit `grant`s. Then add it to `allowed_exec` in `tools/security_tests.py` (in the "[13] Privileges audit" section) if users may call it. New tables need RLS and appear in the `expected` table list there.
 - New SECURITY DEFINER functions use `set search_path = ''` with fully qualified names.
-- Background jobs use pg_cron. The jobs are `unihub-reminders`, `unihub-push-retry`, `unihub-notifications-cleanup`, `unihub-attendance-checks`, `unihub-purge-unconfirmed` (deletes sign-ups never confirmed after 20 minutes) and `unihub-review-prompts`.
+- Background jobs use pg_cron. The jobs are `unihub-reminders`, `unihub-push-retry`, `unihub-notifications-cleanup`, `unihub-attendance-checks`, `unihub-purge-unconfirmed` (deletes sign-ups never confirmed after 20 minutes), `unihub-review-prompts`, `unihub-cases-cleanup` (deletes case files older than 12 months) and `unihub-email-checks` (yearly university e-mail check).
 - Notifications flow: a row in `public.notifications` → pg_net calls the `send-push` Edge Function → Firebase Cloud Messaging. Adding a notification kind needs four changes:
   - the `notifications_kind_check` constraint
   - the texts in `supabase/functions/send-push/index.ts`
@@ -84,6 +84,11 @@ How the owner runs the website themselves (PowerShell): `cd D:\UniHub_v0.2`, the
   - At events without scanning, anyone with a ticket may review in good faith. Those reviews are unverified: only the organizer sees them, and they don't count in the stars.
   - The owner confirmed this rule should stay as it is.
 - "How was it?" review invitations go out about 1 hour after an event ends, once per person, only to people allowed to review.
+- University organizer and university admin roles are only for accounts with a university email (the server refuses otherwise).
+- Reports are shown stacked: organizer, then their reported events, then the single reports. Removing an event or a user writes a **case file** (`moderation_cases`, read through `admin_list_cases`) holding the reports as evidence. Case files never store who reported and are kept 12 months.
+- **Suspension comes before removal** (`admin_set_suspended`, `profiles.suspended_at`). It needs a written reason and is reversible. While suspended, an account cannot sign up, review, report, publish, edit or scan, and its events are hidden from the feed (ticket holders keep seeing theirs). Suspending and reinstating each write a case file. The suspended person sees a banner in the app and gets a notification (`account_suspended` / `account_reinstated`, sent regardless of their notification preferences).
+- **Yearly e-mail check (decided 2026-11-12):** one year after an address was last proven, every university account (students, organizers, university admins; never platform admins) is asked to enter a code sent to that address (`confirm_university_email`, which only accepts a session started with an e-mailed code in the last 15 minutes). After 30 more days without it, `process_email_checks` removes the university from the account and turns organizers / university admins into students. Nothing is deleted, and confirming later brings the university back (not the role). Permanent office addresses (AStA...) can be exempted: a checkbox when approving a university organizer, or in the Users menu (`admin_set_email_check`). The code e-mail is Supabase's "Magic Link" template, which must show `{{ .Token }}`.
+- Past tickets are listed for 90 days after the event ended (`pastTicketsKept`); the data itself is not deleted.
 - Admins can remove users and optionally block their email. Blocks can be lifted under "Blocked addresses". Removing a user also deletes their uploaded files.
 
 ## Documents

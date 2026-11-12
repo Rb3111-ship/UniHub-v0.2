@@ -5,6 +5,9 @@ import '../models/registration_model.dart';
 /// Registrations, tickets and door check-in, all backed by database functions
 /// (`register_for_event`, `cancel_registration`, `check_in_ticket`) so capacity,
 /// the waitlist and ticket validity are enforced on the server.
+/// How long a ticket stays under "Past events" after its event ended.
+const pastTicketsKept = Duration(days: 90);
+
 class RegistrationRepository {
   RegistrationRepository(this._client, this._domainForSlug);
 
@@ -29,10 +32,12 @@ class RegistrationRepository {
     if (uid == null) return [];
     final rows = await _client
         .from('registrations')
-        .select('id, status, confirm_asked_at, confirmed_at, events(*, tenants(slug)), '
+        .select('id, status, confirm_asked_at, confirmed_at, events!inner(*, tenants(slug)), '
             'tickets(code, ticket_number, checked_in_at, voided_at)')
         .eq('user_id', uid)
-        .neq('status', 'cancelled');
+        .neq('status', 'cancelled')
+        // Tickets of events that ended more than 90 days ago are no longer listed.
+        .gte('events.ends_at', DateTime.now().toUtc().subtract(pastTicketsKept).toIso8601String());
 
     final result = <Registration>[];
     for (final row in rows) {

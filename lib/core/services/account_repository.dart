@@ -209,12 +209,19 @@ class AccountRepository {
     return list;
   }
 
-  Future<void> reviewRequest(String id, bool approve, String? note) async {
+  /// [exempt]: a permanent organization address, so no yearly e-mail check.
+  Future<void> reviewRequest(String id, bool approve, String? note, {bool exempt = false}) async {
     await _client.rpc('review_organizer_request', params: {
       'p_request': id,
       'p_approve': approve,
       'p_note': note,
+      'p_exempt': exempt,
     });
+  }
+
+  /// Switches the yearly e-mail check off (exempt) or on for an organizer.
+  Future<void> setEmailCheckExempt(String userId, bool exempt) async {
+    await _client.rpc('admin_set_email_check', params: {'p_user': userId, 'p_exempt': exempt});
   }
 
   Future<List<AdminUser>> listUsers(String search) async {
@@ -235,6 +242,15 @@ class AccountRepository {
 
   Future<void> unblockEmail(String email) async {
     await _client.rpc('admin_unblock_email', params: {'p_email': email});
+  }
+
+  /// Suspends (a reason is required) or reinstates an account.
+  Future<void> setSuspended(String userId, bool suspend, String? note) async {
+    await _client.rpc('admin_set_suspended', params: {
+      'p_user': userId,
+      'p_suspend': suspend,
+      'p_note': note,
+    });
   }
 
   Future<void> setRole(String userId, String role, bool verified) async {

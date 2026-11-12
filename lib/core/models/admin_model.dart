@@ -114,6 +114,8 @@ class AdminUser {
   final DateTime createdAt;
   final bool emailConfirmed;
   final int eventCount; // events this person organizes
+  final DateTime? suspendedAt; // set while an admin is looking into reports
+  final bool emailCheckExempt; // permanent organization address: no yearly e-mail check
 
   const AdminUser({
     required this.id,
@@ -125,6 +127,8 @@ class AdminUser {
     required this.createdAt,
     this.emailConfirmed = true,
     this.eventCount = 0,
+    this.suspendedAt,
+    this.emailCheckExempt = false,
   });
 
   factory AdminUser.fromRow(Map<String, dynamic> row) => AdminUser(
@@ -137,9 +141,12 @@ class AdminUser {
         createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
         emailConfirmed: (row['email_confirmed'] as bool?) ?? true,
         eventCount: (row['event_count'] as num?)?.toInt() ?? 0,
+        suspendedAt: row['suspended_at'] == null ? null : DateTime.parse(row['suspended_at'] as String).toLocal(),
+        emailCheckExempt: (row['email_check_exempt'] as bool?) ?? false,
       );
 
   bool get isAdmin => role == 'platform_admin' || role == 'tenant_admin';
+  bool get isSuspended => suspendedAt != null;
 }
 
 /// An address an admin blocked from signing up.
@@ -167,6 +174,9 @@ class EventReport {
   final String eventTitle;
   final DateTime? eventStart;
   final String eventStatus;
+  final String? organizerId; // who runs the reported event
+  final String organizerName;
+  final bool organizerSuspended;
   final String reason;
   final String details;
   final String status; // open | dismissed | removed
@@ -176,6 +186,9 @@ class EventReport {
     required this.id,
     required this.eventId,
     required this.reporterId,
+    this.organizerId,
+    this.organizerName = '',
+    this.organizerSuspended = false,
     required this.eventTitle,
     required this.eventStart,
     required this.eventStatus,
@@ -188,7 +201,11 @@ class EventReport {
   factory EventReport.fromRow(Map<String, dynamic> row) {
     final event = row['events'] as Map?;
     final start = event?['starts_at'] as String?;
+    final organizer = event?['profiles'];
     return EventReport(
+      organizerId: event?['organizer_id'] as String?,
+      organizerName: organizer is Map ? (organizer['display_name'] as String? ?? '') : '',
+      organizerSuspended: organizer is Map && organizer['suspended_at'] != null,
       id: row['id'] as String,
       eventId: row['event_id'] as String,
       reporterId: row['reporter_id'] as String,
@@ -203,4 +220,66 @@ class EventReport {
   }
 
   bool get isOpen => status == 'open';
+}
+
+/// One report inside a case file. Who reported is never stored.
+class CaseEvidence {
+  final String eventTitle;
+  final String reason;
+  final String details;
+  final DateTime reportedAt;
+
+  const CaseEvidence({required this.eventTitle, required this.reason, required this.details, required this.reportedAt});
+
+  factory CaseEvidence.fromJson(Map<String, dynamic> j) => CaseEvidence(
+        eventTitle: (j['event_title'] as String?) ?? '',
+        reason: (j['reason'] as String?) ?? 'other',
+        details: (j['details'] as String?) ?? '',
+        reportedAt: DateTime.parse(j['reported_at'] as String).toLocal(),
+      );
+}
+
+/// The lasting record of a suspension, a reinstatement, a removed event or a
+/// removed user, with the reports about them as evidence.
+class ModerationCase {
+  final String id;
+  final DateTime createdAt;
+  final String action; // event_removed | user_removed | user_suspended | user_reinstated
+  final String subjectName;
+  final String subjectEmail;
+  final String? eventTitle;
+  final String? note;
+  final bool emailBlocked;
+  final String decidedBy;
+  final List<CaseEvidence> evidence;
+
+  const ModerationCase({
+    required this.id,
+    required this.createdAt,
+    required this.action,
+    required this.subjectName,
+    required this.subjectEmail,
+    required this.eventTitle,
+    required this.note,
+    required this.emailBlocked,
+    required this.decidedBy,
+    required this.evidence,
+  });
+
+  factory ModerationCase.fromRow(Map<String, dynamic> row) => ModerationCase(
+        id: row['id'] as String,
+        createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
+        action: row['action'] as String,
+        subjectName: (row['subject_name'] as String?) ?? '',
+        subjectEmail: (row['subject_email'] as String?) ?? '',
+        eventTitle: row['event_title'] as String?,
+        note: row['note'] as String?,
+        emailBlocked: (row['email_blocked'] as bool?) ?? false,
+        decidedBy: (row['decided_by_name'] as String?) ?? '',
+        evidence: [
+          for (final e in (row['evidence'] as List?) ?? const []) CaseEvidence.fromJson(e as Map<String, dynamic>),
+        ],
+      );
+
+  bool get isAboutEvent => action == 'event_removed';
 }

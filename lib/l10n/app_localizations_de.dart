@@ -1132,6 +1132,252 @@ class AppLocalizationsDe extends AppLocalizations {
   String get profileRoleLabel => 'Rolle';
 
   @override
+  String adminOpenCount(int count) {
+    return '$count offen';
+  }
+
+  @override
+  String adminReportsSummary(int reports, int events) {
+    String _temp0 = intl.Intl.pluralLogic(
+      reports,
+      locale: localeName,
+      other: '$reports Meldungen',
+      one: '1 Meldung',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      events,
+      locale: localeName,
+      other: '$events Events',
+      one: '1 Event',
+    );
+    return '$_temp0 zu $_temp1';
+  }
+
+  @override
+  String adminDismissAllBody(int count) {
+    return 'Das Event bleibt online. Alle $count offenen Meldungen dazu werden geschlossen.';
+  }
+
+  @override
+  String get adminUnknownOrganizer => 'Unbekannter Veranstalter';
+
+  @override
+  String get adminNeedsUniversity =>
+      'Hochschul-Rollen brauchen ein Konto mit Hochschul-E-Mail.';
+
+  @override
+  String get caseTitle => 'Fallakten';
+
+  @override
+  String get caseIntro =>
+      'Jede Sperre, jede Freigabe, jedes entfernte Event und jedes entfernte Konto wird hier mit den Meldungen dazu festgehalten, als Nachweis für den Grund. Wer gemeldet hat, wird nicht gespeichert. Einträge bleiben 12 Monate.';
+
+  @override
+  String get caseEmpty => 'Noch keine Fallakten';
+
+  @override
+  String get caseUserRemoved => 'Konto entfernt';
+
+  @override
+  String get caseEventRemoved => 'Event entfernt';
+
+  @override
+  String get caseBlocked => 'Adresse gesperrt';
+
+  @override
+  String caseReports(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Meldungen',
+      one: '1 Meldung',
+      zero: 'Keine Meldungen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get caseNoReports =>
+      'Niemand hatte dieses Konto oder seine Events gemeldet.';
+
+  @override
+  String get caseAbout => 'Betrifft';
+
+  @override
+  String get caseDecided => 'Entschieden';
+
+  @override
+  String get caseNote => 'Notiz';
+
+  @override
+  String get caseEvent => 'Event';
+
+  @override
+  String get caseCopy => 'Als Text kopieren';
+
+  @override
+  String get caseCopied => 'Kopiert.';
+
+  @override
+  String get caseUserSuspended => 'Konto gesperrt';
+
+  @override
+  String get caseUserReinstated => 'Konto wieder freigegeben';
+
+  @override
+  String get adminSuspend => 'Sperren';
+
+  @override
+  String get adminSuspendOrganizer => 'Veranstalter sperren';
+
+  @override
+  String get adminReinstate => 'Wieder freigeben';
+
+  @override
+  String get adminSuspended => 'Gesperrt';
+
+  @override
+  String adminSuspendTitle(String name) {
+    return '$name sperren?';
+  }
+
+  @override
+  String get adminSuspendBody =>
+      'Solange das Konto gesperrt ist, kann es sich nicht anmelden, nicht bewerten, nicht melden und nichts veröffentlichen. Seine Events sind nicht mehr in der Übersicht. Wer schon ein Ticket hat, behält es. Es wird nichts gelöscht, und du kannst das Konto jederzeit wieder freigeben.';
+
+  @override
+  String get adminSuspendNoteHint => 'Grund (Pflicht, steht in der Fallakte)';
+
+  @override
+  String adminReinstateTitle(String name) {
+    return '$name wieder freigeben?';
+  }
+
+  @override
+  String get adminReinstateBody =>
+      'Das Konto funktioniert wieder normal und seine Events sind wieder in der Übersicht.';
+
+  @override
+  String get adminReinstateNoteHint =>
+      'Was hat die Prüfung ergeben? (optional)';
+
+  @override
+  String adminUserSuspended(String name) {
+    return '$name ist gesperrt';
+  }
+
+  @override
+  String adminUserReinstated(String name) {
+    return '$name ist wieder freigegeben';
+  }
+
+  @override
+  String get suspendedBanner =>
+      'Dein Konto ist gesperrt, während wir Meldungen dazu prüfen. Bis zur Entscheidung kannst du dich nicht für Events anmelden, keine Bewertungen schreiben und keine Events veröffentlichen. Tickets, die du schon hast, bleiben gültig.';
+
+  @override
+  String get suspendedAction =>
+      'Dein Konto ist gesperrt. Das geht deshalb gerade nicht.';
+
+  @override
+  String get notifSuspendedTitle => 'Konto gesperrt';
+
+  @override
+  String get notifSuspendedBody =>
+      'Dein Konto ist gesperrt, während wir Meldungen dazu prüfen. Tickets, die du schon hast, bleiben gültig.';
+
+  @override
+  String get notifReinstatedTitle => 'Konto wieder freigegeben';
+
+  @override
+  String get notifReinstatedBody =>
+      'Die Prüfung ist abgeschlossen. Du kannst UniHub wieder normal nutzen.';
+
+  @override
+  String get notifEmailCheckDueTitle => 'Hochschul-E-Mail bestätigen';
+
+  @override
+  String get notifEmailCheckDueBody =>
+      'Bitte bestätige innerhalb von 30 Tagen, dass deine Hochschul-Adresse noch funktioniert. Das geht in deinem Profil.';
+
+  @override
+  String get notifEmailCheckLapsedTitle => 'Hochschul-Zugang pausiert';
+
+  @override
+  String get notifEmailCheckLapsedBody =>
+      'Deine Hochschul-Adresse wurde nicht bestätigt. Du siehst jetzt nur öffentliche Events. Im Profil kannst du sie jederzeit bestätigen.';
+
+  @override
+  String get emailCheckBanner =>
+      'Jährliche Prüfung: Bitte bestätige, dass deine Hochschul-E-Mail noch funktioniert.';
+
+  @override
+  String get emailCheckTitle => 'Hochschul-E-Mail bestätigen';
+
+  @override
+  String emailCheckBody(String email) {
+    return 'Einmal im Jahr prüfen wir, ob Hochschul-Adressen noch funktionieren. Wir schicken einen Code an $email. Gib ihn hier ein, dann ist für ein weiteres Jahr alles erledigt.';
+  }
+
+  @override
+  String get emailCheckSend => 'Code senden';
+
+  @override
+  String get emailCheckResend => 'Erneut senden';
+
+  @override
+  String get emailCheckSent =>
+      'Code gesendet. Bitte schau in dein Postfach (auch in den Spam-Ordner).';
+
+  @override
+  String get emailCheckCodeHint => 'Code aus der E-Mail';
+
+  @override
+  String get emailCheckConfirm => 'Bestätigen';
+
+  @override
+  String get emailCheckDone => 'Danke. Deine Hochschul-E-Mail ist bestätigt.';
+
+  @override
+  String get emailCheckWrongCode => 'Der Code ist falsch oder abgelaufen.';
+
+  @override
+  String get emailCheckSendFailed =>
+      'Der Code konnte nicht gesendet werden. Bitte versuche es in einer Minute erneut.';
+
+  @override
+  String get universityCheckDue =>
+      'Jährliche Prüfung fällig. Tippe hier, um deine E-Mail zu bestätigen.';
+
+  @override
+  String get universityLapsed =>
+      'Dieses Jahr nicht bestätigt. Tippe hier, um deine Hochschul-E-Mail zu bestätigen.';
+
+  @override
+  String get adminPermanentAddress =>
+      'Feste Adresse einer Organisation (zum Beispiel AStA): keine jährliche E-Mail-Prüfung';
+
+  @override
+  String get adminNoYearlyCheck => 'Keine jährliche E-Mail-Prüfung';
+
+  @override
+  String get adminYearlyCheckOff => 'Jährliche E-Mail-Prüfung ausschalten';
+
+  @override
+  String get adminYearlyCheckOn => 'Jährliche E-Mail-Prüfung einschalten';
+
+  @override
+  String get adminYearlyCheckIsOff =>
+      'Die jährliche E-Mail-Prüfung ist für dieses Konto aus.';
+
+  @override
+  String get adminYearlyCheckIsOn =>
+      'Die jährliche E-Mail-Prüfung ist für dieses Konto an.';
+
+  @override
+  String get ticketsPastHint => 'Vergangene Events bleiben 90 Tage hier.';
+
+  @override
   String formCapacityBelowRegistered(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

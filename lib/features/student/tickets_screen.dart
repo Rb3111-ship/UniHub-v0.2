@@ -10,6 +10,7 @@ import '../../../core/auth/user_role.dart';
 import '../../../core/models/event_model.dart';
 import '../../../core/models/categories.dart';
 import '../../../core/models/registration_model.dart';
+import '../../../core/services/registration_repository.dart' show pastTicketsKept;
 import '../../../core/widgets/ticket_stub.dart';
 import 'attendance_confirm_card.dart';
 import 'qr_fullscreen.dart';
@@ -28,10 +29,12 @@ class StudentTicketsScreen extends StatelessWidget {
     // Events that are over move to a folded "Past events" section at the bottom.
     final now = DateTime.now();
     final upcoming = registeredEvents.where((e) => !e.endDate.isBefore(now)).toList();
-    final past = registeredEvents.where((e) => e.endDate.isBefore(now)).toList()
+    // Past tickets are kept for 90 days, so the list does not grow forever.
+    final oldest = now.subtract(pastTicketsKept);
+    final past = registeredEvents.where((e) => e.endDate.isBefore(now) && e.endDate.isAfter(oldest)).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
 
-    if (registeredEvents.isEmpty) {
+    if (upcoming.isEmpty && past.isEmpty) {
       return Scaffold(
         appBar: AppBar(
           title: Text(localizations.studentTicketsTitle),
@@ -112,6 +115,14 @@ class StudentTicketsScreen extends StatelessWidget {
                   title: Text(localizations.ticketsPastSection(past.length),
                       style: const TextStyle(fontWeight: FontWeight.w800)),
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(localizations.ticketsPastHint,
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.secondary)),
+                      ),
+                    ),
                     for (final e in past)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),

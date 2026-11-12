@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/page_width.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../core/auth/user_role.dart';
 import '../../core/models/admin_model.dart';
 import '../../core/utils/open_link.dart';
+import '../../core/widgets/ticket_stub.dart';
 import '../student/community_actions.dart' show reportReasonLabel;
 import 'blocked_emails_screen.dart';
+import 'case_files_screen.dart';
 
 /// Approve organizer requests and manage user roles.
 /// What each admin may actually do is enforced by the database
@@ -53,31 +56,45 @@ class _AdminScreenState extends State<AdminScreen> {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     final note = TextEditingController();
+    // A person can leave the university; an office address (AStA...) stays.
+    var permanent = false;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('${approve ? l10n.adminApprove : l10n.adminReject}: ${r.organizationName}'),
-        content: TextField(
-          controller: note,
-          maxLength: 500,
-          maxLines: 2,
-          decoration: InputDecoration(hintText: l10n.adminNoteHint),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          title: Text('${approve ? l10n.adminApprove : l10n.adminReject}: ${r.organizationName}'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+              controller: note,
+              maxLength: 500,
+              maxLines: 2,
+              decoration: InputDecoration(hintText: l10n.adminNoteHint),
+            ),
+            if (approve && !r.isCommercial)
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: permanent,
+                onChanged: (v) => setDialog(() => permanent = v ?? false),
+                title: Text(l10n.adminPermanentAddress, style: const TextStyle(fontSize: 14)),
+              ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
+            FilledButton(
+              style: approve ? null : FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(approve ? l10n.adminApprove : l10n.adminReject),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
-          FilledButton(
-            style: approve ? null : FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(approve ? l10n.adminApprove : l10n.adminReject),
-          ),
-        ],
       ),
     );
     final text = note.text.trim();
     // Controllers are left to the garbage collector: the dialog may still be animating closed.
     if (ok != true) return;
     try {
-      await appState.reviewRequest(r.id, approve, text.isEmpty ? null : text);
+      await appState.reviewRequest(r.id, approve, text.isEmpty ? null : text, exempt: approve && permanent);
       messenger.showSnackBar(SnackBar(content: Text(approve ? l10n.adminRequestApproved : l10n.adminRequestRejected)));
     } catch (_) {
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
@@ -119,7 +136,9 @@ class _AdminScreenState extends State<AdminScreen> {
     return onTap == null ? line : InkWell(onTap: onTap, child: line);
   }
 
-  Future<void> _resolve(AppState appState, EventReport r, bool remove) async {
+  /// Decides all open reports of one event: remove the event, or dismiss them.
+  Future<void> _resolve(AppState appState, List<EventReport> open, bool remove) async {
+    final r = open.first;
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     final note = TextEditingController();
@@ -128,7 +147,9 @@ class _AdminScreenState extends State<AdminScreen> {
       builder: (ctx) => AlertDialog(
         title: Text(remove ? l10n.adminRemoveEvent : l10n.adminDismissReport),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(remove ? l10n.adminRemoveEventBody(r.eventTitle) : l10n.adminDismissReportBody),
+          Text(remove
+              ? l10n.adminRemoveEventBody(r.eventTitle)
+              : (open.length > 1 ? l10n.adminDismissAllBody(open.length) : l10n.adminDismissReportBody)),
           if (remove)
             TextField(
               controller: note,
@@ -151,7 +172,14 @@ class _AdminScreenState extends State<AdminScreen> {
     // Controllers are left to the garbage collector: the dialog may still be animating closed.
     if (ok != true) return;
     try {
-      await appState.resolveReport(r.id, remove, text.isEmpty ? null : text);
+      if (remove) {
+        // Removing the event closes every open report about it in one go.
+        await appState.resolveReport(r.id, true, text.isEmpty ? null : text);
+      } else {
+        for (final x in open) {
+          await appState.resolveReport(x.id, false, null);
+        }
+      }
       messenger.showSnackBar(SnackBar(content: Text(remove ? l10n.adminEventRemoved : l10n.adminReportDismissed)));
     } catch (_) {
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
@@ -160,31 +188,55 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _reportsList(AppState appState, AppLocalizations l10n, ThemeData theme) {
     final list = appState.eventReports;
+    // Stack the reports: organizer -> their reported events -> the single reports.
+    final byOrganizer = <String, List<EventReport>>{};
+    for (final r in list) {
+      byOrganizer.putIfAbsent(r.organizerId ?? 'event:${r.eventId}', () => []).add(r);
+    }
+    final groups = byOrganizer.values.toList()
+      ..sort((a, b) {
+        final openA = a.where((r) => r.isOpen).length, openB = b.where((r) => r.isOpen).length;
+        return openA != openB ? openB.compareTo(openA) : b.length.compareTo(a.length);
+      });
+    final caseFiles = Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: TextButton.icon(
+        icon: const Icon(Icons.folder_copy_outlined, size: 18),
+        label: Text(l10n.caseTitle),
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CaseFilesScreen())),
+      ),
+    );
     return RefreshIndicator(
       onRefresh: appState.refreshReports,
-      child: list.isEmpty
-          ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
-              Padding(padding: const EdgeInsets.all(48), child: Center(child: Text(l10n.adminNoReports))),
-            ])
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              itemCount: list.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, i) => _reportCard(appState, list[i], l10n, theme),
-            ),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        children: [
+          caseFiles,
+          if (list.isEmpty)
+            Padding(padding: const EdgeInsets.all(48), child: Center(child: Text(l10n.adminNoReports))),
+          for (final g in groups) ...[
+            _organizerReports(appState, g, l10n, theme),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
     );
   }
 
-  Widget _reportCard(AppState appState, EventReport r, AppLocalizations l10n, ThemeData theme) {
-    final locale = Localizations.localeOf(context).toString();
-    // How many open reports the same event has (shown on every card of that event).
-    final sameEvent = appState.eventReports.where((x) => x.eventId == r.eventId && x.isOpen).length;
-    final (statusText, statusColor) = switch (r.status) {
-      'removed' => (l10n.reportStatusRemoved, Colors.red),
-      'dismissed' => (l10n.reportStatusDismissed, Colors.grey),
-      _ => (l10n.reportStatusOpen, Colors.orange),
-    };
+  /// One organizer with all reports about their events.
+  Widget _organizerReports(AppState appState, List<EventReport> reports, AppLocalizations l10n, ThemeData theme) {
+    final muted = theme.colorScheme.secondary;
+    final name = reports.first.organizerName.isEmpty ? l10n.adminUnknownOrganizer : reports.first.organizerName;
+    final byEvent = <String, List<EventReport>>{};
+    for (final r in reports) {
+      byEvent.putIfAbsent(r.eventId, () => []).add(r);
+    }
+    final events = byEvent.values.toList()
+      ..sort((a, b) => b.where((r) => r.isOpen).length.compareTo(a.where((r) => r.isOpen).length));
+    final open = reports.where((r) => r.isOpen).length;
+    final organizerId = reports.first.organizerId;
+    final isSuspended = reports.first.organizerSuspended;
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -193,46 +245,112 @@ class _AdminScreenState extends State<AdminScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              Expanded(child: Text(r.eventTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
-              ),
-            ]),
-            if (r.eventStart != null)
-              Text(DateFormat.yMMMEd(locale).add_Hm().format(r.eventStart!),
-                  style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
-            const SizedBox(height: 8),
-            Row(children: [
-              const Icon(Icons.flag_rounded, size: 16, color: Colors.red),
-              const SizedBox(width: 6),
-              Text(reportReasonLabel(l10n, r.reason), style: const TextStyle(fontWeight: FontWeight.w600)),
-              if (r.isOpen && sameEvent > 1) ...[
-                const SizedBox(width: 8),
-                Text(l10n.adminReportCount(sameEvent), style: TextStyle(fontSize: 12, color: Colors.red.shade700)),
-              ],
-            ]),
-            if (r.details.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(r.details),
-            ],
-            Text(DateFormat.yMMMd(locale).add_Hm().format(r.createdAt),
-                style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary)),
-            if (r.isOpen) ...[
-              const SizedBox(height: 12),
-              Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
-                OutlinedButton(onPressed: () => _resolve(appState, r, false), child: Text(l10n.adminDismissReport)),
-                FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                  onPressed: () => _resolve(appState, r, true),
-                  child: Text(l10n.adminRemoveEvent),
+              Icon(Icons.person_rounded, size: 20, color: muted),
+              const SizedBox(width: 8),
+              Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+              if (isSuspended)
+                Container(
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                      color: theme.colorScheme.error.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
+                  child: Text(l10n.adminSuspended,
+                      style: TextStyle(color: theme.colorScheme.error, fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
-              ]),
+              if (open > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: Colors.orange.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                  child: Text(l10n.adminOpenCount(open),
+                      style: TextStyle(color: Colors.orange.shade800, fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+            ]),
+            const SizedBox(height: 2),
+            Text(l10n.adminReportsSummary(reports.length, events.length).toUpperCase(),
+                style: monoStyle(size: 10.5, color: muted, spacing: 0.8)),
+            // The reversible step: pause the organizer while the reports are checked.
+            if (organizerId != null && organizerId != appState.currentUserId)
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: OutlinedButton.icon(
+                  icon: Icon(isSuspended ? Icons.play_circle_outline_rounded : Icons.pause_circle_outline_rounded, size: 18),
+                  label: Text(isSuspended ? l10n.adminReinstate : l10n.adminSuspendOrganizer),
+                  onPressed: () => _setSuspended(appState, organizerId, name, !isSuspended),
+                ),
+              ),
+            for (final e in events) ...[
+              const SizedBox(height: 12),
+              const DashedRule(),
+              const SizedBox(height: 12),
+              _eventReports(appState, e, l10n, theme),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  /// One reported event: its reports, and the two decisions an admin can take.
+  Widget _eventReports(AppState appState, List<EventReport> reports, AppLocalizations l10n, ThemeData theme) {
+    final locale = Localizations.localeOf(context).toString();
+    final muted = theme.colorScheme.secondary;
+    final first = reports.first;
+    final open = reports.where((r) => r.isOpen).toList();
+    final (statusText, statusColor) = open.isNotEmpty
+        ? (l10n.reportStatusOpen, Colors.orange)
+        : reports.any((r) => r.status == 'removed')
+            ? (l10n.reportStatusRemoved, Colors.red)
+            : (l10n.reportStatusDismissed, Colors.grey);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Expanded(child: Text(first.eventTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+          Text(statusText, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
+        ]),
+        Text(
+          [
+            if (first.eventStart != null) DateFormat.yMMMEd(locale).add_Hm().format(first.eventStart!),
+            l10n.caseReports(reports.length),
+          ].join(' · '),
+          style: TextStyle(fontSize: 12, color: muted),
+        ),
+        const SizedBox(height: 8),
+        for (final r in reports)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(Icons.flag_rounded, size: 16, color: r.isOpen ? Colors.red : muted),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(reportReasonLabel(l10n, r.reason), style: const TextStyle(fontWeight: FontWeight.w600)),
+                      if (r.details.isNotEmpty) Text(r.details),
+                      Text(DateFormat.yMMMd(locale).add_Hm().format(r.createdAt).toUpperCase(),
+                          style: monoStyle(size: 10, color: muted)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (open.isNotEmpty)
+          Wrap(alignment: WrapAlignment.end, spacing: 8, runSpacing: 8, children: [
+            OutlinedButton(onPressed: () => _resolve(appState, open, false), child: Text(l10n.adminDismissReport)),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => _resolve(appState, open, true),
+              child: Text(l10n.adminRemoveEvent),
+            ),
+          ]),
+      ],
     );
   }
 
@@ -241,12 +359,76 @@ class _AdminScreenState extends State<AdminScreen> {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await appState.setUserRole(u.id, role, role != 'student', _search.text.trim());
+    } catch (e) {
+      final noUniversity = e is PostgrestException && e.message == 'needs_university_email';
+      messenger.showSnackBar(SnackBar(
+        backgroundColor: Colors.red,
+        content: Text(noUniversity ? l10n.adminNeedsUniversity : l10n.adminActionFailed),
+      ));
+    }
+  }
+
+  static const _removeAction = '_remove';
+  static const _suspendAction = '_suspend';
+  static const _emailCheckAction = '_emailCheck';
+
+  Future<void> _toggleEmailCheck(AppState appState, AdminUser u) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await appState.setUserEmailCheckExempt(u.id, !u.emailCheckExempt, _search.text.trim());
+      messenger.showSnackBar(
+          SnackBar(content: Text(u.emailCheckExempt ? l10n.adminYearlyCheckIsOn : l10n.adminYearlyCheckIsOff)));
     } catch (_) {
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
     }
   }
 
-  static const _removeAction = '_remove';
+  /// Pauses an account while the reports are looked into, or lifts the pause.
+  /// Unlike removing, nothing is deleted and it can be undone.
+  Future<void> _setSuspended(AppState appState, String userId, String name, bool suspend) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final note = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          title: Text(suspend ? l10n.adminSuspendTitle(name) : l10n.adminReinstateTitle(name)),
+          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(suspend ? l10n.adminSuspendBody : l10n.adminReinstateBody),
+            const SizedBox(height: 8),
+            TextField(
+              controller: note,
+              maxLength: 500,
+              maxLines: 2,
+              onChanged: (_) => setDialog(() {}),
+              decoration: InputDecoration(hintText: suspend ? l10n.adminSuspendNoteHint : l10n.adminReinstateNoteHint),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
+            FilledButton(
+              style: suspend ? FilledButton.styleFrom(backgroundColor: Colors.orange.shade800) : null,
+              // A suspension always needs a written reason: it goes into the case file.
+              onPressed: suspend && note.text.trim().isEmpty ? null : () => Navigator.pop(ctx, true),
+              child: Text(suspend ? l10n.adminSuspend : l10n.adminReinstate),
+            ),
+          ],
+        ),
+      ),
+    );
+    final text = note.text.trim();
+    // Controllers are left to the garbage collector: the dialog may still be animating closed.
+    if (ok != true) return;
+    try {
+      await appState.setUserSuspended(userId, suspend, text.isEmpty ? null : text, _search.text.trim());
+      messenger.showSnackBar(
+          SnackBar(content: Text(suspend ? l10n.adminUserSuspended(name) : l10n.adminUserReinstated(name))));
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
+    }
+  }
 
   Future<void> _removeUser(AppState appState, AdminUser u) async {
     final l10n = AppLocalizations.of(context)!;
@@ -495,6 +677,12 @@ class _AdminScreenState extends State<AdminScreen> {
                           text: '  ·  ${l10n.adminUnconfirmed}',
                           style: TextStyle(color: Colors.orange.shade800, fontWeight: FontWeight.w600),
                         ),
+                      if (u.emailCheckExempt) TextSpan(text: '  ·  ${l10n.adminNoYearlyCheck}'),
+                      if (u.isSuspended)
+                        TextSpan(
+                          text: '  ·  ${l10n.adminSuspended}',
+                          style: TextStyle(color: theme.colorScheme.error, fontWeight: FontWeight.w700),
+                        ),
                     ])),
                     isThreeLine: true,
                     trailing: isMe
@@ -502,13 +690,51 @@ class _AdminScreenState extends State<AdminScreen> {
                         : PopupMenuButton<String>(
                             tooltip: l10n.adminChangeRole,
                             icon: const Icon(Icons.manage_accounts_rounded),
-                            onSelected: (value) =>
-                                value == _removeAction ? _removeUser(appState, u) : _changeRole(appState, u, value),
+                            onSelected: (value) => switch (value) {
+                              _removeAction => _removeUser(appState, u),
+                              _emailCheckAction => _toggleEmailCheck(appState, u),
+                              _suspendAction => _setSuspended(
+                                  appState, u.id, u.displayName.isEmpty ? u.email : u.displayName, !u.isSuspended),
+                              _ => _changeRole(appState, u, value),
+                            },
                             itemBuilder: (_) => [
                               for (final r in assignable)
-                                PopupMenuItem(value: r, enabled: r != u.role, child: Text(_roleLabel(l10n, r))),
+                                // University roles make no sense without a university e-mail.
+                                if (u.tenantId != null || (r != 'organizer' && r != 'tenant_admin'))
+                                  PopupMenuItem(value: r, enabled: r != u.role, child: Text(_roleLabel(l10n, r))),
+                              if (u.tenantId == null)
+                                PopupMenuItem(
+                                  enabled: false,
+                                  height: 36,
+                                  child: Text(l10n.adminNeedsUniversity,
+                                      style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+                                ),
+                              // Office addresses (AStA...) can skip the yearly e-mail check.
+                              if (u.tenantId != null &&
+                                  (u.role == 'organizer' || (u.role == 'tenant_admin' && appState.isPlatformAdmin))) ...[
+                                const PopupMenuDivider(),
+                                PopupMenuItem(
+                                  value: _emailCheckAction,
+                                  child: Row(children: [
+                                    Icon(u.emailCheckExempt ? Icons.mark_email_read_outlined : Icons.unsubscribe_outlined,
+                                        size: 20),
+                                    const SizedBox(width: 10),
+                                    Flexible(
+                                        child: Text(u.emailCheckExempt ? l10n.adminYearlyCheckOn : l10n.adminYearlyCheckOff)),
+                                  ]),
+                                ),
+                              ],
                               if (removable) ...[
                                 const PopupMenuDivider(),
+                                PopupMenuItem(
+                                  value: _suspendAction,
+                                  child: Row(children: [
+                                    Icon(u.isSuspended ? Icons.play_circle_outline_rounded : Icons.pause_circle_outline_rounded,
+                                        size: 20),
+                                    const SizedBox(width: 10),
+                                    Text(u.isSuspended ? l10n.adminReinstate : l10n.adminSuspend),
+                                  ]),
+                                ),
                                 PopupMenuItem(
                                   value: _removeAction,
                                   child: Row(children: [

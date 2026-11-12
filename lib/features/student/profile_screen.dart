@@ -8,6 +8,7 @@ import '../../../core/auth/user_role.dart';
 import '../../../core/utils/image_type.dart';
 import '../../../core/widgets/language_picker.dart';
 import 'account_section.dart';
+import 'email_check_dialog.dart';
 import 'notifications_screen.dart';
 import 'privacy_screen.dart';
 
@@ -220,13 +221,22 @@ class StudentProfileScreen extends StatelessWidget {
     // Real accounts: the university comes from the verified e-mail domain and cannot
     // be picked (otherwise anyone could see another university's events).
     final hasUniversity = appState.currentTenant.isNotEmpty;
+    // The yearly check is due, or was missed: tapping the row confirms the address.
+    final needsCheck = appState.emailCheckDue || appState.emailCheckLapsed;
     return _settingRow(
       context,
       icon: Icons.school_rounded,
       title: hasUniversity ? appState.getTenantDisplayName() : l10n.universityLabel,
-      subtitle: hasUniversity ? l10n.universityFromEmail : l10n.universityNone,
-      trailing: Icon(hasUniversity ? Icons.verified_rounded : Icons.public_rounded,
-          color: hasUniversity ? Colors.green : Colors.grey),
+      subtitle: appState.emailCheckLapsed
+          ? l10n.universityLapsed
+          : appState.emailCheckDue
+              ? l10n.universityCheckDue
+              : (hasUniversity ? l10n.universityFromEmail : l10n.universityNone),
+      trailing: needsCheck
+          ? Icon(Icons.mark_email_unread_rounded, color: Colors.orange.shade800)
+          : Icon(hasUniversity ? Icons.verified_rounded : Icons.public_rounded,
+              color: hasUniversity ? Colors.green : Colors.grey),
+      onTap: needsCheck ? () => showEmailCheckDialog(context) : null,
     );
   }
 

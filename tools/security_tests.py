@@ -1399,11 +1399,426 @@ def run(s: Sim, tag: str) -> None:
     cols = {r[0] for r in s.rows("select unnest(proargnames) from pg_proc where proname = 'my_event_feedback'")}
     check("the feedback list does not reveal who wrote a review", "user_id" not in cols and "event_title" in cols, str(cols))
 
+    print("\n[36] University roles need a university e-mail")
+    gm = mk_user(f"gm-{tag}@gmail.com")
+    uni_u = mk_user(f"uniu-{tag}@haw-hamburg.de")
+    for role in ("organizer", "tenant_admin"):
+        s.user(p_admin)
+        _, err = s.call(f"select public.admin_set_role(%s,'{role}',true)", [gm])
+        check(f"a Gmail account cannot be made {role}", err is not None and "needs_university_email" in err and role_of(gm) == "student", str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'commercial_planner',true)", [gm])
+    check("a Gmail account can be made a commercial planner", err is None and role_of(gm) == "commercial_planner", str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [gm])
+    check("... and back to student", err is None and role_of(gm) == "student", str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'organizer',true)", [uni_u])
+    check("a university account can be made organizer", err is None and role_of(uni_u) == "organizer", str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'tenant_admin',true)", [uni_u])
+    check("a university account can be made university admin", err is None and role_of(uni_u) == "tenant_admin", str(err))
+    left_uni = mk_user(f"leftuni-{tag}@haw-hamburg.de")
+    s.postgres()
+    rq = s.scalar("insert into public.organizer_requests (user_id, email, requested_role, organization_name, message, applicant_position, phone) "
+                  "values (%s, %s, 'organizer', 'Club', '', 'Chair', '+49 40 123456') returning id", [left_uni, f"leftuni-{tag}@haw-hamburg.de"])
+    c.execute("update auth.users set email = %s where id = %s", [f"leftuni-{tag}@gmail.com", left_uni])
+    s.user(p_admin)
+    _, err = s.call("select public.review_organizer_request(%s, true)", [rq])
+    check("an organizer request cannot be approved after the applicant left the university address",
+          err is not None and "needs_university_email" in err and role_of(left_uni) == "student", str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.review_organizer_request(%s, false, 'no longer at HAW')", [rq])
+    check("... but it can be rejected", err is None, str(err))
+
+    print("\n[37] Case files keep the reports as evidence")
+    cf_org = mk_user(f"cforg-{tag}@tum.de"); promote(cf_org, "organizer")
+    cf_ev = mk_event(cf_org, tum, "Case event")
+    cf_ev2 = mk_event(cf_org, tum, "Case event two")
+    cf_rep = [mk_user(f"cfrep{i}-{tag}@tum.de") for i in range(3)]
+    for u, reason, text in ((cf_rep[0], "spam", "Only adverts"), (cf_rep[1], "scam", "Asks for money")):
+        s.user(u); s.call("select public.report_event(%s,%s,%s)", [cf_ev, reason, text])
+    s.user(cf_rep[2]); s.call("select public.report_event(%s,'misleading','Wrong place')", [cf_ev2])
+    s.postgres()
+    cf_open = s.scalar("select id from public.event_reports where event_id = %s order by created_at limit 1", [cf_ev])
+    cases_before = s.scalar("select count(*) from public.moderation_cases")
+    s.user(cf_rep[0])
+    _, err = s.call("select public.resolve_report(%s, false)", [cf_open])
+    s.postgres()
+    check("a refused action writes no case file", err is not None and s.scalar("select count(*) from public.moderation_cases") == cases_before)
+    s.user(p_admin)
+    _, err = s.call("select public.resolve_report(%s, true, 'Advertising only')", [cf_open])
+    s.postgres()
+    case = s.rows("select action, subject_user_id, subject_email, event_title, note, report_count, evidence, decided_by, tenant_id "
+                  "from public.moderation_cases where event_title = 'Case event'")
+    check("removing a reported event writes one case file", err is None and len(case) == 1, f"{err} {len(case)}")
+    if case:
+        a, subj, mail, title, note, cnt, ev, by, ten = case[0]
+        check("the case names the organizer, the event, the admin and the note",
+              a == "event_removed" and subj == cf_org and mail == f"cforg-{tag}@tum.de" and note == "Advertising only" and by == p_admin and ten == tum,
+              str(case[0][:5]))
+        check("it holds both reports about that event as evidence", cnt == 2 and {x["reason"] for x in ev} == {"spam", "scam"}
+              and {x["details"] for x in ev} == {"Only adverts", "Asks for money"}, str(ev))
+        check("the evidence does not say WHO reported", all(set(x) == {"event_title", "reason", "details", "reported_at", "outcome"} for x in ev)
+              and not any(str(u) in json.dumps(ev) for u in cf_rep), str(ev))
+    s.user(p_admin)
+    _, err = s.call("select public.resolve_report((select id from public.event_reports where event_id = %s limit 1), false)", [cf_ev2])
+    s.postgres()
+    check("dismissing a report writes no case file", err is None and s.scalar("select count(*) from public.moderation_cases where subject_user_id = %s", [cf_org]) == 1, str(err))
+
+    s.user(p_admin)
+    r, err = s.call("select public.admin_delete_user(%s, true)", [cf_org])
+    s.postgres()
+    case = s.rows("select subject_email, email_blocked, report_count, evidence, subject_name from public.moderation_cases "
+                  "where action = 'user_removed' and subject_user_id = %s", [cf_org])
+    check("removing a user writes a case file", err is None and len(case) == 1, f"{err} {len(case)}")
+    if case:
+        mail, blocked, cnt, ev, _ = case[0]
+        check("it keeps the address, that it was blocked, and ALL reports about their events",
+              mail == f"cforg-{tag}@tum.de" and blocked is True and cnt == 3 and {x["event_title"] for x in ev} == {"Case event", "Case event two"}, str(case[0][:3]))
+    check("the reports themselves are gone with the events, the case files are not",
+          s.scalar("select count(*) from public.event_reports where event_id in (%s,%s)", [cf_ev, cf_ev2]) == 0
+          and s.scalar("select count(*) from public.moderation_cases where subject_user_id = %s", [cf_org]) == 2)
+    clean_user = mk_user(f"clean-{tag}@tum.de")
+    s.user(p_admin); s.call("select public.admin_delete_user(%s)", [clean_user])
+    s.postgres()
+    check("removing a user nobody reported records that too, with no evidence and no block",
+          s.rows("select report_count, email_blocked from public.moderation_cases where subject_user_id = %s", [clean_user]) == [(0, False)])
+
+    s.anon()
+    s.fails("anonymous cannot read case files", "select * from public.admin_list_cases()", contains="permission denied")
+    s.fails("anonymous cannot read the table", "select * from public.moderation_cases", contains="permission denied")
+    s.user(cf_rep[0])
+    _, err = s.call("select count(*) from public.admin_list_cases()")
+    check("a student cannot read case files", err is not None and "not_authorized" in err, str(err))
+    s.fails("a signed-in user cannot read the table directly", "select * from public.moderation_cases", contains="permission denied")
+    s.fails("... nor write to it", "insert into public.moderation_cases (action) values ('user_removed')", contains="permission denied")
+    s.user(rv_t_admin)
+    mine = s.rows("select subject_email from public.admin_list_cases()")
+    check("a university admin reads the case files of their own university", any(m[0] == f"cforg-{tag}@tum.de" for m in mine), str(mine[:3]))
+    s.user(t_admin)
+    other = s.rows("select subject_email from public.admin_list_cases()")
+    check("... but not those of another university", all(m[0] != f"cforg-{tag}@tum.de" for m in other), str(other[:3]))
+    s.user(p_admin)
+    allc = s.rows("select subject_email, evidence from public.admin_list_cases()")
+    check("the platform admin reads all case files", sum(1 for m in allc if m[0] == f"cforg-{tag}@tum.de") == 2)
+    s.postgres()
+    check("old case files are deleted automatically (after 12 months)",
+          s.scalar("select count(*) from cron.job where jobname = 'unihub-cases-cleanup' and command ilike '%%12 months%%'") == 1)
+
+    print("\n[38] Suspending an account (the step before removing it)")
+    su_org = mk_user(f"suorg-{tag}@tum.de"); promote(su_org, "organizer")
+    su_com = mk_user(f"sucom-{tag}@gmail.com"); promote(su_com, "commercial_planner")
+    su_ev = mk_event(su_org, tum, "Suspended campus event")
+    su_pub = mk_event(su_com, None, "Suspended public event")
+    su_holder = mk_user(f"suhold-{tag}@tum.de")
+    su_new = mk_user(f"sunew-{tag}@tum.de")
+    su_stu = mk_user(f"sustu-{tag}@tum.de")
+    su_tadmin = mk_user(f"suadm-{tag}@tum.de"); promote(su_tadmin, "tenant_admin")
+    s.user(su_holder); s.call("select public.register_for_event(%s)", [su_ev])
+    s.user(su_stu); s.call("select public.register_for_event(%s)", [su_ev])
+    s.user(su_new); s.call("select public.report_event(%s,'spam','Looks fake')", [su_ev])
+
+    def sees(uid, ev):
+        s.anon() if uid is None else s.user(uid)
+        return s.scalar("select count(*) from public.events where id = %s", [ev]) == 1
+
+    def suspended(uid):
+        s.postgres()
+        return s.scalar("select suspended_at is not null from public.profiles where id = %s", [uid])
+
+    check("before: the events are in the feed", sees(su_new, su_ev) and sees(None, su_pub))
+    s.anon()
+    s.fails("anonymous cannot suspend anyone", "select public.admin_set_suspended(%s, true, 'x')", [su_org], contains="permission denied")
+    for who, label in ((su_stu, "a student"), (su_org, "an organizer"), (t_admin, "another university's admin")):
+        s.user(who)
+        _, err = s.call("select public.admin_set_suspended(%s, true, 'because')", [su_stu if who == su_org else su_org])
+        check(f"{label} cannot suspend anyone", err is not None and "not_authorized" in err, str(err))
+    s.user(su_stu)
+    s.fails("nobody can set the suspension on their own profile row", "update public.profiles set suspended_at = now() where id = %s", [su_stu], contains="permission denied")
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_suspended(%s, true, '  ')", [su_org])
+    check("a suspension needs a written reason", err is not None and "note_required" in err and not suspended(su_org), str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_suspended(%s, true, 'x')", [p_admin])
+    check("an admin cannot suspend themselves", err is not None and "cannot_suspend_self" in err, str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_suspended(%s, true, 'x')", [su_tadmin])
+    check("an admin must be demoted before being suspended", err is not None and "demote_first" in err, str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_suspended(%s, false)", [su_org])
+    check("reinstating someone who is not suspended is refused", err is not None and "no_change" in err, str(err))
+
+    s.user(su_tadmin)
+    _, err = s.call("select public.admin_set_suspended(%s, true, 'Three reports, checking')", [su_org])
+    check("a university admin can suspend an organizer of their university", err is None and suspended(su_org), str(err))
+    s.postgres()
+    check("the suspended person gets a notification",
+          s.scalar("select count(*) from public.notifications where user_id = %s and kind = 'account_suspended'", [su_org]) == 1)
+    s.user(su_tadmin)
+    _, err = s.call("select public.admin_set_suspended(%s, true, 'x')", [su_com])
+    check("... but not an account outside their university", err is not None and "not_authorized" in err and not suspended(su_com), str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_suspended(%s, true, 'again')", [su_org])
+    check("suspending twice is refused", err is not None and "no_change" in err, str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_suspended(%s, true, 'Reported as a scam')", [su_com])
+    check("the platform admin can suspend a commercial planner", err is None and suspended(su_com), str(err))
+
+    check("the suspended organizer's campus event leaves the feed", not sees(su_new, su_ev))
+    check("their public event leaves the feed for signed-in users", not sees(su_new, su_pub))
+    check("... and for visitors", not sees(None, su_pub))
+    check("people who already hold a ticket still see the event", sees(su_holder, su_ev))
+    check("the organizer still sees their own event", sees(su_org, su_ev))
+    check("admins still see it", sees(p_admin, su_ev) and sees(su_tadmin, su_ev))
+    s.user(su_new)
+    _, err = s.call("select public.register_for_event(%s)", [su_ev])
+    check("nobody new can sign up for a suspended organizer's event", err is not None and "event_not_available" in err, str(err))
+    s.user(su_holder)
+    _, err = s.call("select public.cancel_registration(%s)", [su_ev])
+    check("a ticket holder can still cancel", err is None, str(err))
+    s.user(su_holder)
+    _, err = s.call("select public.register_for_event(%s)", [su_ev])
+    check("... but not sign up again while the organizer is suspended", err is not None and "event_not_available" in err, str(err))
+    s.user(su_org)
+    s.affects_nothing("the suspended organizer cannot edit their event", "update public.events set title = 'Hacked' where id = %s", [su_ev])
+    s.fails("... nor publish a new one",
+            "insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status) "
+            "values (%s, %s, 'New', 'X', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published')", [tum, su_org])
+    s.user(su_org)
+    check("... and no longer counts as a publisher", s.scalar("select public.is_verified_publisher()") is False
+          and s.scalar("select public.can_publish_for(%s)", [tum]) is False and s.scalar("select public.can_manage_event(%s)", [su_ev]) is False)
+    s.user(su_org)
+    check("the suspended account can read that it is suspended", s.scalar("select suspended_at is not null from public.profiles where id = %s", [su_org]) is True)
+    s.user(su_tadmin)
+    listed = s.rows("select id, suspended_at from public.admin_list_users(%s)", [f"suorg-{tag}"])
+    check("the admin user list shows the suspension", len(listed) == 1 and listed[0][1] is not None, str(listed))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'organizer',true)", [su_org])
+    s.user(p_admin)
+    _, err2 = s.call("select public.admin_set_role(%s,'student',false)", [su_com])
+    check("a suspended account cannot be given a publishing role, only be made a student",
+          err is not None and "account_suspended" in err and err2 is None and role_of(su_com) == "student", f"{err} / {err2}")
+
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_suspended(%s, true, 'Abusive reviews')", [su_stu])
+    other_ev = mk_event(org_tum, tum, "Another event")
+    started = mk_event(org_tum, tum, "Started event", start="now() - interval '1 hour'", end="now() + interval '1 hour'", qr=False)
+    s.user(su_stu)
+    _, e1 = s.call("select public.register_for_event(%s)", [other_ev])
+    s.user(su_stu)
+    _, e2 = s.call("select public.report_event(%s,'spam','x')", [other_ev])
+    check("a suspended student cannot sign up for events", err is None and e1 is not None and "account_suspended" in e1, f"{err} / {e1}")
+    check("... nor report events", e2 is not None and "account_suspended" in e2, str(e2))
+    s.postgres()
+    reg = s.scalar("select id from public.registrations where user_id = %s and event_id = %s", [su_stu, su_ev])
+    c.execute("update public.events set starts_at = now() - interval '1 hour', requires_qr = false where id = %s", [su_ev])
+    s.user(su_stu)
+    _, e3 = s.call("select public.submit_review(%s, 1, 'Terrible', true)", [su_ev])
+    check("... nor write reviews", reg is not None and e3 is not None and "account_suspended" in e3, str(e3))
+    s.postgres()
+    check("their existing ticket stays valid", s.scalar("select count(*) from public.tickets where user_id = %s and event_id = %s and voided_at is null", [su_stu, su_ev]) == 1)
+    s.user(su_stu)
+    _, err = s.call("select public.cancel_registration(%s)", [su_ev])
+    check("... and they can still cancel it", err is None, str(err))
+
+    s.postgres()
+    case = s.rows("select action, note, report_count, subject_email, decided_by, tenant_id from public.moderation_cases "
+                  "where subject_user_id = %s order by created_at", [su_org])
+    check("the suspension is in the case files with the reason and the reports",
+          len(case) == 1 and case[0][0] == "user_suspended" and case[0][1] == "Three reports, checking" and case[0][2] == 1
+          and case[0][3] == f"suorg-{tag}@tum.de" and case[0][4] == su_tadmin and case[0][5] == tum, str(case))
+    s.user(su_stu)
+    _, err = s.call("select public.admin_set_suspended(%s, false)", [su_org])
+    check("a student cannot reinstate anyone", err is not None and "not_authorized" in err and suspended(su_org), str(err))
+    s.user(su_tadmin)
+    _, err = s.call("select public.admin_set_suspended(%s, false, 'Reports were unfounded')", [su_org])
+    check("the admin can reinstate the organizer", err is None and not suspended(su_org), str(err))
+    s.postgres()
+    check("... who gets a notification about that too",
+          s.scalar("select count(*) from public.notifications where user_id = %s and kind = 'account_reinstated'", [su_org]) == 1)
+    s.postgres()
+    case = s.rows("select action, note from public.moderation_cases where subject_user_id = %s order by created_at, action desc", [su_org])
+    check("the reinstatement is in the case files too", sorted(x[0] for x in case) == ["user_reinstated", "user_suspended"]
+          and ("user_reinstated", "Reports were unfounded") in case, str(case))
+    check("after reinstating, the event is back in the feed", sees(su_new, su_ev))
+    s.user(su_org)
+    check("... and the organizer can manage it again", s.scalar("select public.can_manage_event(%s)", [su_ev]) is True)
+    s.postgres()
+    c.execute("update public.events set starts_at = now() + interval '1 day' where id = %s", [su_ev])
+    s.user(su_new)
+    _, err = s.call("select public.register_for_event(%s)", [su_ev])
+    check("... and people can sign up again", err is None, str(err))
+    s.user(p_admin)
+    r, err = s.call("select public.admin_delete_user(%s, true)", [su_com])
+    s.postgres()
+    acts = [x[0] for x in s.rows("select action from public.moderation_cases where subject_user_id = %s", [su_com])]
+    check("a suspended account can then be removed; both steps stay on record",
+          err is None and sorted(acts) == ["user_removed", "user_suspended"], f"{err} {acts}")
+
+    print("\n[39] Yearly check of university addresses")
+    import time as _time
+
+    def user_amr(uid, method, age_seconds):
+        """Signed in as uid, in a session that was started with `method` so many seconds ago."""
+        s.postgres()
+        c.execute("select set_config('request.jwt.claims', %s, true)",
+                  [json.dumps({"sub": str(uid), "role": "authenticated",
+                               "amr": [{"method": method, "timestamp": int(_time.time()) - age_seconds}]})])
+        c.execute("select set_config('request.jwt.claim.sub', %s, true)", [str(uid)])
+        c.execute("set local role authenticated")
+
+    def prof(uid, cols):
+        s.postgres()
+        return s.rows(f"select {cols} from public.profiles where id = %s", [uid])[0]
+
+    def age(uid, checked, notified=None):
+        s.postgres()
+        c.execute(f"update public.profiles set email_checked_at = now() - interval '{checked}', "
+                  + ("email_check_notified_at = null" if notified is None else f"email_check_notified_at = now() - interval '{notified}'")
+                  + " where id = %s", [uid])
+
+    def run_checks():
+        s.postgres()
+        c.execute("select public.process_email_checks()")
+
+    def notes(uid, kind):
+        s.postgres()
+        return s.scalar("select count(*) from public.notifications where user_id = %s and kind = %s", [uid, kind])
+
+    yc_stu = mk_user(f"ycstu-{tag}@tum.de")
+    yc_org = mk_user(f"ycorg-{tag}@tum.de"); promote(yc_org, "organizer")
+    yc_asta = mk_user(f"ycasta-{tag}@tum.de"); promote(yc_asta, "organizer")
+    yc_new = mk_user(f"ycnew-{tag}@tum.de")
+    yc_gmail = mk_user(f"ycgm-{tag}@gmail.com")
+    yc_tadm = mk_user(f"ycadm-{tag}@tum.de"); promote(yc_tadm, "tenant_admin")
+    yc_root = mk_user(f"ycroot-{tag}@tum.de"); promote(yc_root, "platform_admin")
+    check("a new account starts with a freshly checked address", prof(yc_new, "email_checked_at > now() - interval '5 minutes', email_check_exempt") == (True, False))
+
+    s.anon()
+    s.fails("anonymous cannot confirm an address", "select public.confirm_university_email()", contains="permission denied")
+    s.user(yc_stu)
+    s.fails("nobody can move their own check date", "update public.profiles set email_checked_at = now() where id = %s", [yc_stu], contains="permission denied")
+    s.fails("... or exempt themselves", "update public.profiles set email_check_exempt = true where id = %s", [yc_stu], contains="permission denied")
+    s.fails("users cannot run the yearly job", "select public.process_email_checks()", contains="permission denied")
+
+    for u in (yc_stu, yc_org, yc_asta, yc_gmail, yc_tadm, yc_root):
+        age(u, "13 months")
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_email_check(%s, true)", [yc_asta])
+    check("the platform admin can exempt an organization address", err is None and prof(yc_asta, "email_check_exempt")[0] is True, str(err))
+    run_checks()
+    check("after a year, a student is asked to confirm", notes(yc_stu, "email_check_due") == 1 and prof(yc_stu, "email_check_notified_at is not null, tenant_id")[0:2] == (True, tum))
+    check("... and so are an organizer and a university admin", notes(yc_org, "email_check_due") == 1 and notes(yc_tadm, "email_check_due") == 1)
+    check("an exempt organization address is not asked", notes(yc_asta, "email_check_due") == 0)
+    check("an account without a university is not asked", notes(yc_gmail, "email_check_due") == 0)
+    check("a platform admin is never asked", notes(yc_root, "email_check_due") == 0)
+    check("a recent account is not asked", notes(yc_new, "email_check_due") == 0)
+    run_checks()
+    check("nobody is asked twice, and nobody loses anything inside the 30 days",
+          notes(yc_stu, "email_check_due") == 1 and prof(yc_org, "role::text, tenant_id") == ("organizer", tum))
+
+    s.user(yc_stu)
+    _, err = s.call("select public.confirm_university_email()")
+    check("confirming needs a session started with an e-mailed code", err is not None and "fresh_code_required" in err, str(err))
+    user_amr(yc_stu, "password", 10)
+    _, err = s.call("select public.confirm_university_email()")
+    check("a password sign-in is not proof", err is not None and "fresh_code_required" in err, str(err))
+    user_amr(yc_stu, "otp", 3600)
+    _, err = s.call("select public.confirm_university_email()")
+    check("an old code sign-in is not proof either", err is not None and "fresh_code_required" in err, str(err))
+    user_amr(yc_stu, "otp", 30)
+    _, err = s.call("select public.confirm_university_email()")
+    check("a fresh code sign-in confirms the address",
+          err is None and prof(yc_stu, "email_checked_at > now() - interval '5 minutes', email_check_notified_at is null") == (True, True), str(err))
+
+    for u in (yc_stu, yc_org, yc_tadm, yc_asta):
+        s.postgres()
+        c.execute("update public.profiles set email_check_notified_at = now() - interval '31 days' where id = %s and email_check_notified_at is not null", [u])
+    ycl_stu = mk_user(f"yclapse-{tag}@tum.de")
+    age(ycl_stu, "14 months", "31 days")
+    ycl_ev = mk_event(yc_org, tum, "Event of a lapsing organizer")
+    run_checks()
+    check("the student who confirmed keeps the university", prof(yc_stu, "tenant_id, email_check_lapsed_at")[0:2] == (tum, None))
+    check("30 days without confirming: a student loses the university, nothing else",
+          prof(ycl_stu, "tenant_id, role::text, email_check_lapsed_at is not null") == (None, "student", True) and notes(ycl_stu, "email_check_lapsed") == 1)
+    check("... an organizer becomes a plain student without a university",
+          prof(yc_org, "tenant_id, role::text, organizer_verified") == (None, "student", False) and notes(yc_org, "email_check_lapsed") == 1)
+    check("... and so does a university admin", prof(yc_tadm, "tenant_id, role::text") == (None, "student"))
+    check("the exempt organization address is untouched", prof(yc_asta, "tenant_id, role::text, organizer_verified") == (tum, "organizer", True))
+    s.user(yc_org)
+    check("the lapsed organizer can no longer manage or publish", s.scalar("select public.can_manage_event(%s)", [ycl_ev]) is False
+          and s.scalar("select public.can_publish_for(%s)", [tum]) is False)
+    s.user(ycl_stu)
+    check("the lapsed student no longer sees campus events", s.scalar("select count(*) from public.events where id = %s", [ycl_ev]) == 0)
+    s.postgres()
+    check("no account or event was deleted", s.scalar("select count(*) from public.events where id = %s", [ycl_ev]) == 1
+          and s.scalar("select count(*) from auth.users where id in (%s,%s,%s)", [ycl_stu, yc_org, yc_tadm]) == 3)
+    user_amr(ycl_stu, "otp", 20)
+    _, err = s.call("select public.confirm_university_email()")
+    check("confirming later brings the university back", err is None and prof(ycl_stu, "tenant_id, email_check_lapsed_at") == (tum, None), str(err))
+    user_amr(yc_gmail, "otp", 20)
+    _, err = s.call("select public.confirm_university_email()")
+    check("confirming a private address never creates a university", err is None and prof(yc_gmail, "tenant_id")[0] is None, str(err))
+
+    age(yc_new, "13 months", "31 days")
+    s.postgres()
+    c.execute("update auth.users set email = %s where id = %s", [f"ycnew2-{tag}@tum.de", yc_new])
+    run_checks()
+    check("changing to a new (confirmed) address starts the year again",
+          prof(yc_new, "email_checked_at > now() - interval '5 minutes', tenant_id") == (True, tum) and notes(yc_new, "email_check_lapsed") == 0)
+
+    yc_org2 = mk_user(f"ycorg2-{tag}@tum.de"); promote(yc_org2, "organizer")
+    yc_org_haw = mk_user(f"ycorgh-{tag}@haw-hamburg.de"); promote(yc_org_haw, "organizer")
+    yc_tadm2 = mk_user(f"ycadm2-{tag}@tum.de"); promote(yc_tadm2, "tenant_admin")
+    for who, label in ((yc_stu, "a student"), (yc_org2, "an organizer (for themselves)"), (t_admin, "another university's admin")):
+        s.user(who)
+        _, err = s.call("select public.admin_set_email_check(%s, true)", [yc_org2])
+        check(f"{label} cannot switch the yearly check off", err is not None and "not_authorized" in err, str(err))
+    s.user(yc_tadm2)
+    _, err = s.call("select public.admin_set_email_check(%s, true)", [yc_tadm2])
+    check("a university admin cannot exempt themselves", err is not None and "not_authorized" in err, str(err))
+    s.user(yc_tadm2)
+    _, err = s.call("select public.admin_set_email_check(%s, true)", [yc_org2])
+    check("a university admin can exempt an organizer of their university", err is None and prof(yc_org2, "email_check_exempt")[0] is True, str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_email_check(%s, true)", [yc_stu])
+    check("a plain student can never be exempt", err is not None and "only_university_organizers" in err, str(err))
+    s.user(yc_tadm2)
+    listed = s.rows("select email_check_exempt, email_checked_at from public.admin_list_users(%s)", [f"ycorg2-{tag}"])
+    check("the admin user list shows the exemption", listed == [(True, listed[0][1])] and listed[0][1] is not None, str(listed))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_role(%s,'student',false)", [yc_org2])
+    check("an exemption ends when the account is made a student again", err is None and prof(yc_org2, "email_check_exempt")[0] is False, str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.admin_set_email_check(%s, false)", [yc_asta])
+    check("the admin can switch the check back on", err is None and prof(yc_asta, "email_check_exempt")[0] is False, str(err))
+
+    def mk_request(uid, mail, role="organizer"):
+        s.postgres()
+        return s.scalar("insert into public.organizer_requests (user_id, email, requested_role, organization_name, message, applicant_position, phone) "
+                        "values (%s, %s, %s::public.user_role, 'Club', '', 'Chair', '+49 40 123456') returning id", [uid, mail, role])
+
+    ra, rb, rc = (mk_user(f"ycreq{i}-{tag}@{d}") for i, d in ((1, "tum.de"), (2, "tum.de"), (3, "gmail.com")))
+    qa, qb, qc = mk_request(ra, "a"), mk_request(rb, "b"), mk_request(rc, "c", "commercial_planner")
+    s.user(p_admin)
+    _, e1 = s.call("select public.review_organizer_request(%s, true, null, true)", [qa])
+    s.user(p_admin)
+    _, e2 = s.call("select public.review_organizer_request(%s, true)", [qb])
+    s.user(p_admin)
+    _, e3 = s.call("select public.review_organizer_request(%s, true, null, true)", [qc])
+    check("approving as a permanent organization address switches the yearly check off",
+          e1 is None and prof(ra, "role::text, email_check_exempt") == ("organizer", True), str(e1))
+    check("approving normally keeps the yearly check", e2 is None and prof(rb, "role::text, email_check_exempt") == ("organizer", False), str(e2))
+    check("a commercial planner is never marked exempt", e3 is None and prof(rc, "role::text, email_check_exempt") == ("commercial_planner", False), str(e3))
+    s.postgres()
+    check("the yearly check runs every day", s.scalar("select count(*) from cron.job where jobname = 'unihub-email-checks'") == 1)
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
         "anon": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
-                 "categories_ok", "event_seat_counts"},
+                 "categories_ok", "event_seat_counts", "is_suspended"},
         "authenticated": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
                           "register_for_event", "cancel_registration", "check_in_ticket", "submit_review", "admin_set_role",
                           "is_verified_publisher", "user_tenant", "request_organizer_access",
@@ -1412,7 +1827,7 @@ def run(s: Sim, tag: str) -> None:
                           "can_moderate_event", "report_event", "resolve_report",
                           "register_push_token", "unregister_push_token", "confirm_attendance", "event_insights",
                           "event_seat_counts", "admin_delete_user", "admin_list_blocked_emails", "admin_unblock_email",
-                          "admin_delete_review", "my_event_feedback"},
+                          "admin_delete_review", "my_event_feedback", "admin_list_cases", "admin_set_suspended", "is_suspended", "confirm_university_email", "admin_set_email_check"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")
@@ -1424,6 +1839,7 @@ def run(s: Sim, tag: str) -> None:
         "tenants": (set(["SELECT"]), set(["SELECT", "INSERT", "UPDATE", "DELETE"])),
         "tenant_domains": (set(), set(["SELECT", "INSERT", "UPDATE", "DELETE"])),
         "profiles": (set(), set(["SELECT"])),
+        "moderation_cases": (set(), set()),
         "events": (set(["SELECT"]), set(["SELECT", "INSERT", "DELETE"])),
         "registrations": (set(), set(["SELECT"])), "tickets": (set(), set(["SELECT"])), "scan_log": (set(), set(["SELECT"])),
         "reviews": (set(["SELECT"]), set(["SELECT"])),

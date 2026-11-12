@@ -116,6 +116,7 @@ Future<void> reportEventDialog(BuildContext context, AppState appState, Event ev
     final msg = switch (e is PostgrestException ? e.message : '') {
       'already_reported' => l10n.reportAlready,
       'too_many_reports' => l10n.reportTooMany,
+      'account_suspended' => l10n.suspendedAction,
       _ => l10n.reportFailed,
     };
     messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(msg)));

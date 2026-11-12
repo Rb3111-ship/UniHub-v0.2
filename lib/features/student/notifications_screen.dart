@@ -25,6 +25,10 @@ import 'review_screen.dart';
     'confirm_attendance' => (l10n.notifConfirmTitle, l10n.notifConfirmBody(t)),
     'seat_released' => (l10n.notifSeatReleasedTitle, l10n.notifSeatReleasedBody(t)),
     'review_prompt' => (l10n.notifReviewPromptTitle, l10n.notifReviewPromptBody(t)),
+    'account_suspended' => (l10n.notifSuspendedTitle, l10n.notifSuspendedBody),
+    'account_reinstated' => (l10n.notifReinstatedTitle, l10n.notifReinstatedBody),
+    'email_check_due' => (l10n.notifEmailCheckDueTitle, l10n.notifEmailCheckDueBody),
+    'email_check_lapsed' => (l10n.notifEmailCheckLapsedTitle, l10n.notifEmailCheckLapsedBody),
     _ => (l10n.notificationsTitle, t),
   };
 }
@@ -47,6 +51,9 @@ IconData _icon(String kind) => switch (kind) {
       'confirm_attendance' => Icons.help_outline_rounded,
       'seat_released' => Icons.event_seat_rounded,
       'review_prompt' => Icons.star_rate_rounded,
+      'account_suspended' => Icons.pause_circle_filled_rounded,
+      'account_reinstated' => Icons.check_circle_rounded,
+      'email_check_due' || 'email_check_lapsed' => Icons.mark_email_unread_rounded,
       _ => Icons.notifications_rounded,
     };
 

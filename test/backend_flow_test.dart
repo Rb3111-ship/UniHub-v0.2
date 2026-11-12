@@ -191,6 +191,8 @@ class _FakeBackend {
         body = [
           {'email': 'spammer@example.com', 'created_at': '2026-11-05T10:00:00Z', 'blocked_by_name': 'Test Admin'},
         ];
+      } else if (path.endsWith('/rpc/admin_set_suspended')) {
+        body = true;
       } else if (path.endsWith('/rpc/admin_unblock_email')) {
         body = true;
       } else if (path.endsWith('/event_reports') && req.method == 'GET') {
@@ -675,6 +677,33 @@ void main() {
     expect(body, contains('"user_id":"99999999-9999-9999-9999-999999999999"'));
     expect(body, contains('"block":true'));
     expect(find.text('Troll Account was removed'), findsOneWidget);
+    await _settle(tester, rounds: 6);
+    await _finish(tester);
+  });
+
+  testWidgets('admin suspends a user, which needs a reason', (tester) async {
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.admin_panel_settings_outlined));
+    await _settle(tester);
+    await tester.tap(find.text('Users'));
+    await _settle(tester, rounds: 12);
+    await tester.tap(find.byTooltip('Change role'));
+    await _settle(tester, rounds: 10);
+    await tester.ensureVisible(find.text('Suspend'));
+    await tester.tap(find.text('Suspend'));
+    await _settle(tester, rounds: 10);
+    expect(find.text('Suspend Troll Account?'), findsOneWidget);
+    // No reason yet: the button does nothing.
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Suspend')).onPressed, isNull);
+    await tester.enterText(find.byType(TextField).last, 'Three scam reports');
+    await _settle(tester, rounds: 2);
+    await tester.tap(find.widgetWithText(FilledButton, 'Suspend'));
+    await _settle(tester, rounds: 14);
+    final body = backend.bodies['/rest/v1/rpc/admin_set_suspended'] ?? '';
+    expect(body, contains('"p_user":"99999999-9999-9999-9999-999999999999"'));
+    expect(body, contains('"p_suspend":true'));
+    expect(body, contains('Three scam reports'));
+    expect(find.text('Troll Account is suspended'), findsOneWidget);
     await _settle(tester, rounds: 6);
     await _finish(tester);
   });

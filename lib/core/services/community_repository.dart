@@ -38,12 +38,18 @@ class CommunityRepository {
   Future<List<EventReport>> fetchReports() async {
     final rows = await _client
         .from('event_reports')
-        .select('*, events(title, starts_at, status)')
+        .select('*, events(title, starts_at, status, organizer_id, profiles!events_organizer_id_fkey(display_name, suspended_at))')
         .order('created_at', ascending: false)
         .limit(200);
     final list = rows.map<EventReport>(EventReport.fromRow).toList();
     list.sort((a, b) => a.isOpen == b.isOpen ? 0 : (a.isOpen ? -1 : 1));
     return list;
+  }
+
+  /// Removed events and users with the reports about them (admins only).
+  Future<List<ModerationCase>> fetchCases() async {
+    final rows = await _client.rpc('admin_list_cases', params: {'p_limit': 100}) as List;
+    return [for (final r in rows) ModerationCase.fromRow(r as Map<String, dynamic>)];
   }
 
   Future<void> resolveReport(String id, bool remove, String? note) async {

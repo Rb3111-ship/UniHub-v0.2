@@ -1,4 +1,4 @@
-"""UniHub Testing Guide (phone edition, v0.2.14). Writes docs/UNIHUB_Testing_Guide.pdf."""
+"""UniHub Testing Guide (phone edition, v0.2.27). Writes docs/UNIHUB_Testing_Guide.pdf."""
 import shutil
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -8,7 +8,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 
 OUT = r"D:\UniHub_v0.2\docs\UNIHUB_Testing_Guide.pdf"
 COPY = r"D:\UniHub_APK\UNIHUB_Testing_Guide.pdf"
-VERSION = "0.2.14"
+VERSION = "0.2.27"
 
 BLUE = colors.HexColor("#3F51E0")
 INK = colors.HexColor("#12141C")
@@ -74,6 +74,7 @@ def test(title, steps, expect, intro=None, after=None):
     return [KeepTogether(out)]
 
 s = []
+HAW = "your friend's HAW address"
 # ------------------------------------------------------------------ cover
 s += [Spacer(1, 30 * mm), P("UniHub", T), P("Testing Guide - on your phone", SUB),
       P("App version %s" % VERSION, SUB), Spacer(1, 8 * mm),
@@ -83,14 +84,16 @@ s += [Spacer(1, 30 * mm), P("UniHub", T), P("Testing Guide - on your phone", SUB
 s.append(table([
     ["Part", "What it covers", "Time"],
     ["1", "Install the app and get ready", "10 min"],
-    ["2", "Signing up and signing in", "15 min + 25 min wait"],
+    ["2", "Signing up and signing in", "20 min + 25 min wait"],
     ["3", "The student side: feed, event page, tickets", "25 min"],
-    ["4", "Becoming an organizer and creating events", "20 min"],
+    ["4", "Organizers: applying, creating events, campus events", "30 min"],
     ["5", "Notifications", "15 min + waiting"],
-    ["6", "After the event: past tickets, reviews, statistics", "20 min"],
-    ["7", "Admin tools", "20 min"],
-    ["8", "Profile, looks and deleting an account", "15 min"],
-    ["9", "If something goes wrong", "as needed"],
+    ["6", "After the event: past tickets, reviews, statistics", "25 min"],
+    ["7", "Admin: roles, reports and case files", "25 min"],
+    ["8", "Admin: suspending, removing and blocking", "30 min"],
+    ["9", "The yearly check of university emails", "15 min"],
+    ["10", "Profile, looks, the website on a PC, deleting an account", "20 min"],
+    ["11", "If something goes wrong", "as needed"],
 ], [12, 118, 40]))
 s += [Spacer(1, 6 * mm)]
 s += callout("NOTE", "Words in " + k("this style") + " are things you type exactly. Words in <b>bold</b> are buttons "
@@ -117,19 +120,24 @@ s.append(P("You play several people on one phone by signing out and in again. Gm
 s.append(table([
     ["Name in this guide", "Email", "Who it is"],
     ["<b>Admin</b>", "who649@haw-hamburg.de", "You, the platform admin (exists already)"],
-    ["<b>Test Student</b>", "whp2718+student@gmail.com", "A normal user, created in Test 1"],
-    ["<b>Student 2</b>", "whp2718+student2@gmail.com", "A second normal user, for the waitlist (Test 17)"],
+    ["<b>HAW Student</b>", HAW, "A real university account. Created in Test 2. Later becomes a university organizer."],
+    ["<b>Test Student</b>", "whp2718+student@gmail.com", "A normal user without a university. Later becomes a commercial planner."],
+    ["<b>Student 2</b>", "whp2718+student2@gmail.com", "A second normal user, for the waitlist and for reporting"],
     ["<b>Throwaway</b>", "whp2718+gone1@gmail.com, +gone2 ...", "Short-lived accounts for delete/remove tests"],
 ], [32, 62, 76]))
+s += callout("WARNING", "Codes for the HAW address arrive in <b>your friend's inbox</b>, not yours. He has to send you "
+             "the code each time (sign-up in Test 2, and the yearly check in Part 9). Codes run out after a short "
+             "time, so do those tests when he is reachable.")
 s += callout("TIP", "Write the passwords on paper. To <b>sign out</b>: tap your name at the top right > <b>Sign out</b>. "
-             "To <b>sign in</b>: tap <b>Sign in / Sign up</b>, type email and password.")
+             "To <b>sign in</b>: tap <b>Sign in / Sign up</b>, type email and password. If an account from an older "
+             "round of testing still exists, just sign in instead of creating it.")
 s += callout("NOTE", "Some tests need a <b>second phone</b> (a friend's) or a <b>computer screen</b>. They say so at the "
              "top. Skip them if you can't do them now.")
 s.append(PageBreak())
 
 # ------------------------------------------------------------------ part 2
 s.append(P("Part 2 - Signing up and signing in", H1))
-s += test("Create the Test Student account", [
+s += test("Create the Test Student account (Gmail)", [
     "Sign out. Tap <b>Sign in / Sign up</b> > <b>New here? Create an account</b>.",
     "Name " + k("Test Student") + ", email " + k("whp2718+student@gmail.com") + ", a password of 8+ characters.",
     "Under the email it says <i>No university email detected</i> (correct for Gmail). Tap <b>Create account</b>.",
@@ -137,6 +145,21 @@ s += test("Create the Test Student account", [
     "you have <b>20 minutes</b>.",
     "Type the 6-digit code from Gmail and tap <b>Verify</b>."],
     "you are signed in; the bottom bar shows <b>Home</b>, <b>My Tickets</b>, <b>Profile</b>.")
+s += test("Create the HAW Student account (university email)", [
+    "Sign out. <b>Sign in / Sign up</b> > <b>New here? Create an account</b>.",
+    "Name " + k("HAW Student") + ", email: " + HAW + ", a password.",
+    "Under the email it now says <i>University account detected</i> with the university's name. Tap "
+    "<b>Create account</b>.",
+    "Ask your friend for the code from his HAW inbox, type it and tap <b>Verify</b>.",
+    "Open <b>Profile</b> and find the row with the university's name."],
+    "you are signed in. The university row has a green tick and says <i>Set automatically from your verified "
+    "university email.</i>")
+s += test("Looking around without an account", [
+    "Sign out. On the sign-in screen tap <b>Browse events without an account</b>.",
+    "Scroll the list. Tap any event.",
+    "Tap <b>Not now</b>, then tap <b>Sign in / Sign up</b> at the top."],
+    "you see <b>Public events</b> only (no campus events). Opening an event asks you to sign in first "
+    "(<i>Sign in to see this event</i>).")
 s += test("Unfinished sign-ups free the email again (needs a 25-minute wait)", [
     "Sign out. Start a sign-up with " + k("whp2718+ghost@gmail.com") + ", but <b>do not</b> type the code. "
     "Close the app.",
@@ -144,7 +167,7 @@ s += test("Unfinished sign-ups free the email again (needs a 25-minute wait)", [
     "20 minutes.)",
     "Sign up again with exactly the same email and any password.",
     "A <b>new</b> code email arrives. Type it in."],
-    "the second sign-up works normally and you are signed in. Before this fix the email was stuck forever.")
+    "the second sign-up works normally and you are signed in.")
 s += test("Coming back before the 20 minutes are up", [
     "Sign out. Start a sign-up with " + k("whp2718+back@gmail.com") + " and close the app without the code.",
     "Within 20 minutes open the app and <b>sign in</b> with that email and password."],
@@ -164,34 +187,35 @@ s.append(PageBreak())
 # ------------------------------------------------------------------ part 3
 s.append(P("Part 3 - The student side", H1))
 s.append(P("Sign in as <b>Test Student</b> for this part unless a test says otherwise."))
-s += test("The home feed", [
-    "Open <b>Home</b>. While it loads you briefly see grey pulsing cards (on a fast connection it is very short).",
-    "At the top it greets you: <b>Hi Test</b>. Below: category chips, one big featured event, then "
-    "<b>Coming up</b> with smaller rows.",
-    "The cards fade in one after another. Press a card: it shrinks a little under your finger.",
-    "Swipe the chip row left and tap <b>Other</b>: a list <b>More categories</b> opens. Tap <b>All</b> to go back.",
+s += test("The home feed (new ticket look)", [
+    "Open <b>Home</b>. At the top it greets you: <b>Hi Test</b>.",
+    "Look at the events: each one is drawn like a <b>ticket</b>, with a coloured edge for its category and small "
+    "typewriter-style labels for date and place.",
+    "Swipe the chip row left and tap <b>Other</b>: a list of more categories opens. Tap <b>All</b> to go back.",
     "Tap the <b>magnifying glass</b>, type part of an event name. Then type " + k("zzz") + "."],
-    "matching events stay; for zzz a drawn picture with <i>No events match your search</i>. Tap <b>X</b> to close.")
+    "matching events stay; for zzz a message that no events match your search. Tap <b>X</b> to close the search.")
 s += test("Saving events (heart)", [
-    "Tap the <b>heart</b> on an event picture. Your phone gives a tiny vibration; the heart turns red.",
+    "Tap the <b>heart</b> on an event. The heart turns red.",
     "Tap the <b>heart at the top</b> (next to the magnifying glass): only saved events show.",
     "Close the app completely, open it again."],
     "the heart is still red (it is saved online). Tap the top heart again to see everything.")
-s += test("The event page", [
-    "Open any upcoming event.",
-    "Check: date and place in small tiles, the organizer under <b>Hosted by</b>, a seat bar like "
-    "<i>3 of 50 seats taken</i> (only for events with a limit).",
-    "Tap the poster (or the arrows icon): the whole poster shows on black. Pinch to zoom, <b>X</b> to close.",
-    "Tap <b>Add to calendar</b>: your calendar app opens with the event filled in. Go back without saving.",
+s += test("The event page and the poster", [
+    "Open any upcoming event that has a poster.",
+    "Check that you see the <b>whole poster</b>, not a cut-off part of it.",
+    "Check: the <b>heart sits next to the event title</b> (not in the top corner), date and place, the organizer "
+    "under <b>Hosted by</b>, and for events with a limit a line like <i>3 of 50 seats taken</i>.",
+    "Tap the poster: it <b>grows smoothly</b> to full size and the page behind it turns <b>frosted</b> (blurred), "
+    "not black. Pinch to zoom. Tap outside or <b>Close</b>.",
     "If the event has <b>Contact &amp; links</b>, tap each one: browser, mail app, phone dialer."],
-    "everything is readable in light and dark mode, nothing overlaps.")
-s += test("Register: confetti, ticket and bright QR code", [
+    "everything is readable in light and dark mode, nothing overlaps, and there is no separate 'enlarge' button "
+    "in the top corner any more.")
+s += test("Register: ticket and bright QR code", [
     "On an event that is <b>not</b> yours, tap <b>Register</b> at the bottom.",
-    "Watch: confetti, a short vibration and the button turns into <b>Registered</b> with a tick.",
-    "Open <b>My Tickets</b>. The ticket has a coloured header, the date and place, and a QR code.",
+    "The button turns into <b>Registered</b>.",
+    "Open <b>My Tickets</b>. The ticket shows the date, the place and a QR code.",
     "Tap the <b>QR code</b>."],
-    "it opens full screen on white and the screen goes to <b>full brightness</b>. Close it with <b>X</b>: the "
-    "brightness goes back to what it was.")
+    "it opens full screen on white and the screen goes to <b>full brightness</b>. Close it: the brightness goes "
+    "back to what it was.")
 s += test("Cancel a registration", [
     "In <b>My Tickets</b> tap <b>Cancel registration</b> on that ticket > <b>Yes, cancel</b>."],
     "<i>Registration cancelled.</i> The ticket disappears. The event shows <b>Register</b> again.")
@@ -199,41 +223,63 @@ s.append(P("<b>Register again</b> for that event before you continue - the next 
 s.append(PageBreak())
 
 # ------------------------------------------------------------------ part 4
-s.append(P("Part 4 - Becoming an organizer and creating events", H1))
-s += test("Apply to become an organizer", [
+s.append(P("Part 4 - Organizers: applying, creating events, campus events", H1))
+s += test("A Gmail account can only apply for public events", [
     "As <b>Test Student</b>: <b>Profile</b> > <b>Become an organizer</b>.",
+    "Look at the two choices at the top. <b>University organizer</b> is grey with the note <i>You need a "
+    "university email address to become a university organizer.</i> <b>Commercial / public events</b> is selected.",
     "Tap <b>Send request</b> straight away: red messages ask for position, phone and the tick box.",
     "Fill in club name " + k("Test Events Club") + ", position " + k("Chair") + ", phone " + k("+49 40 1234567") + ".",
     "Tap <b>Add document</b> and pick a photo or PDF (max 5 MB).",
     "Tick the box and tap <b>Send request</b>."],
     "<i>Request sent</i>; the Profile card says your request is waiting for review.")
-s += test("Admin approves", [
-    "Sign out, sign in as <b>Admin</b> > <b>Admin</b> tab > <b>Requests</b>.",
-    "Check the request: position, phone (tap = dialer), email, and a chip <b>Document 1</b> (tap = opens it).",
+s += test("The HAW account applies as a university organizer", [
+    "Sign in as <b>HAW Student</b> > <b>Profile</b> > <b>Become an organizer</b>.",
+    "This time <b>University organizer</b> can be chosen. Leave it selected.",
+    "Fill in club name " + k("HAW Test Club") + ", position " + k("Member") + ", phone " + k("+49 40 7654321") +
+    ", tick the box, <b>Send request</b>."],
+    "<i>Request sent</i>.")
+s += test("Admin approves both (with the 'permanent address' box)", [
+    "Sign in as <b>Admin</b> > <b>Admin</b> tab > <b>Requests</b>.",
+    "On Test Events Club check: position, phone (tap = dialer), email, and a chip <b>Document 1</b> (tap = opens it). "
+    "Tap <b>Approve</b>. The dialog has only the note box. Tap <b>Approve</b>.",
+    "On HAW Test Club tap <b>Approve</b>. This dialog also has a tick box <b>Permanent organization address (for "
+    "example AStA): no yearly email check</b>. <b>Leave it empty</b> (your friend is a person, not an office). "
     "Tap <b>Approve</b>.",
-    "Sign out, sign in as <b>Test Student</b> > <b>Profile</b> > <b>Check status</b>."],
-    "Test Student's bottom bar changes to <b>Dashboard</b>, <b>Create Event</b>, <b>Scanner</b>, <b>Profile</b>. "
-    "In the Admin's Requests list the card now says documents were deleted.")
-s += test("Create an event with everything", [
-    "As <b>Test Student</b> (now an organizer): <b>Create Event</b>.",
+    "Sign in as <b>HAW Student</b> > <b>Profile</b> > <b>Check status</b>. Do the same as <b>Test Student</b>."],
+    "both bottom bars change to <b>Dashboard</b>, <b>Create Event</b>, <b>Scanner</b>, <b>Profile</b>. "
+    "The tick box only appears for university organizers, never for commercial ones.")
+s += test("Create a public event with everything", [
+    "As <b>Test Student</b> (now a commercial planner): <b>Create Event</b>.",
     "Add a poster with <b>Add poster image</b>. Title " + k("Big Test Event") + ", location " + k("Room 1") + ".",
-    "Set <b>Starts</b> to <b>2 days from now</b>. Turn off <b>No attendee limit</b> and set the capacity to "
-    + k("20") + ".",
+    "Set <b>Starts</b> to <b>2 days from now</b>. Turn off <b>No attendee limit</b>. The capacity is now a "
+    "<b>number box</b> (no slider): type " + k("20") + ".",
+    "Clear the box and type " + k("0") + ": a red message asks for a number from 1 upwards. Type " + k("20") + " again.",
     "Check that the switch <b>Free unconfirmed seats</b> appears (it only shows when there is a seat limit). "
     "Leave it off.",
     "Categories: tap <b>Other</b> and type " + k("Yoga") + " in <b>Your own category</b>.",
     "Fill <b>Contact &amp; links</b>: website " + k("www.haw-hamburg.de") + ", an email, a phone.",
-    "Choose <b>Public event</b> and tap <b>Publish Event</b>."],
+    "Tap <b>Publish Event</b>."],
     "<i>Event published.</i> It appears on the Dashboard. Watch the <b>Live Preview</b> update while you type.")
-s += test("Edit an event and see 'Your event'", [
-    "<b>Dashboard</b> > the <b>pencil</b> on Big Test Event. Change the title to " + k("Big Test Event 2") +
-    " > <b>Save changes</b>.",
-    "Tap your name > <b>Switch to student view</b>, open the event."],
-    "<i>Event updated.</i> On your own event the button says <b>Your event</b> (grey). Switch back to the organizer "
-    "view afterwards.")
+s += test("A campus event only the university can see", [
+    "Sign in as <b>HAW Student</b> (organizer view) > <b>Create Event</b>.",
+    "Title " + k("HAW Only Event") + ", location " + k("Campus") + ", starts in 3 days.",
+    "Choose <b>Official university event</b> (it says only members of the university can see it). Publish.",
+    "Sign in as <b>Admin</b> (a HAW address) > student view > <b>Home</b>: look for HAW Only Event.",
+    "Sign in as <b>Student 2</b> or <b>Test Student</b> (Gmail) > <b>Home</b>: look for it again.",
+    "Sign out and tap <b>Browse events without an account</b>: look for it once more."],
+    "the Admin sees HAW Only Event. The Gmail accounts and the visitor do <b>not</b> see it; they still see "
+    "Big Test Event.")
+s += test("Edit an event; the seat limit cannot go below the sign-ups", [
+    "As <b>Test Student</b>: <b>Dashboard</b> > the <b>pencil</b> on Big Test Event. Change the title to "
+    + k("Big Test Event 2") + " > <b>Save changes</b>.",
+    "Sign in as <b>Student 2</b> and as <b>Admin</b> (student view) and register for Big Test Event 2 with both.",
+    "As <b>Test Student</b> edit the event again and set the capacity to " + k("1") + " > <b>Save changes</b>.",
+    "Set it back to " + k("20") + " and save. Then tap your name > <b>Switch to student view</b> and open the event."],
+    "the first save says <i>Event updated.</i> Capacity 1 is refused: <i>2 people are already registered. The limit "
+    "cannot be lower than that.</i> On your own event the button says <b>Your event</b> (grey).")
 s += test("Check in a guest with the scanner (needs a second phone or a computer screen)", [
-    "As <b>Admin</b>, switch to student view and register for Big Test Event 2. Open <b>My Tickets</b>, tap the QR "
-    "code so it is big.",
+    "As <b>Admin</b> (student view) open <b>My Tickets</b>, tap the QR code of Big Test Event 2 so it is big.",
     "<b>Second phone:</b> sign in there as Test Student. <b>One phone only:</b> take a screenshot of the big QR, "
     "send it to your computer (e.g. WhatsApp Web) and open it on the computer screen. Then sign in as Test Student "
     "on your phone.",
@@ -256,7 +302,7 @@ s += test("Waitlist: a seat opens up", [
     "As <b>Test Student</b> (organizer view): create an event " + k("Tiny Event") + " starting tomorrow, "
     "capacity " + k("1") + ", public.",
     "Sign in as <b>Admin</b> > student view > register for Tiny Event (you get the seat).",
-    "Create <b>Student 2</b> (" + k("whp2718+student2@gmail.com") + ") and register for Tiny Event.",
+    "Sign in as <b>Student 2</b> (create " + k("whp2718+student2@gmail.com") + " if needed) and register for Tiny Event.",
     "Student 2 sees <b>Waitlisted</b>; in My Tickets: <b>ON WAITLIST</b>.",
     "Sign in as <b>Admin</b> > My Tickets > <b>Cancel registration</b> on Tiny Event.",
     "Sign in as <b>Student 2</b> and tap the <b>bell</b>."],
@@ -269,14 +315,13 @@ s += test("Event changed / cancelled messages", [
 s += test("Removing notifications", [
     "Still in the bell list: swipe one notification to the left or right.",
     "Tap the <b>bin icon</b> at the top > <b>Delete all</b>."],
-    "the swiped one disappears; after Delete all the list shows a drawn picture with "
-    "<i>No notifications yet.</i> Close and reopen: they stay gone.")
+    "the swiped one disappears; after Delete all the list is empty. Close and reopen: they stay gone.")
 s += test("Reminder push (leave the phone signed in)", [
-    "As <b>Test Student</b> register for an event (made by someone else) that starts in 3 to 20 hours.",
-    "Stay signed in as Test Student. Wait a bit more than 1 hour."],
+    "As <b>Student 2</b> register for an event that starts in 3 to 20 hours.",
+    "Stay signed in as Student 2. Wait a bit more than 1 hour."],
     "a push message <b>Reminder</b>: <i>... starts in N hours.</i>")
 s += test("'Are you still coming?' (wait 12+ hours, or ask Claude to speed it up)", [
-    "As <b>Test Student</b> register for an event (made by someone else) that starts in about <b>2 days</b>.",
+    "As <b>Student 2</b> register for an event that starts in about <b>2 days</b>.",
     "Stay signed in. About 12 hours later a push <b>Still coming?</b> arrives.",
     "Open <b>My Tickets</b>: a card <b>Are you still coming?</b> sits above the ticket. Tap <b>Yes, I'm coming</b>."],
     "<i>Thanks! Your seat is confirmed.</i> and a green <b>Confirmed</b> badge on the ticket. (<b>I can't come</b> "
@@ -294,51 +339,130 @@ s += test("A short event that ends soon", [
     "Sign in as <b>Student 2</b> and register for Quick Event.",
     "Wait until it has ended (about 20 minutes)."],
     "Quick Event is published and Student 2 has a ticket.")
-s += test("Past tickets fold away", [
+s += test("Past tickets fold away, and only for 90 days", [
     "As <b>Student 2</b> open <b>My Tickets</b> after Quick Event has ended.",
-    "Scroll down to <b>Past events (1)</b> and tap it."],
-    "upcoming tickets stay on top; Quick Event is now a small card in the folded <b>Past events</b> section with "
-    "<b>ENDED</b> and a <b>Leave Review</b> button.")
+    "Scroll down to <b>Past events (...)</b> and tap it."],
+    "upcoming tickets stay on top; Quick Event is a small card in the folded <b>Past events</b> section with a "
+    "<b>Leave Review</b> button. A small note says <i>Past events stay here for 90 days.</i> (After 90 days they "
+    "leave this list; nothing is deleted.)")
 s += test("Leave a review", [
-    "Tap <b>Leave Review</b>, give 4 stars and a comment, tick the box that you attended, submit."],
-    "a green message; the card now shows a gold star instead of the button (you can review once).")
-s += test("Organizer statistics", [
+    "Tap <b>Leave Review</b>, give 4 stars and a comment, tick the box that you attended, <b>Submit Review</b>."],
+    "a green message; the card now shows that the review was submitted (you can review once).")
+s += test("'How was it?' invitation (about 1 hour after the end)", [
+    "Stay signed in as an account that had a ticket for an ended event and has <b>not</b> reviewed it yet "
+    "(for example the Admin for Quick Event, if you registered it too).",
+    "About one hour after the event ended, look at the phone and the bell."],
+    "a message <b>How was it?</b> Tapping it opens the review form for that event. It comes only once.")
+s += test("Organizer statistics and private feedback", [
     "Sign in as <b>Test Student</b> > <b>Dashboard</b>.",
-    "Scroll down slowly. The top part (university name and <b>Event Analytics</b>) must stay solid: the cards slide "
-    "<b>under</b> it, never through it - in light and dark mode.",
-    "In <b>Registered, confirmed and came</b> each event has labelled rows <b>Registered</b>, <b>Confirmed</b>, "
-    "<b>Came</b> with a number at the end. Events without sign-ups say <i>No sign-ups yet</i>; open events say "
-    "<i>Came: not counted</i>.",
-    "Tap an event (or a card under <b>Attendance by event</b>)."],
-    "the <b>Event statistics</b> page: number tiles, labelled attendance bars, <b>Sign-ups per day</b> and, for "
-    "Quick Event, the <b>Ratings</b> with Student 2's 4 stars.")
+    "Scroll down slowly. The top part must stay solid: the cards slide <b>under</b> it, never through it - in light "
+    "and dark mode.",
+    "Find <b>Private Internal Feedback</b>: Student 2's review of Quick Event is listed there (Quick Event had no "
+    "door scan, so the review is <i>unverified</i>: only the organizer sees it and it does not count in the stars).",
+    "Tap an event to open its statistics."],
+    "the <b>Event statistics</b> page: number tiles, attendance bars and <b>SIGN-UPS PER DAY</b>.")
 s.append(PageBreak())
 
 # ------------------------------------------------------------------ part 7
-s.append(P("Part 7 - Admin tools", H1))
-s.append(P("Sign in as <b>Admin</b> for this part."))
-s += test("Reporting an event and handling the report", [
-    "As <b>Student 2</b>: open an event made by Test Student > <b>three dots</b> (top right) > <b>Report event</b> > "
-    "<b>Spam or advertising</b>, type " + k("test report") + " > <b>Send report</b>.",
-    "Sign in as <b>Admin</b> > <b>Admin</b> > <b>Reports (1)</b>.",
-    "Tap <b>Dismiss</b> > <b>Dismiss</b>."],
-    "the report shows the event, reason and text; afterwards it says <b>Dismissed</b> and the event stays online.",
-    after=callout("WARNING", "<b>Remove event</b> cancels an event for everyone and can't be undone. Only try it on an "
-                  "event you made just for testing."))
-s += test("Change someone's role", [
-    "<b>Admin</b> > <b>Users</b>. Search " + k("Student 2") + ".",
-    "Tap the <b>person-with-gear icon</b> on the card > <b>University organizer</b>. Then set it back to <b>Student</b>.",
+s.append(P("Part 7 - Admin: roles, reports and case files", H1))
+s += test("University roles only for university emails", [
+    "Sign in as <b>Admin</b> > <b>Admin</b> > <b>Users</b>. Search " + k("Student 2") + " (a Gmail account).",
+    "Tap the <b>person-with-gear icon</b> on the card and read the menu.",
+    "Close it. Search <b>HAW Student</b> and open the same menu.",
     "Find your own card."],
-    "the role line changes each time. Your own card has no gear icon (you can't lock yourself out).")
+    "for the Gmail account the menu has <b>no</b> <i>University organizer</i> and no <i>University admin</i>, and a "
+    "grey line says <i>University roles need an account with a university email.</i> For HAW Student both roles are "
+    "there. Your own card has no gear icon (you can't lock yourself out).")
+s += test("Change someone's role", [
+    "On <b>Student 2</b>: gear icon > <b>Commercial planner</b>. Then set it back to <b>Student</b>."],
+    "the role line under the name changes each time.")
+s += test("Several people report the same organizer", [
+    "As <b>Test Student</b> (organizer view) create a second public event " + k("Second Test Event") + " in 4 days.",
+    "Sign in as <b>Student 2</b>: open <b>Big Test Event 2</b> > <b>three dots</b> (top right) > <b>Report event</b> > "
+    "<b>Spam or advertising</b>, type " + k("test report one") + " > <b>Send report</b>.",
+    "Still as Student 2: report <b>Second Test Event</b> with <b>Wrong or misleading information</b>.",
+    "Sign in as <b>HAW Student</b> (student view): report <b>Big Test Event 2</b> with <b>Scam or fake event</b>, "
+    "text " + k("test report two") + ".",
+    "Try to report the same event again as HAW Student."],
+    "each report says <i>Thank you. An admin will look at it.</i> The repeat says <i>You already reported this "
+    "event.</i>")
+s += test("Reports are stacked by organizer", [
+    "Sign in as <b>Admin</b> > <b>Admin</b> > <b>Reports (3)</b>.",
+    "Look at the card for <b>Test Student</b>."],
+    "<b>one</b> card for the organizer with an orange <b>3 open</b> and the line <b>3 REPORTS ON 2 EVENTS</b>. Inside: "
+    "Big Test Event 2 with its two reports, Second Test Event with one. You never see <b>who</b> reported. The card "
+    "has a button <b>Suspend organizer</b> (used in Part 8).")
+s += test("Dismiss the reports of one event", [
+    "Under <b>Second Test Event</b> tap <b>Dismiss</b> > <b>Dismiss</b>."],
+    "<i>Report dismissed.</i> That event now says <b>Dismissed</b> and stays online. The card shows <b>2 open</b>.")
+s += test("Remove a reported event and find the case file", [
+    "Under <b>Big Test Event 2</b> tap the red <b>Remove event</b>. Read the warning, type the reason "
+    + k("Test: advertising only") + " and tap <b>Remove event</b>.",
+    "At the top right of the Reports tab tap <b>Case files</b>.",
+    "Tap the entry <b>Big Test Event 2</b> to open it. Tap <b>Copy as text</b> and paste it into a note or WhatsApp."],
+    "<i>Event removed.</i> Both reports about it are closed in one go. The case file says <b>Event removed</b>, "
+    "<b>2 reports</b>, names the organizer and their email, your reason, and lists both reports with reason, text "
+    "and time - but not who sent them. The pasted text contains the same.",
+    after=callout("WARNING", "<b>Remove event</b> cancels an event for everyone and can't be undone. Only use it on "
+                  "events you made for testing."))
+s += test("Remove a review (admin)", [
+    "As <b>Admin</b> open the <b>Dashboard</b> and find a review in the feedback list (for example Student 2's "
+    "review of Quick Event).",
+    "Tap <b>Remove review</b> > <b>Remove review</b>."],
+    "<i>Review removed.</i> It is gone from the list.")
+s.append(PageBreak())
+
+# ------------------------------------------------------------------ part 8
+s.append(P("Part 8 - Admin: suspending, removing and blocking", H1))
+s.append(P("Suspending is the step <b>before</b> removing: it can be undone. Use it while you look into reports."))
+s += test("Suspend an organizer (a reason is required)", [
+    "First sign in as <b>Student 2</b> and register for <b>Second Test Event</b> (so somebody holds a ticket).",
+    "Sign in as <b>Admin</b> > <b>Admin</b> > <b>Reports</b> > on Test Student's card tap <b>Suspend organizer</b>.",
+    "Read the dialog. The orange <b>Suspend</b> button is <b>grey</b> while the reason box is empty.",
+    "Type " + k("Test: checking three reports") + " and tap <b>Suspend</b>.",
+    "Open <b>Users</b> and find Test Student."],
+    "<i>Test Student is suspended</i>. The report card shows a red <b>Suspended</b> label and the button now says "
+    "<b>Reinstate</b>. In Users the line under the name ends with a red <b>Suspended</b>.")
+s += test("What everyone else sees during a suspension", [
+    "Sign in as <b>HAW Student</b> (student view) > <b>Home</b>: look for Second Test Event.",
+    "Sign out > <b>Browse events without an account</b>: look for it again.",
+    "Sign in as <b>Student 2</b> (who has a ticket for it) and open <b>My Tickets</b>."],
+    "Test Student's events are <b>gone from the feed</b> for other people and for visitors. Tickets people already "
+    "have are still there.")
+s += test("What the suspended person sees", [
+    "Sign in as <b>Test Student</b>.",
+    "Look at the top of the app, then tap the <b>bell</b>.",
+    "In student view try to <b>Register</b> for any public event that someone else made.",
+    "In organizer view open <b>Create Event</b> and try to publish a new event."],
+    "a <b>yellow bar</b> at the top: <i>Your account is suspended while we look into reports about it ...</i> The "
+    "bell has <b>Account suspended</b> (also as a push message). Registering says <i>Your account is suspended, so "
+    "this is not possible right now.</i> Publishing is refused.")
+s += test("Reinstate, and the record of it", [
+    "Sign in as <b>Admin</b> > <b>Admin</b> > <b>Users</b> > gear icon on Test Student > <b>Reinstate</b>.",
+    "Type " + k("Test: reports were unfounded") + " (optional) and tap <b>Reinstate</b>.",
+    "Open <b>Reports</b> > <b>Case files</b>.",
+    "Sign in as <b>Test Student</b> and look at the top of the app and the bell. Check <b>Home</b> as Student 2."],
+    "<i>Test Student is reinstated</i>. The case files have two new entries: <b>User suspended</b> (orange, with "
+    "your reason and the reports) and <b>User reinstated</b> (green). For Test Student the yellow bar is gone and "
+    "the bell says <b>Account reinstated</b>. The events are back in the feed.")
+s += test("Suspension safety rules", [
+    "As <b>Admin</b> > <b>Users</b>: open the gear menu on another <b>admin</b> account, if there is one.",
+    "Suspend <b>Student 2</b> (any reason). Then open the gear menu again and try to give it the role "
+    "<b>Commercial planner</b>.",
+    "<b>Reinstate</b> Student 2."],
+    "admin accounts have no <b>Suspend</b> and no <b>Remove user</b> item. Giving a suspended account a publishing "
+    "role fails with a red message.")
 s += test("Remove a user, with photo and block", [
     "Create " + k("whp2718+gone1@gmail.com") + " (name " + k("Gone One") + "). As Admin give it the role "
     "<b>Commercial planner</b>.",
     "Sign in as Gone One > <b>Profile</b> > add a profile photo. Create one public event and publish it.",
     "Sign in as <b>Admin</b> > <b>Users</b> > gear icon on Gone One > <b>Remove user</b> (red).",
-    "Read the dialog: it says <b>1 event</b> will be deleted too. Tick <b>Block this email address ...</b> and tap "
-    "<b>Remove user</b>."],
-    "<i>Gone One was removed</i>; the person and the event are gone from the lists. Tell me when you did this test "
-    "and I will check that the photo file was deleted on the server too.")
+    "Read the dialog: it says <b>1 event</b> will be deleted too. Tick <b>Block this email address from signing up "
+    "again</b> and tap <b>Remove user</b>.",
+    "Open <b>Reports</b> > <b>Case files</b>."],
+    "<i>Gone One was removed</i>; the person and the event are gone from the lists. The case files have a new entry "
+    "<b>User removed</b> with <b>Address blocked</b>; it says nobody had reported this account. Tell me when you did "
+    "this test and I will check that the photo file was deleted on the server too.")
 s += test("A blocked address cannot sign up", [
     "Sign out. Try to sign up again with " + k("whp2718+gone1@gmail.com") + "."],
     "a message that this email address can't be used to sign up.")
@@ -347,44 +471,83 @@ s += test("Unblock an address", [
     "The list shows whp2718+gone1@gmail.com with the date and your name. Tap <b>Unblock</b> > <b>Unblock</b>.",
     "Sign out and sign up with " + k("whp2718+gone1@gmail.com") + " again."],
     "<i>... is unblocked</i>, the list is empty, and the sign-up works (a brand-new, empty account).")
-s += test("Unconfirmed label and safety rules", [
+s += test("Unconfirmed label", [
     "Start a sign-up with " + k("whp2718+gone2@gmail.com") + " but don't enter the code.",
-    "Within 20 minutes, as <b>Admin</b> > <b>Users</b>, find it.",
-    "Open the gear menu on an <b>admin</b> account (if there is another one)."],
-    "the new account shows an orange <b>Email not confirmed</b>. Admin accounts have no <b>Remove user</b> item "
-    "(they must be made a normal user first).")
+    "Within 20 minutes, as <b>Admin</b> > <b>Users</b>, find it."],
+    "the new account shows an orange <b>Email not confirmed</b>.")
 s.append(PageBreak())
 
-# ------------------------------------------------------------------ part 8
-s.append(P("Part 8 - Profile, looks and deleting an account", H1))
-s += test("Profile basics", [
-    "<b>Profile</b> > <b>Edit name</b>, change it, <b>Save</b>.",
+# ------------------------------------------------------------------ part 9
+s.append(P("Part 9 - The yearly check of university emails", H1))
+s.append(P("Once a year every university account is asked to prove that its address still works, by typing in a code "
+           "sent to it. Whoever does not do it within 30 days keeps the account but loses the university (and an "
+           "organizer becomes a normal student). Nobody is due for a year, so for this part <b>ask Claude first</b>:"))
+s += callout("NOTE", "Tell Claude: <i>\"Make HAW Student due for the yearly check.\"</i> Claude sets the date back. "
+             "Your friend must be reachable, because the code goes to his inbox.")
+s += test("The reminder", [
+    "After Claude confirms, sign in as <b>HAW Student</b> (close and reopen the app if you were signed in).",
+    "Look at the top of the app. Open <b>Profile</b> and look at the university row."],
+    "a <b>blue bar</b>: <i>Yearly check: please confirm that your university email still works.</i> with a "
+    "<b>Confirm</b> button. The university row says <i>Yearly check due. Tap to confirm your email.</i>")
+s += test("Confirm with the code", [
+    "Tap <b>Confirm</b> in the blue bar. The dialog names the HAW address. Tap <b>Send code</b>.",
+    "First type a wrong code, e.g. " + k("000000") + ", and tap <b>Confirm</b>.",
+    "Ask your friend for the code from the email <b>Your UniHub code</b>, type it and tap <b>Confirm</b>."],
+    "the wrong code says <i>That code is wrong or has expired.</i> The right one: <i>Thank you. Your university "
+    "email is confirmed.</i> The blue bar disappears and the university row has its green tick again.",
+    after=callout("WARNING", "If the email contains a <b>link</b> instead of a code, the <b>Magic Link</b> email "
+                  "template in the Supabase dashboard was not changed yet. Tell Claude."))
+s += test("Missing the check (ask Claude to fast-forward)", [
+    "Tell Claude: <i>\"Let HAW Student miss the yearly check.\"</i> Wait for the confirmation.",
+    "Sign in as <b>HAW Student</b>. Look at the bottom bar, the bell, <b>Home</b> and the university row in <b>Profile</b>.",
+    "Tap the university row > <b>Send code</b> > type the code from your friend > <b>Confirm</b>."],
+    "before confirming: the organizer tabs are gone (a normal student again), the bell says <b>University access "
+    "paused</b>, HAW Only Event is not in the feed, and the row says <i>Not confirmed this year. Tap to confirm your "
+    "university email.</i> After confirming: the university is back and campus events show again. The organizer "
+    "role does <b>not</b> come back by itself.")
+s += test("Switch the yearly check off for a permanent address", [
+    "As <b>Admin</b> > <b>Users</b>: give HAW Student the role <b>University organizer</b> again.",
+    "Gear icon on HAW Student > <b>Switch yearly email check off</b>.",
+    "Look at the line under the name. Then open the gear menu on <b>Student 2</b>.",
+    "On HAW Student: <b>Switch yearly email check on</b> again."],
+    "the line shows <b>No yearly email check</b>. Student 2 (not a university organizer) has no such menu item. "
+    "After switching it on, the label is gone.")
+s.append(PageBreak())
+
+# ------------------------------------------------------------------ part 10
+s.append(P("Part 10 - Profile, looks, the website on a PC, deleting an account", H1))
+s += test("The new profile page", [
+    "<b>Profile</b>: at the top is your name, email and role, like a member pass. Below, the settings are in "
+    "groups (<b>Account</b>, <b>Notifications</b>, <b>Preferences</b>, <b>Privacy &amp; data</b>).",
+    "<b>Edit name</b>, change it, <b>Save</b>.",
+    "Try the name " + k("Admin") + " or " + k("UniHub Support") + " and save.",
     "<b>Change password</b> (then change it back or write it down).",
     "<b>Language</b> > <b>Deutsch</b>. Look around, then switch back to <b>English</b>. Close and reopen the app."],
-    "<i>Saved.</i>, <i>Password changed.</i>; the app turns German and back; the language is kept after reopening.")
-s += test("Light, dark and wallpapers", [
-    "<b>Profile</b>: switch between <b>Light</b>, <b>Dark</b> and <b>System</b>.",
-    "Pick a few <b>wallpapers</b> (Waves, Aurora, ...) and look at Home and the Dashboard.",
-    "In dark mode open My Tickets and an event page."],
-    "light mode is calm and white; dark mode is near-black with neon-green buttons. Text is readable everywhere and "
-    "nothing overlaps.")
-s += test("App icon, splash screen and calm motion", [
-    "Look at the UniHub icon on your home screen. Close the app completely and open it.",
-    "Switch your phone to dark mode and open the app again.",
-    "Phone Settings > Accessibility > turn on <b>Remove animations</b> (the name differs per phone). Open the app, "
-    "register for something. Turn it off again afterwards."],
-    "a blue icon with a white U and a green dot; a blue splash screen (near-black in dark mode). With animations "
-    "removed, no confetti and no fading.")
+    "<i>Saved.</i> for a normal name; the official-sounding names are refused: <i>This name cannot be used. Please "
+    "choose another one.</i> The app turns German and back; the language is kept after reopening.")
+s += test("Light and dark", [
+    "<b>Profile</b> > <b>Theme Mode</b>: switch between <b>Light</b>, <b>Dark</b> and <b>System</b>.",
+    "In dark mode open Home, My Tickets, an event page and the Dashboard.",
+    "Check that there is <b>no wallpaper setting</b> any more."],
+    "navy and white in light mode, dark with readable text in dark mode. Nothing overlaps.")
+s += test("The website on a PC (needs a computer)", [
+    "On the PC open PowerShell, type " + k("cd D:\\UniHub_v0.2") + " then " + k("flutter run -d chrome") +
+    " and wait for the browser.",
+    "Sign in as Test Student and make the window wide.",
+    "Look at <b>Home</b>, an event page and <b>Profile</b>. Then drag the window narrow like a phone."],
+    "wide: a navy menu on the left with written labels, events <b>two per row</b>, and a right column with "
+    "<b>Your next ticket</b> and <b>Saved</b>. The event page and the profile use two columns and never stretch "
+    "across the whole screen. Narrow: it looks like the phone app.")
 s += test("Delete your own account (Throwaway)", [
     "Create " + k("whp2718+gone3@gmail.com") + ". Register for one event.",
     "<b>Profile</b> > scroll to the bottom > <b>Delete account</b>. Type " + k("DELETE") + " > <b>Delete forever</b>.",
     "Try to sign in with that email."],
     "you are signed out; signing in says <i>Wrong email or password</i>. (An account that still owns events gets a "
-    "message to ask an admin instead.)")
+    "message to ask an admin instead, <b>before</b> anything is deleted.)")
 s.append(PageBreak())
 
-# ------------------------------------------------------------------ part 9
-s.append(P("Part 9 - If something goes wrong", H1))
+# ------------------------------------------------------------------ part 11
+s.append(P("Part 11 - If something goes wrong", H1))
 s.append(P("Find what you see in the left column. If it isn't there, send me: the test number, what you tapped and a "
            "screenshot."))
 s.append(Spacer(1, 4))
@@ -392,33 +555,38 @@ s.append(table([
     ["What you see", "What to do"],
     ["Phone says <i>App not installed</i>", "Uninstall the old UniHub (long-press the icon > Uninstall), then install again."],
     ["Phone blocks the install", "Tap <b>Install anyway</b> and allow installs from the Files app."],
-    ["No code email arrives", "Wait 2 minutes and check spam. You can ask for a new code once a minute. If you waited "
-     "more than 20 minutes, just sign up again (Test 2)."],
-    ["<i>That code is wrong or has expired</i>", "Use the newest email only. Tap <b>Resend code</b>."],
-    ["<i>This email address can't be used to sign up</i>", "An admin blocked it. Unblock it in Admin > Users > Blocked "
-     "addresses (Test 30)."],
-    ["Events don't load / <i>Could not load</i>", "Check the phone's internet, pull down to refresh, or close and reopen "
-     "the app."],
+    ["No code email arrives", "Wait 2 minutes and check spam. You can ask for a new code once a minute. For the HAW "
+     "address the email is in your friend's inbox."],
+    ["<i>That code is wrong or has expired</i>", "Use the newest email only. Ask for a new code."],
+    ["The yearly-check email has a link, no code", "The Magic Link template in Supabase still has the old text. Tell Claude."],
+    ["<i>This email address can't be used to sign up</i>", "An admin blocked it. Unblock it in Admin > Users > Blocked addresses."],
+    ["A yellow bar: <i>Your account is suspended</i>", "An admin suspended this account. As Admin: Users > gear icon > <b>Reinstate</b>."],
+    ["<i>This event is not available to you</i>", "It is a campus event of another university, or its organizer is suspended."],
+    ["University organizer is missing in the role menu", "That account has no university email. Only Commercial planner is possible."],
+    ["Events don't load / <i>Could not load</i>", "Check the phone's internet, pull down to refresh, or close and reopen the app."],
     ["No push messages", "Profile > Notifications card. If it says blocked: phone Settings > Apps > UniHub > "
      "Notifications > on. Remember: push goes only to the account signed in on this phone."],
     ["Scanner shows a black screen", "Camera permission: phone Settings > Apps > UniHub > Permissions > Camera > Allow."],
-    ["Scanner says <i>not allowed to scan</i>", "Only the organizer of that event can check people in."],
-    ["<b>Leave Review</b> is grey", "The event hasn't started yet, it needs a QR check-in first, or you already reviewed it."],
-    ["<b>Remove user</b> says it failed", "Check the internet and try again. Admins can't be removed until their role is "
-     "changed to a normal user."],
-    ["<i>You still own events</i> when deleting your account", "Use a fresh Throwaway account, or ask an admin to "
-     "remove the account (Test 28)."],
-    ["Admin tab is missing", "Only admin accounts have it, in the organizer view: tap your name > <b>Switch to organizer "
-     "view</b>."],
+    ["Scanner says <i>not allowed to scan</i>", "Only the organizer of that event can check people in (and not while suspended)."],
+    ["<b>Leave Review</b> is missing or refused", "The event hasn't started yet, it needs a QR check-in first, or you already reviewed it."],
+    ["<i>That action is not allowed or failed</i> (admin)", "Check the internet and try again. Admins can't be suspended "
+     "or removed until their role is changed to a normal user."],
+    ["<i>You still own events</i> when deleting your account", "Use a fresh Throwaway account, or ask an admin to remove the account."],
+    ["Admin tab is missing", "Only admin accounts have it, in the organizer view: tap your name > <b>Switch to organizer view</b>."],
     ["Poster upload refused", "Use a JPG, PNG or WebP photo under 5 MB."],
 ], [58, 112]))
 s.append(Spacer(1, 8))
 s.append(P("Words explained", H2))
 s.append(table([
     ["Word", "Meaning"],
-    ["Organizer", "An approved account that may publish events and check guests in."],
+    ["Organizer", "An approved account that may publish events and check guests in. University organizers need a university email."],
+    ["Commercial planner", "An approved account without a university that publishes public events."],
+    ["Campus event", "An 'official university event': only accounts of that university can see it."],
     ["Waitlist", "A queue for full events. People move up automatically when someone cancels."],
     ["Push message", "A notification that pops up on the phone even when the app is closed."],
+    ["Suspended", "Paused by an admin while reports are checked. Nothing is deleted and it can be undone."],
+    ["Case file", "The record of a suspension, reinstatement or removal, with the reports as proof. Kept for 12 months."],
+    ["Yearly check", "Once a year a university account proves its address still works by typing in a code."],
     ["Platform admin", "Can manage everything: requests, reports and all users. University admins only manage their "
      "own university."],
 ], [40, 130]))

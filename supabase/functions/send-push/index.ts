@@ -60,6 +60,18 @@ function text(row: Row, locale: string): { title: string; body: string } {
     case "review_prompt":
       return de ? { title: "Wie war's?", body: `${t} ist vorbei. Tippe hier für eine kurze Bewertung.` }
                 : { title: "How was it?", body: `${t} is over. Tap to leave a quick review.` };
+    case "account_suspended":
+      return de ? { title: "Konto gesperrt", body: "Dein Konto ist gesperrt, während wir Meldungen dazu prüfen. Öffne UniHub für Details." }
+                : { title: "Account suspended", body: "Your account is suspended while we look into reports about it. Open UniHub for details." };
+    case "account_reinstated":
+      return de ? { title: "Konto wieder freigegeben", body: "Die Prüfung ist abgeschlossen. Du kannst UniHub wieder normal nutzen." }
+                : { title: "Account reinstated", body: "The check is finished. You can use UniHub normally again." };
+    case "email_check_due":
+      return de ? { title: "Hochschul-E-Mail bestätigen", body: "Bitte bestätige innerhalb von 30 Tagen, dass deine Hochschul-Adresse noch funktioniert. Öffne UniHub dafür." }
+                : { title: "Confirm your university email", body: "Please confirm within 30 days that your university address still works. Open UniHub to do it." };
+    case "email_check_lapsed":
+      return de ? { title: "Hochschul-Zugang pausiert", body: "Deine Hochschul-Adresse wurde nicht bestätigt. Du siehst jetzt nur öffentliche Events. Im Profil kannst du sie jederzeit bestätigen." }
+                : { title: "University access paused", body: "Your university address was not confirmed, so you now see public events only. You can confirm it any time in your profile." };
     default:
       return { title: "UniHub", body: t };
   }

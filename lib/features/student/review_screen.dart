@@ -50,6 +50,7 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
         'check_in_required' => l10n.reviewErrCheckInRequired,
         'event_not_started' => l10n.reviewErrNotStarted,
         'reviews_not_allowed' => l10n.reviewErrNotAllowed,
+        'account_suspended' => l10n.suspendedAction,
         _ => l10n.reviewErrGeneric,
       };
       messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(text)));

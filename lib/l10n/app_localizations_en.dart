@@ -1110,6 +1110,250 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileRoleLabel => 'Role';
 
   @override
+  String adminOpenCount(int count) {
+    return '$count open';
+  }
+
+  @override
+  String adminReportsSummary(int reports, int events) {
+    String _temp0 = intl.Intl.pluralLogic(
+      reports,
+      locale: localeName,
+      other: '$reports reports',
+      one: '1 report',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      events,
+      locale: localeName,
+      other: '$events events',
+      one: '1 event',
+    );
+    return '$_temp0 on $_temp1';
+  }
+
+  @override
+  String adminDismissAllBody(int count) {
+    return 'The event stays online. All $count open reports about it are closed.';
+  }
+
+  @override
+  String get adminUnknownOrganizer => 'Unknown organizer';
+
+  @override
+  String get adminNeedsUniversity =>
+      'University roles need an account with a university email.';
+
+  @override
+  String get caseTitle => 'Case files';
+
+  @override
+  String get caseIntro =>
+      'Every suspension, reinstatement, removed event and removed user is recorded here together with the reports about them, as proof of why it happened. Who reported is not stored. Entries are kept for 12 months.';
+
+  @override
+  String get caseEmpty => 'No case files yet';
+
+  @override
+  String get caseUserRemoved => 'User removed';
+
+  @override
+  String get caseEventRemoved => 'Event removed';
+
+  @override
+  String get caseBlocked => 'Address blocked';
+
+  @override
+  String caseReports(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reports',
+      one: '1 report',
+      zero: 'No reports',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get caseNoReports => 'Nobody had reported this account or its events.';
+
+  @override
+  String get caseAbout => 'About';
+
+  @override
+  String get caseDecided => 'Decided';
+
+  @override
+  String get caseNote => 'Note';
+
+  @override
+  String get caseEvent => 'Event';
+
+  @override
+  String get caseCopy => 'Copy as text';
+
+  @override
+  String get caseCopied => 'Copied.';
+
+  @override
+  String get caseUserSuspended => 'User suspended';
+
+  @override
+  String get caseUserReinstated => 'User reinstated';
+
+  @override
+  String get adminSuspend => 'Suspend';
+
+  @override
+  String get adminSuspendOrganizer => 'Suspend organizer';
+
+  @override
+  String get adminReinstate => 'Reinstate';
+
+  @override
+  String get adminSuspended => 'Suspended';
+
+  @override
+  String adminSuspendTitle(String name) {
+    return 'Suspend $name?';
+  }
+
+  @override
+  String get adminSuspendBody =>
+      'While suspended, this account cannot sign up, review, report or publish, and its events are hidden from the feed. People who already have a ticket keep it. Nothing is deleted, and you can reinstate the account at any time.';
+
+  @override
+  String get adminSuspendNoteHint => 'Reason (required, kept in the case file)';
+
+  @override
+  String adminReinstateTitle(String name) {
+    return 'Reinstate $name?';
+  }
+
+  @override
+  String get adminReinstateBody =>
+      'The account works normally again and its events return to the feed.';
+
+  @override
+  String get adminReinstateNoteHint => 'What did the check find? (optional)';
+
+  @override
+  String adminUserSuspended(String name) {
+    return '$name is suspended';
+  }
+
+  @override
+  String adminUserReinstated(String name) {
+    return '$name is reinstated';
+  }
+
+  @override
+  String get suspendedBanner =>
+      'Your account is suspended while we look into reports about it. Until this is decided you cannot sign up for events, write reviews or publish events. Tickets you already have stay valid.';
+
+  @override
+  String get suspendedAction =>
+      'Your account is suspended, so this is not possible right now.';
+
+  @override
+  String get notifSuspendedTitle => 'Account suspended';
+
+  @override
+  String get notifSuspendedBody =>
+      'Your account is suspended while we look into reports about it. Tickets you already have stay valid.';
+
+  @override
+  String get notifReinstatedTitle => 'Account reinstated';
+
+  @override
+  String get notifReinstatedBody =>
+      'The check is finished. You can use UniHub normally again.';
+
+  @override
+  String get notifEmailCheckDueTitle => 'Confirm your university email';
+
+  @override
+  String get notifEmailCheckDueBody =>
+      'Please confirm within 30 days that your university address still works. You can do it in your profile.';
+
+  @override
+  String get notifEmailCheckLapsedTitle => 'University access paused';
+
+  @override
+  String get notifEmailCheckLapsedBody =>
+      'Your university address was not confirmed, so you now see public events only. You can confirm it any time in your profile.';
+
+  @override
+  String get emailCheckBanner =>
+      'Yearly check: please confirm that your university email still works.';
+
+  @override
+  String get emailCheckTitle => 'Confirm your university email';
+
+  @override
+  String emailCheckBody(String email) {
+    return 'Once a year we check that university addresses still work. We send a code to $email. Type it in here and you are done for another year.';
+  }
+
+  @override
+  String get emailCheckSend => 'Send code';
+
+  @override
+  String get emailCheckResend => 'Send again';
+
+  @override
+  String get emailCheckSent =>
+      'Code sent. Please check your inbox (and the spam folder).';
+
+  @override
+  String get emailCheckCodeHint => 'Code from the email';
+
+  @override
+  String get emailCheckConfirm => 'Confirm';
+
+  @override
+  String get emailCheckDone => 'Thank you. Your university email is confirmed.';
+
+  @override
+  String get emailCheckWrongCode => 'That code is wrong or has expired.';
+
+  @override
+  String get emailCheckSendFailed =>
+      'The code could not be sent. Please try again in a minute.';
+
+  @override
+  String get universityCheckDue =>
+      'Yearly check due. Tap to confirm your email.';
+
+  @override
+  String get universityLapsed =>
+      'Not confirmed this year. Tap to confirm your university email.';
+
+  @override
+  String get adminPermanentAddress =>
+      'Permanent organization address (for example AStA): no yearly email check';
+
+  @override
+  String get adminNoYearlyCheck => 'No yearly email check';
+
+  @override
+  String get adminYearlyCheckOff => 'Switch yearly email check off';
+
+  @override
+  String get adminYearlyCheckOn => 'Switch yearly email check on';
+
+  @override
+  String get adminYearlyCheckIsOff =>
+      'Yearly email check is off for this account.';
+
+  @override
+  String get adminYearlyCheckIsOn =>
+      'Yearly email check is on for this account.';
+
+  @override
+  String get ticketsPastHint => 'Past events stay here for 90 days.';
+
+  @override
   String formCapacityBelowRegistered(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
