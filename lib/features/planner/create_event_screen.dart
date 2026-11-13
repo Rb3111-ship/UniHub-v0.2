@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../core/models/team_model.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -14,9 +16,11 @@ import '../../../core/utils/image_type.dart';
 
 class PlannerCreateEventScreen extends StatefulWidget {
   /// When [editing] is set the screen edits that event instead of creating a new one.
-  const PlannerCreateEventScreen({super.key, this.editing});
+  /// [team]: create or edit for that organizer as their teammate.
+  const PlannerCreateEventScreen({super.key, this.editing, this.team});
 
   final Event? editing;
+  final TeamMembership? team;
 
   @override
   State<PlannerCreateEventScreen> createState() => _PlannerCreateEventScreenState();
@@ -100,8 +104,42 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     _capacityController.addListener(() => setState(() {}));
   }
 
+  // Other people who have this event's edit form open right now.
+  List<String> _otherEditors = const [];
+  Timer? _editingPing;
+  AppState? _appStateForPing;
+
+  Future<void> _pingEditing() async {
+    final appState = _appStateForPing;
+    final e = widget.editing;
+    if (appState == null || e == null || !appState.usesBackend) return;
+    try {
+      final others = await appState.eventEditing(e.id);
+      if (mounted && others.join('|') != _otherEditors.join('|')) setState(() => _otherEditors = others);
+    } catch (_) {
+      // A courtesy notice only; saving is protected separately.
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_appStateForPing == null && widget.editing != null) {
+      _appStateForPing = context.read<AppState>();
+      if (_appStateForPing!.usesBackend) {
+        _pingEditing();
+        _editingPing = Timer.periodic(const Duration(seconds: 15), (_) => _pingEditing());
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _editingPing?.cancel();
+    final e = widget.editing;
+    if (e != null && (_appStateForPing?.usesBackend ?? false)) {
+      _appStateForPing!.eventEditing(e.id, done: true).catchError((_) => const <String>[]);
+    }
     _titleController.dispose();
     _descController.dispose();
     _locationController.dispose();
@@ -115,11 +153,12 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
 
   /// The categories to save: "Other" is replaced by the typed category, if any.
   List<String> _categoriesForSave() {
-    final custom = normalizeCustomCategory(_customCategoryController.text);
+    final custom = normalizeCustomCategories(_customCategoryController.text) ?? const <String>[];
     final result = <String>[];
     for (final c in _selectedCategories) {
-      final value = (c == 'Other' && custom != null) ? custom : c;
-      if (!result.contains(value)) result.add(value);
+      for (final value in (c == 'Other' && custom.isNotEmpty) ? custom : [c]) {
+        if (!result.contains(value)) result.add(value);
+      }
     }
     return result.isEmpty ? ['Other'] : result;
   }
@@ -214,7 +253,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     final bytes = _pickedBytes;
     if (bytes == null) return null;
     try {
-      return await appState.uploadEventImage(bytes, _pickedMime!, _pickedExt!);
+      return await appState.uploadEventImage(bytes, _pickedMime!, _pickedExt!, folder: widget.team?.organizerId);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -225,11 +264,29 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     }
   }
 
+  /// A cancelled event (or a draft left over from one) is published again on save.
+  bool get _republishing => widget.team == null && widget.editing != null && widget.editing!.status != 'published';
+
   Future<void> _saveEdit(AppState appState, AppLocalizations l10n) async {
-    if (!_formKey.currentState!.validate() || !_timesValid(l10n, isNew: false)) return;
+    // Publishing again is like publishing new: the start must lie in the future.
+    if (!_formKey.currentState!.validate() || !_timesValid(l10n, isNew: _republishing)) return;
     final original = widget.editing!;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    if (original.isCancelled) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.eventRepublishTitle),
+          content: Text(l10n.eventRepublishBody),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.eventRepublish)),
+          ],
+        ),
+      );
+      if (ok != true) return;
+    }
     setState(() => _busy = true);
     try {
       var imagePath = _imagePath;
@@ -246,6 +303,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         location: _locationController.text.trim(),
         universityDomain: original.universityDomain,
         isUniversityOfficial: original.isUniversityOfficial,
+        updatedAtRaw: original.updatedAtRaw,
         requiresQrCode: _requiresQr,
         allowReviews: _allowReviews,
         releaseUnconfirmed: !_unlimited && _releaseUnconfirmed,
@@ -259,12 +317,39 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
         contactPhone: EventContact.phone(_contactPhoneController.text),
         websiteUrl: EventContact.website(_websiteController.text),
       );
-      await appState.updateEvent(updated);
+      if (_republishing) {
+        await appState.republishEvent(updated);
+      } else {
+        await appState.updateEvent(updated);
+      }
       final oldPath = original.imagePath;
       if (oldPath != null && oldPath != imagePath) appState.deleteEventImage(oldPath); // replaced poster
-      messenger.showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text(l10n.eventSaved)));
+      messenger.showSnackBar(SnackBar(
+          backgroundColor: Colors.green, content: Text(_republishing ? l10n.eventPublished : l10n.eventSaved)));
       navigator.pop();
     } catch (e) {
+      final reason = e is PostgrestException ? e.message : '';
+      if (reason == 'changed_meanwhile') {
+        // Someone else saved first. Nothing of theirs was overwritten.
+        if (mounted) {
+          await showDialog<void>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(l10n.eventChangedTitle),
+              content: Text(l10n.eventChangedBody),
+              actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.eventChangedOk))],
+            ),
+          );
+        }
+        return;
+      }
+      if (reason == 'removed_by_admin' || reason == 'has_open_reports') {
+        messenger.showSnackBar(SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(reason == 'removed_by_admin' ? l10n.eventRepublishRemoved : l10n.eventRepublishReported),
+        ));
+        return;
+      }
       final denied = e is PostgrestException && e.code == '42501';
       // The server refuses a seat limit below the number of people already registered.
       final tooFewSeats = e is PostgrestException && e.message == 'capacity_below_registered';
@@ -384,7 +469,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     final localizations = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final appState = context.watch<AppState>();
-    final isOfficial = appState.currentPlannerType == PlannerType.universityAdmin;
+    final isOfficial =
+        widget.team != null ? widget.team!.isCampus : appState.currentPlannerType == PlannerType.universityAdmin;
 
     // Check screen width for side-by-side responsive split
     final screenWidth = MediaQuery.of(context).size.width;
@@ -442,17 +528,25 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _customCategoryController,
-                  maxLength: maxCustomCategoryLength,
+                  maxLength: maxCustomCategories * (maxCustomCategoryLength + 2),
                   textCapitalization: TextCapitalization.words,
+                  // Show the problem while typing, not only when publishing.
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   decoration: InputDecoration(
                     labelText: localizations.formCustomCategoryLabel,
                     hintText: localizations.formCustomCategoryHint,
+                    errorMaxLines: 3,
                     border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
                     prefixIcon: const Icon(Icons.label_rounded),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) return null; // optional: stays "Other"
-                    return normalizeCustomCategory(val) == null ? localizations.formCustomCategoryError : null;
+                    final own = normalizeCustomCategories(val);
+                    if (own == null) return localizations.formCustomCategoryError;
+                    // The limit of 3 counts the categories picked above as well.
+                    final picked = _selectedCategories.where((c) => c != 'Other').length;
+                    if (picked + own.length > 3) return localizations.formCategoriesTooMany(picked, own.length, picked + own.length, picked + own.length - 3);
+                    return null;
                   },
                 ),
               ],
@@ -630,6 +724,28 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                     return;
                   }
                   if (_formKey.currentState!.validate() && _timesValid(localizations, isNew: true)) {
+                    // The same title on the same day already exists: probably published twice.
+                    setState(() => _busy = true);
+                    final twin = await appState.findSimilarEvent(_titleController.text, _selectedDate,
+                        organizerId: widget.team?.organizerId);
+                    if (mounted) setState(() => _busy = false);
+                    if (!context.mounted) return;
+                    if (twin != null) {
+                      final go = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(localizations.eventDuplicateTitle),
+                          content: Text(localizations.eventDuplicateBody(
+                              twin.title, DateFormat.yMMMEd(localizations.localeName).add_Hm().format(twin.date))),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(localizations.profileCancel)),
+                            FilledButton(
+                                onPressed: () => Navigator.pop(ctx, true), child: Text(localizations.eventDuplicatePublish)),
+                          ],
+                        ),
+                      );
+                      if (go != true || !context.mounted) return;
+                    }
                     setState(() => _busy = true);
                     final imagePath = await _uploadPickedImage(appState, localizations);
                     if (mounted) setState(() => _busy = false);
@@ -656,7 +772,7 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                     );
 
                     try {
-                      await appState.addEvent(newEvent);
+                      await appState.addEvent(newEvent, team: widget.team);
                     } catch (e) {
                       if (!context.mounted) return;
                       final denied = e is PostgrestException && e.code == '42501';
@@ -678,6 +794,12 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                         content: Text(localizations.eventPublished),
                       ),
                     );
+
+                    // A teammate came here from the team's event list: go back to it.
+                    if (widget.team != null) {
+                      Navigator.pop(context);
+                      return;
+                    }
 
                     // Reset Form
                     _formKey.currentState!.reset();
@@ -709,11 +831,14 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(
-                  widget.editing != null ? localizations.eventSaveChanges : localizations.buttonPublish,
+                  widget.editing == null
+                      ? localizations.buttonPublish
+                      : (_republishing ? localizations.eventRepublish : localizations.eventSaveChanges),
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
-              if (widget.editing != null && !widget.editing!.isCancelled) ...[
+              // Cancelling is the organizer's decision, not a teammate's.
+              if (widget.team == null && widget.editing != null && widget.editing!.status == 'published') ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: _busy ? null : () => _cancelEvent(appState, localizations),
@@ -754,8 +879,26 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
     );
 
     return Scaffold(
-      appBar: widget.editing != null ? AppBar(title: Text(localizations.eventEditTitle)) : null,
-      body: SingleChildScrollView(
+      appBar: widget.editing != null
+          ? AppBar(title: Text(localizations.eventEditTitle))
+          : (widget.team != null ? AppBar(title: Text(localizations.teamNewEventFor(widget.team!.organizerName))) : null),
+      body: Column(children: [
+        if (_otherEditors.isNotEmpty)
+          Material(
+            color: const Color(0xFFFFE9B8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Icon(Icons.edit_note_rounded, color: Color(0xFF7A4B00), size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(localizations.eventOthersEditing(_otherEditors.join(', ')),
+                      style: const TextStyle(color: Color(0xFF4A2E00), fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+              ]),
+            ),
+          ),
+        Expanded(child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: isWide
             ? Row(
@@ -774,7 +917,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
                   const SizedBox(height: 40),
                 ],
               ),
-      ),
+      )),
+      ]),
     );
   }
 
@@ -862,7 +1006,8 @@ class _PlannerCreateEventScreenState extends State<PlannerCreateEventScreen> {
   Widget _buildPreviewCard(BuildContext context, AppState appState, AppLocalizations localizations) {
     final theme = Theme.of(context);
     final universityColor = appState.getActiveTenantColor();
-    final isOfficial = appState.currentPlannerType == PlannerType.universityAdmin;
+    final isOfficial =
+        widget.team != null ? widget.team!.isCampus : appState.currentPlannerType == PlannerType.universityAdmin;
 
     // Determine dynamic title / category icon / labels
     final previewTitle = _titleController.text.isNotEmpty ? _titleController.text : localizations.previewTitlePlaceholder;

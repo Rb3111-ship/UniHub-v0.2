@@ -35,13 +35,25 @@ class _ShellScreenState extends State<ShellScreen> {
     final appState = context.read<AppState>();
     _pushSub = appState.pushMessages.listen(_onPush);
     // Coming back to the app: pick up notifications that arrived meanwhile.
-    _lifecycle = AppLifecycleListener(onResume: appState.refreshNotifications);
+    _lifecycle = AppLifecycleListener(
+      onResume: () {
+        appState.startLiveUpdates();
+        appState.refreshLive(everything: true);
+      },
+      // No point asking the server while the app is in the background.
+      onPause: appState.stopLiveUpdates,
+    );
+    appState.startLiveUpdates();
+    _appState = appState;
   }
+
+  late final AppState _appState;
 
   @override
   void dispose() {
     _pushSub?.cancel();
     _lifecycle.dispose();
+    _appState.stopLiveUpdates();
     super.dispose();
   }
 
@@ -85,6 +97,41 @@ class _ShellScreenState extends State<ShellScreen> {
     final localizations = AppLocalizations.of(context)!;
     final mediaQuery = MediaQuery.of(context);
     final isDesktop = mediaQuery.size.width >= 600;
+
+    // Says what happened to the password after "Forgot password?".
+    final notice = appState.takeLoginNotice();
+    if (notice != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 6),
+          backgroundColor: notice == 'password_not_changed' ? Colors.red : Colors.green,
+          content: Text(switch (notice) {
+            'became_organizer' => localizations.becameOrganizerNotice,
+            'password_changed' => localizations.authPasswordChanged,
+            'password_same' => localizations.authPasswordSame,
+            _ => localizations.authPasswordNotChanged,
+          }),
+        ));
+      });
+    }
+
+    // A ticket of this person was just scanned at the door.
+    final checkedIn = appState.takeCheckInNotice();
+    if (checkedIn != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 6),
+          backgroundColor: Colors.green,
+          content: Row(children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(child: Text(localizations.checkedInNotice(checkedIn))),
+          ]),
+        ));
+      });
+    }
 
     final isStudent = appState.currentRole == UserRole.student;
     final isAdmin = appState.usesBackend && appState.isAdmin;
@@ -202,7 +249,7 @@ class _ShellScreenState extends State<ShellScreen> {
                           const Icon(Icons.pause_circle_filled_rounded, color: Color(0xFF7A4B00), size: 20),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(localizations.suspendedBanner,
+                            child: Text(appState.isOrganizerAccount ? localizations.suspendedBannerOrganizer : localizations.suspendedBanner,
                                 style: const TextStyle(color: Color(0xFF4A2E00), fontSize: 13, fontWeight: FontWeight.w600)),
                           ),
                         ],

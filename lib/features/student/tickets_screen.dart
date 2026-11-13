@@ -428,6 +428,17 @@ class StudentTicketsScreen extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
+                  // Open entry: nothing is scanned, so there is no code to show.
+                  if (!event.requiresQrCode) ...[
+                    Icon(Icons.meeting_room_outlined, size: 44, color: theme.colorScheme.secondary),
+                    const SizedBox(height: 8),
+                    Text(localizations.ticketOpenEntryTitle,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text(localizations.ticketOpenEntryBody,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13, color: theme.colorScheme.secondary)),
+                  ] else ...[
                   // QR code generator
                   Stack(
                     alignment: Alignment.center,
@@ -519,6 +530,7 @@ class StudentTicketsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                  ],
                   if (event.allowReviews) ...[
                     const SizedBox(height: 16),
                     ElevatedButton.icon(

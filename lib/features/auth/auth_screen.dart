@@ -22,6 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
   var _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _passwordAgain = TextEditingController();
   final _name = TextEditingController();
   final _code = TextEditingController();
 
@@ -38,6 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
   void dispose() {
     _email.dispose();
     _password.dispose();
+    _passwordAgain.dispose();
     _name.dispose();
     _code.dispose();
     super.dispose();
@@ -49,6 +51,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _error = null;
       _info = null;
       _code.clear();
+      _passwordAgain.clear();
       // A fresh form drops old error messages but keeps what was typed.
       _formKey = GlobalKey<FormState>();
     });
@@ -166,6 +169,17 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  /// The second box for a new password, so a typing mistake is noticed.
+  Widget _passwordAgainField(AppLocalizations l10n) {
+    return TextFormField(
+      controller: _passwordAgain,
+      obscureText: _hidePassword,
+      autofillHints: const [AutofillHints.newPassword],
+      decoration: InputDecoration(labelText: l10n.authPasswordAgain, border: const OutlineInputBorder()),
+      validator: (v) => v == _password.text ? null : l10n.authErrPasswordMismatch,
+    );
+  }
+
   List<Widget> _fields(AppLocalizations l10n, AppState appState) {
     const gap = SizedBox(height: 12);
     final emailField = TextFormField(
@@ -211,6 +225,8 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           gap,
           _passwordField(l10n, l10n.authPassword, isNew: true),
+          gap,
+          _passwordAgainField(l10n),
         ];
       case _Mode.verify:
         return [
@@ -230,6 +246,8 @@ class _AuthScreenState extends State<AuthScreen> {
           codeField,
           gap,
           _passwordField(l10n, l10n.authNewPassword, isNew: true),
+          gap,
+          _passwordAgainField(l10n),
         ];
     }
   }

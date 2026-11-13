@@ -7,6 +7,7 @@ import '../../../core/widgets/ticket_stub.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/utils/image_type.dart';
 import '../../../core/widgets/language_picker.dart';
+import '../team/team_screen.dart';
 import 'account_section.dart';
 import 'email_check_dialog.dart';
 import 'notifications_screen.dart';
@@ -53,6 +54,23 @@ class StudentProfileScreen extends StatelessWidget {
         _sectionTitle(context, l10n.notifSettingsTitle),
         const SizedBox(height: 8),
         const NotificationSettingsCard(),
+        const SizedBox(height: 24),
+      ],
+      if (signedIn) ...[
+        group(l10n.teamTitle, [
+          _settingRow(
+            context,
+            icon: Icons.groups_rounded,
+            title: appState.teamInvitationCount > 0
+                ? l10n.teamInvitationsWaiting(appState.teamInvitationCount)
+                : l10n.teamTitle,
+            subtitle: appState.canHaveTeam ? l10n.teamRowOrganizer : l10n.teamRowHelper,
+            trailing: appState.teamInvitationCount > 0
+                ? Badge(label: Text('${appState.teamInvitationCount}'), child: const Icon(Icons.chevron_right_rounded))
+                : const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TeamScreen())),
+          ),
+        ]),
         const SizedBox(height: 24),
       ],
       group(l10n.prefSection, [
@@ -284,7 +302,7 @@ class _ProfileHeader extends StatelessWidget {
       'commercial_planner' => l10n.roleCommercial,
       'tenant_admin' => l10n.roleTenantAdmin,
       'platform_admin' => l10n.rolePlatformAdmin,
-      _ => l10n.roleStudent,
+      _ => appState.currentTenant.isNotEmpty ? l10n.roleStudent : l10n.roleMember,
     };
   }
 

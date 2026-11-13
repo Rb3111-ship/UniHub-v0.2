@@ -240,7 +240,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authPublicAccount =>
-      'No university email detected. You will see public events only.';
+      'No university email detected. You can look at public events and apply as an organizer, but only university accounts can register for events.';
 
   @override
   String get authVerifyTitle => 'Check your email';
@@ -273,6 +273,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authNewPassword => 'New password';
+
+  @override
+  String get authPasswordAgain => 'Password again';
+
+  @override
+  String get authErrPasswordMismatch => 'The two passwords are not the same.';
+
+  @override
+  String get authPasswordChanged =>
+      'Your password was changed. You are signed in.';
+
+  @override
+  String get authPasswordSame =>
+      'That is the password you already had, so nothing changed. You are signed in.';
+
+  @override
+  String get authPasswordNotChanged =>
+      'You are signed in, but the new password could not be saved. Change it under Profile.';
+
+  @override
+  String get becameOrganizerNotice =>
+      'Your organizer request was approved. The organizer tools are now unlocked.';
+
+  @override
+  String checkedInNotice(String title) {
+    return 'You are checked in: $title';
+  }
+
+  @override
+  String get qrCheckedInTitle => 'Checked in';
 
   @override
   String get authResetSubmit => 'Set new password';
@@ -658,6 +688,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roleStudent => 'Student';
 
   @override
+  String get roleMember => 'Member';
+
+  @override
   String get roleOrganizer => 'University organizer';
 
   @override
@@ -747,7 +780,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get universityNone =>
-      'No university - public account. Sign up with your university email to join one.';
+      'No university - public account. You can browse, but only university accounts can register for events.';
 
   @override
   String get privacyTitle => 'Privacy & data';
@@ -855,6 +888,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailsHostedBy => 'Hosted by';
 
   @override
+  String detailsPostedOn(String date) {
+    return 'Posted on $date';
+  }
+
+  @override
   String get detailsGallery => 'Gallery';
 
   @override
@@ -944,6 +982,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ticketEntryOpen => 'Open entry';
 
   @override
+  String get ticketOpenEntryTitle => 'Open entry';
+
+  @override
+  String get ticketOpenEntryBody =>
+      'Nothing is scanned at this event. This ticket is your registration; just come along.';
+
+  @override
+  String get reviewOpenEntryNote =>
+      'This event had no check-in, so please review it only if you were really there. Your review is public and counts in the stars.';
+
+  @override
   String get ticketLabelId => 'TICKET';
 
   @override
@@ -1009,7 +1058,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanNoEvents =>
-      'You have no events to scan for. Create one to start checking in guests.';
+      'You have no events with QR check-in to scan for right now.';
 
   @override
   String get scanEventsFailed => 'Your events could not be loaded.';
@@ -1047,6 +1096,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formCategoriesMax => 'You can select up to 3 categories.';
+
+  @override
+  String formCategoriesTooMany(int picked, int own, int total, int extra) {
+    return 'That makes $total categories: $picked selected above plus $own of your own. An event can have 3 in total, so remove $extra.';
+  }
 
   @override
   String get categoryAcademic => 'Academic';
@@ -1142,6 +1196,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get adminNeedsUniversity =>
       'University roles need an account with a university email.';
+
+  @override
+  String get adminRoleChangeTitle => 'Change role?';
+
+  @override
+  String adminRoleChangeBody(String name, String from, String to) {
+    return '$name: from $from to $to.';
+  }
+
+  @override
+  String get adminRoleChangeConfirm => 'Change role';
+
+  @override
+  String adminRoleChanged(String name) {
+    return 'The role of $name was changed.';
+  }
+
+  @override
+  String get adminRoleMeansBasic =>
+      'This account loses all organizer and admin rights. Events it already published stay online, but it can no longer manage them.';
+
+  @override
+  String get adminRoleMeansOrganizer =>
+      'This account can publish events for its university and check guests in, without sending a request first.';
+
+  @override
+  String get adminRoleMeansCommercial =>
+      'This account can publish public events and check guests in, without sending a request first.';
+
+  @override
+  String get adminRoleMeansTenantAdmin =>
+      'This account can approve organizers, handle reports, and suspend or remove users of its university.';
+
+  @override
+  String get adminRoleMeansPlatformAdmin =>
+      'This account gets full control over everything: all universities, all users, all events. Only give this to someone you trust completely.';
 
   @override
   String get caseTitle => 'Case files';
@@ -1249,18 +1339,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get suspendedBanner =>
-      'Your account is suspended while we look into reports about it. Until this is decided you cannot sign up for events, write reviews or publish events. Tickets you already have stay valid.';
+      'Your account is suspended while we look into reports about it. Until this is decided you cannot register for events, write reviews or report events. Tickets you already have stay valid.';
 
   @override
   String get suspendedAction =>
       'Your account is suspended, so this is not possible right now.';
 
   @override
+  String get suspendedBannerOrganizer =>
+      'Your account is suspended while we look into reports about it. Until this is decided your events are hidden, and you cannot publish, edit or scan. Nothing has been deleted.';
+
+  @override
+  String get registerNeedsUniversityTitle => 'University accounts only';
+
+  @override
+  String get registerNeedsUniversity =>
+      'Only accounts with a university email can register for events. You can still look around.';
+
+  @override
   String get notifSuspendedTitle => 'Account suspended';
 
   @override
   String get notifSuspendedBody =>
-      'Your account is suspended while we look into reports about it. Tickets you already have stay valid.';
+      'Your account is suspended while we look into reports about it. The notice at the top of the app says what this means for you.';
 
   @override
   String get notifReinstatedTitle => 'Account reinstated';
@@ -1282,6 +1383,179 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notifEmailCheckLapsedBody =>
       'Your university address was not confirmed, so you now see public events only. You can confirm it any time in your profile.';
+
+  @override
+  String get notifTeamInviteTitle => 'Team invitation';
+
+  @override
+  String notifTeamInviteBody(String name) {
+    return '$name invited you to help with their events. Tap to answer.';
+  }
+
+  @override
+  String get teamTitle => 'Team';
+
+  @override
+  String get teamRowOrganizer =>
+      'Invite helpers for scanning and for creating events';
+
+  @override
+  String get teamRowHelper => 'Teams you help, and invitations';
+
+  @override
+  String teamInvitationsWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count team invitations',
+      one: '1 team invitation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get teamMineTitle => 'My team';
+
+  @override
+  String get teamMineIntro =>
+      'Invite people to help with your events. You decide what each person may do. Only you can cancel or delete events, and only you see the guest list and the statistics.';
+
+  @override
+  String get teamInviteTitle => 'Invite someone';
+
+  @override
+  String get teamInviteEmail => 'Their UniHub email address';
+
+  @override
+  String get teamCanScan => 'Scan tickets';
+
+  @override
+  String get teamCanScanHint => 'Check guests in at your events';
+
+  @override
+  String get teamCanEdit => 'Create and edit events';
+
+  @override
+  String get teamCanEditHint =>
+      'Publish new events in your name and change existing ones';
+
+  @override
+  String get teamInviteSend => 'Send invitation';
+
+  @override
+  String get teamInviteSent =>
+      'If this address has a UniHub account that can join your team, it now has an invitation.';
+
+  @override
+  String teamCount(int count) {
+    return '$count of 15 people';
+  }
+
+  @override
+  String get teamMineEmpty => 'Nobody yet.';
+
+  @override
+  String get teamInvited => 'Invited';
+
+  @override
+  String get teamRemove => 'Remove';
+
+  @override
+  String get teamWithdraw => 'Withdraw invitation';
+
+  @override
+  String teamRemoveTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get teamRemoveBody =>
+      'They can no longer scan tickets or edit your events. This takes effect at once.';
+
+  @override
+  String get teamRemoved => 'Removed from the team.';
+
+  @override
+  String get teamHelpTitle => 'Teams I help';
+
+  @override
+  String get teamHelpEmpty =>
+      'You are not in anyone\'s team. An organizer can invite you with your UniHub email address.';
+
+  @override
+  String teamInvitationBody(String name) {
+    return '$name invited you to help with their events.';
+  }
+
+  @override
+  String get teamAccept => 'Accept';
+
+  @override
+  String get teamDecline => 'Decline';
+
+  @override
+  String get teamAccepted => 'You joined the team.';
+
+  @override
+  String get teamDeclined => 'Invitation declined.';
+
+  @override
+  String get teamPaused =>
+      'This team is paused at the moment, so you cannot scan or edit for it.';
+
+  @override
+  String get teamScan => 'Scan tickets';
+
+  @override
+  String get teamEvents => 'Events';
+
+  @override
+  String get teamLeave => 'Leave team';
+
+  @override
+  String teamLeaveTitle(String name) {
+    return 'Leave the team of $name?';
+  }
+
+  @override
+  String get teamLeaveBody =>
+      'You can no longer scan or edit for this organizer. They can invite you again.';
+
+  @override
+  String get teamLeft => 'You left the team.';
+
+  @override
+  String teamEventsIntro(String name) {
+    return 'Events of $name. You can publish new ones and edit the ones that are online. Cancelling and deleting is up to the organizer.';
+  }
+
+  @override
+  String get teamEventsEmpty => 'No events yet.';
+
+  @override
+  String get teamNewEvent => 'New event';
+
+  @override
+  String teamNewEventFor(String name) {
+    return 'New event for $name';
+  }
+
+  @override
+  String get teamErrFull => 'A team can have at most 15 people.';
+
+  @override
+  String get teamErrAlready =>
+      'This person is already in your team or has an invitation.';
+
+  @override
+  String get teamErrSelf => 'You cannot invite yourself.';
+
+  @override
+  String get teamErrNeedsPermission =>
+      'Choose at least one thing the person may do.';
+
+  @override
+  String get teamErrGeneric => 'That did not work. Please try again.';
 
   @override
   String get emailCheckBanner =>
@@ -1331,7 +1605,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminPermanentAddress =>
-      'Permanent organization address (for example AStA): no yearly email check';
+      'Permanent address of an organization (not a person): no yearly email check';
 
   @override
   String get adminNoYearlyCheck => 'No yearly email check';
@@ -1412,7 +1686,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewErrCommentRequired => 'Please write a comment.';
 
   @override
-  String get dashboardAttendanceByEvent => 'Attendance by event';
+  String get dashboardAttendanceByEvent => 'Your events';
 
   @override
   String get dashboardRecentScans => 'Recent scans';
@@ -1430,13 +1704,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardClaimedAttendance => 'Says they attended';
 
   @override
-  String get formCustomCategoryLabel => 'Your own category (optional)';
+  String get formCustomCategoryLabel => 'Your own categories (optional)';
 
   @override
-  String get formCustomCategoryHint => 'e.g. Yoga, Gaming, Careers';
+  String get formCustomCategoryHint =>
+      'Up to 3, with commas: Yoga, Gaming, Careers';
 
   @override
-  String get formCustomCategoryError => 'Use 2 to 30 letters or numbers.';
+  String get formCustomCategoryError =>
+      'Up to 3 categories, separated by commas. Each one 2 to 30 letters or numbers.';
 
   @override
   String get posterShowFull => 'Show the whole poster';
@@ -1902,6 +2178,78 @@ class AppLocalizationsEn extends AppLocalizations {
   String get insightsTapHint => 'Tap an event to see its statistics.';
 
   @override
+  String get insightsReviews => 'Reviews';
+
+  @override
+  String get insightsNoReviews => 'No reviews yet.';
+
+  @override
+  String get insightsMoreReviews => 'Show more reviews';
+
+  @override
+  String get eventRepublish => 'Publish again';
+
+  @override
+  String get eventRepublishTitle => 'Publish this event again?';
+
+  @override
+  String get eventRepublishBody =>
+      'The event goes back online with the details on this page. People who had signed up were told it was cancelled, so their sign-ups do not come back: they register again if they still want to come.';
+
+  @override
+  String get eventRepublishRemoved =>
+      'An admin removed this event after reports, so it cannot be published again.';
+
+  @override
+  String get eventRepublishReported =>
+      'There are reports about this event that an admin has not decided yet. It can be published again after that.';
+
+  @override
+  String eventOthersEditing(String names) {
+    return '$names also has this event open for editing right now. Whoever saves second is asked to reload, so nothing gets overwritten.';
+  }
+
+  @override
+  String get eventChangedTitle => 'Someone changed this event';
+
+  @override
+  String get eventChangedBody =>
+      'While you were editing, someone else saved changes to this event. Your changes were not saved, so nothing of theirs was overwritten. Note down what you wanted to change, close this page and open the event again to see the current version.';
+
+  @override
+  String get eventChangedOk => 'OK';
+
+  @override
+  String get eventDuplicateTitle => 'This event may already exist';
+
+  @override
+  String eventDuplicateBody(String title, String date) {
+    return 'There is already an event called \"$title\" on $date. Did you or a teammate publish it already?';
+  }
+
+  @override
+  String get eventDuplicatePublish => 'Publish anyway';
+
+  @override
+  String get dashboardDeleteEvent => 'Delete event';
+
+  @override
+  String dashboardDeleteEventTitle(String title) {
+    return 'Delete \"$title\"?';
+  }
+
+  @override
+  String get dashboardDeleteEventBody =>
+      'The event and its sign-ups, tickets and reviews are deleted for good. This cannot be undone.';
+
+  @override
+  String get dashboardEventDeleted => 'Event deleted.';
+
+  @override
+  String get dashboardDeleteRefused =>
+      'This event cannot be deleted right now. If it was reported, an admin has to look at the reports first.';
+
+  @override
   String get insightsOverviewTitle => 'Registered, confirmed and came';
 
   @override
@@ -2117,5 +2465,5 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get campusNoUniversityBody =>
-      'Your account isn\'t linked to a university, so you see public events only. Sign up with your university email to see your campus events.';
+      'Your account isn\'t linked to a university, so you see public events only and cannot register for events. Sign up with your university email to take part.';
 }

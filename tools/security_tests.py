@@ -276,13 +276,15 @@ def run(s: Sim, tag: str) -> None:
         check(f"cannot register for {label}", err is not None and expect in err, str(err))
     s.user(stu_pub)
     _, err = s.call("select public.register_for_event(%s)", [ev_tum]);  check("no-university student cannot register for a university event", err is not None)
-    r, err = s.call("select (public.register_for_event(%s)).status", [ev_pub]);  check("no-university student can register for public event", r == "registered", str(err))
+    r, err = s.call("select (public.register_for_event(%s)).status", [ev_pub]);  check("an account without a university cannot register, not even for a public event", err is not None and "university_email_required" in err, str(err))
+    s.user(stu_pub); check("... but it can still see the public event", s.scalar("select count(*) from public.events where id = %s", [ev_pub]) == 1)
+    stu_reg = mk_user(f"s5-{tag}@lmu.de")  # a university account for the registration checks below
 
     print("\n[7] Capacity and waitlist")
     ev_cap = mk_event(commercial, None, "Capacity 1", capacity=1)
     s.user(stu_tum); r1, _ = s.call("select (public.register_for_event(%s)).status", [ev_cap])
     s.user(stu_haw); r2, _ = s.call("select (public.register_for_event(%s)).status", [ev_cap])
-    s.user(stu_pub); r3, _ = s.call("select (public.register_for_event(%s)).status", [ev_cap])
+    s.user(stu_reg); r3, _ = s.call("select (public.register_for_event(%s)).status", [ev_cap])
     check("first person gets the seat", r1 == "registered", str(r1))
     check("next people are waitlisted (never over capacity)", (r2, r3) == ("waitlisted", "waitlisted"), f"{r2},{r3}")
     s.postgres()
@@ -294,12 +296,12 @@ def run(s: Sim, tag: str) -> None:
     s.postgres()
     check("cancel promotes the OLDEST waitlisted user", s.scalar("select status from public.registrations where event_id=%s and user_id=%s", [ev_cap, stu_haw]) == "registered")
     check("...who now has a ticket; the next one still waits",
-          code_of(stu_haw, ev_cap) is not None and s.scalar("select status from public.registrations where event_id=%s and user_id=%s", [ev_cap, stu_pub]) == "waitlisted")
+          code_of(stu_haw, ev_cap) is not None and s.scalar("select status from public.registrations where event_id=%s and user_id=%s", [ev_cap, stu_reg]) == "waitlisted")
     check("cancelled ticket is voided", s.scalar("select voided_at is not null from public.tickets where event_id=%s and user_id=%s", [ev_cap, stu_tum]))
     s.user(commercial)
     s.call("update public.events set capacity = 3 where id = %s", [ev_cap])
     s.postgres()
-    check("raising capacity promotes the waitlist automatically", s.scalar("select status from public.registrations where event_id=%s and user_id=%s", [ev_cap, stu_pub]) == "registered")
+    check("raising capacity promotes the waitlist automatically", s.scalar("select status from public.registrations where event_id=%s and user_id=%s", [ev_cap, stu_reg]) == "registered")
     s.user(stu_tum); r, err = s.call("select (public.register_for_event(%s)).status", [ev_cap])
     check("re-registering after cancelling works (gets a seat again)", r == "registered", str(err))
     s.postgres()
@@ -370,23 +372,23 @@ def run(s: Sim, tag: str) -> None:
     ev_rev_off = mk_event(commercial, None, "Review off", start="now() - interval '1 hour'", end="now() + interval '2 hours'", qr=False, reviews=False)
     ev_rev_future = mk_event(commercial, None, "Review future", reviews=True, qr=False)
     for e in (ev_rev, ev_rev_free, ev_rev_off, ev_rev_future):
-        s.user(stu_pub); s.call("select public.register_for_event(%s)", [e])
-    s.user(stu_pub)
+        s.user(stu_reg); s.call("select public.register_for_event(%s)", [e])
+    s.user(stu_reg)
     _, err = s.call("select public.submit_review(%s,5,'x')", [ev_rev_future]); check("cannot review an event that has not started", err is not None and "event_not_started" in err, str(err))
     _, err = s.call("select public.submit_review(%s,5,'x')", [ev_rev_off]);    check("cannot review when reviews are disabled", err is not None and "reviews_not_allowed" in err, str(err))
     _, err = s.call("select public.submit_review(%s,5,'x')", [ev_rev]);        check("QR event: cannot review before check-in", err is not None and "check_in_required" in err, str(err))
     s.user(stu_tum)
     _, err = s.call("select public.submit_review(%s,5,'x')", [ev_rev_free]);   check("cannot review without a ticket", err is not None and "no_ticket" in err, str(err))
-    s.user(stu_pub)
+    s.user(stu_reg)
     for bad_rating in (0, 6, -1, 100):
         _, err = s.call("select public.submit_review(%s,%s,'x')", [ev_rev_free, bad_rating]); check(f"rating {bad_rating} is rejected", err is not None)
     _, err = s.call("select public.submit_review(%s,5,'   ')", [ev_rev_free]);   check("blank comment is rejected", err is not None)
     _, err = s.call("select public.submit_review(%s,5,%s)", [ev_rev_free, "a" * 2001]); check("2001-char comment is rejected", err is not None)
-    r, err = s.call("select (public.submit_review(%s,3,'ok',false)).is_verified", [ev_rev_free]); check("review without check-in is saved as UNverified", err is None and r is False, f"{r} {err}")
+    r, err = s.call("select (public.submit_review(%s,3,'ok',false)).is_verified", [ev_rev_free]); check("a review at an open-entry event counts (ticket is enough)", err is None and r is True, f"{r} {err}")
     _, err = s.call("select public.submit_review(%s,4,'again')", [ev_rev_free]);  check("a second review for the same ticket is rejected", err is not None)
-    s.postgres(); rc = code_of(stu_pub, ev_rev)
+    s.postgres(); rc = code_of(stu_reg, ev_rev)
     s.user(commercial); s.call("select public.check_in_ticket(%s,%s)", [rc, ev_rev])
-    s.user(stu_pub)
+    s.user(stu_reg)
     r, err = s.call("select (public.submit_review(%s,5,'great')).is_verified", [ev_rev]); check("review after a real check-in is VERIFIED", err is None and r is True, f"{r} {err}")
     s.fails("cannot insert a review directly (forge is_verified)", "insert into public.reviews (event_id,ticket_id,user_id,rating,comment,is_verified) "
             "select event_id,id,user_id,5,'forged',true from public.tickets limit 1", contains="permission denied")
@@ -394,16 +396,20 @@ def run(s: Sim, tag: str) -> None:
     s.fails("cannot delete a review", "delete from public.reviews", contains="permission denied")
     stats = {r[0]: (float(r[1]), r[2]) for r in s.rows("select event_id, average_rating, review_count from public.event_rating_stats")}
     check("rating stats count the verified review", stats.get(ev_rev) == (5.0, 1), str(stats.get(ev_rev)))
-    check("rating stats IGNORE the unverified review", ev_rev_free not in stats)
+    check("rating stats count the open-entry review too", stats.get(ev_rev_free) == (3.0, 1), str(stats.get(ev_rev_free)))
+    s.postgres(); free_code = code_of(stu_reg, ev_rev_free)
+    s.user(commercial)
+    _, err = s.call("select public.check_in_ticket(%s,%s)", [free_code, ev_rev_free])
+    s.postgres()
+    check("an open-entry event cannot be scanned at all", err is not None and "no_check_in" in err
+          and s.scalar("select checked_in_at is null from public.tickets where code = %s", [free_code]), str(err))
     s.anon()
     vis = {r[0] for r in s.rows("select event_id from public.reviews")}
-    check("anonymous visitors see verified reviews only", ev_rev in vis and ev_rev_free not in vis)
+    check("anonymous visitors see the reviews of both kinds of event", ev_rev in vis and ev_rev_free in vis)
     s.user(stu_tum)
-    check("other students cannot read someone's unverified review", ev_rev_free not in {r[0] for r in s.rows("select event_id from public.reviews")})
+    check("other students can read the open-entry review", ev_rev_free in {r[0] for r in s.rows("select event_id from public.reviews")})
     s.user(commercial)
-    check("the organizer sees unverified feedback on their event", ev_rev_free in {r[0] for r in s.rows("select event_id from public.reviews")})
-    s.user(org_tum)
-    check("a different organizer cannot see it", ev_rev_free not in {r[0] for r in s.rows("select event_id from public.reviews")})
+    check("the organizer sees the feedback on their event", ev_rev_free in {r[0] for r in s.rows("select event_id from public.reviews")})
 
     print("\n[11] Profiles and admin roles")
     s.user(stu_tum)
@@ -543,7 +549,9 @@ def run(s: Sim, tag: str) -> None:
     check("other users see no requests", s.scalar("select count(*) from public.organizer_requests") == 0)
     s.user(t_admin)
     seen = {r[0] for r in s.rows("select user_id from public.organizer_requests")}
-    check("tenant admin sees organizer requests of THEIR university only", seen == {rq_haw}, str(seen))
+    s.postgres()
+    haw_people = {r[0] for r in s.rows("select id from public.profiles where tenant_id = %s", [haw])}
+    check("tenant admin sees organizer requests of THEIR university only", rq_haw in seen and seen <= haw_people, str(seen))
     s.user(p_admin)
     seen = {r[0] for r in s.rows("select user_id from public.organizer_requests")}
     check("platform admin sees all requests", {rq_haw, rq_pub, rq_tum} <= seen)
@@ -1814,11 +1822,395 @@ def run(s: Sim, tag: str) -> None:
     s.postgres()
     check("the yearly check runs every day", s.scalar("select count(*) from cron.job where jobname = 'unihub-email-checks'") == 1)
 
+    print("\n[40] Organizers delete their cancelled events")
+    de_org = mk_user(f"deorg-{tag}@tum.de"); promote(de_org, "organizer")
+    de_other = mk_user(f"deoth-{tag}@tum.de"); promote(de_other, "organizer")
+    de_stu = mk_user(f"destu-{tag}@tum.de")
+    de_live = mk_event(de_org, tum, "Delete: live")
+    de_gone = mk_event(de_org, tum, "Delete: cancelled", status="cancelled")
+    de_rep = mk_event(de_org, tum, "Delete: reported")
+    de_draft = mk_event(de_org, tum, "Delete: draft", status="draft")
+    s.user(de_stu); s.call("select public.report_event(%s,'spam','x')", [de_rep])
+    s.postgres(); c.execute("update public.events set status = 'cancelled' where id = %s", [de_rep])
+
+    def exists(ev):
+        s.postgres()
+        return s.scalar("select count(*) from public.events where id = %s", [ev]) == 1
+
+    s.user(de_org)
+    s.affects_nothing("a published event cannot be deleted (it must be cancelled first)", "delete from public.events where id = %s", [de_live])
+    s.affects_nothing("a cancelled event with OPEN reports cannot be deleted", "delete from public.events where id = %s", [de_rep])
+    s.user(de_other)
+    s.affects_nothing("another organizer cannot delete it", "delete from public.events where id = %s", [de_gone])
+    s.user(de_stu)
+    s.affects_nothing("a student cannot delete it", "delete from public.events where id = %s", [de_gone])
+    s.anon()
+    s.fails("anonymous cannot delete events", "delete from public.events where id = %s", [de_gone])
+    check("... all of them are still there", exists(de_live) and exists(de_rep) and exists(de_gone))
+    s.user(de_org)
+    _, err = s.call("delete from public.events where id = %s", [de_gone])
+    check("the organizer can delete their own cancelled event", err is None and not exists(de_gone), str(err))
+    s.user(de_org)
+    _, err = s.call("delete from public.events where id = %s", [de_draft])
+    check("... and a draft, as before", err is None and not exists(de_draft), str(err))
+    s.user(p_admin)
+    _, err = s.call("select public.resolve_report((select id from public.event_reports where event_id = %s), false)", [de_rep])
+    s.user(p_admin)
+    _, err2 = s.call("select public.admin_set_suspended(%s, true, 'checking')", [de_org])
+    s.user(de_org)
+    s.affects_nothing("a suspended organizer cannot delete anything", "delete from public.events where id = %s", [de_rep])
+    s.user(p_admin)
+    s.call("select public.admin_set_suspended(%s, false)", [de_org])
+    s.user(de_org)
+    _, err3 = s.call("delete from public.events where id = %s", [de_rep])
+    check("once the reports are decided (and no suspension), the cancelled event can be deleted",
+          err is None and err2 is None and err3 is None and not exists(de_rep), f"{err} {err2} {err3}")
+
+    print("\n[41] Reopening a cancelled event; deleting an event deletes its reviews")
+    ro_org = mk_user(f"roorg-{tag}@tum.de"); promote(ro_org, "organizer")
+    ro_other = mk_user(f"rooth-{tag}@tum.de"); promote(ro_other, "organizer")
+    ro_a, ro_b = mk_user(f"roa-{tag}@tum.de"), mk_user(f"rob-{tag}@tum.de")
+    ro_ev = mk_event(ro_org, tum, "Reopen me", capacity=1, start="now() - interval '1 hour'", end="now() + interval '2 hours'", qr=False)
+    s.user(ro_a); s.call("select public.register_for_event(%s)", [ro_ev])
+    s.user(ro_b); s.call("select public.register_for_event(%s)", [ro_ev])
+    s.user(ro_a); _, err = s.call("select public.submit_review(%s, 4, 'Nice')", [ro_ev])
+    s.user(ro_org)
+    _, e1 = s.call("update public.events set status = 'cancelled' where id = %s", [ro_ev])
+
+    def state(ev):
+        s.postgres()
+        return s.scalar("select status::text from public.events where id = %s", [ev])
+
+    check("setup: reviewed, then cancelled", err is None and e1 is None and state(ro_ev) == "cancelled", f"{err} {e1}")
+    s.user(ro_org)
+    _, err = s.call("update public.events set title = 'Changed while cancelled' where id = %s", [ro_ev])
+    check("a cancelled event still cannot be edited as it is", err is not None and "cancelled_is_final" in err, str(err))
+    s.user(ro_org)
+    _, err = s.call("update public.events set status = 'published' where id = %s", [ro_ev])
+    check("... nor be put straight back online", err is not None and "cancelled_is_final" in err and state(ro_ev) == "cancelled", str(err))
+    s.user(ro_other)
+    s.affects_nothing("another organizer cannot reopen it", "update public.events set status = 'draft' where id = %s", [ro_ev])
+    s.user(ro_a)
+    s.affects_nothing("a student cannot reopen it", "update public.events set status = 'draft' where id = %s", [ro_ev])
+    s.user(ro_org)
+    _, err = s.call("update public.events set status = 'draft' where id = %s", [ro_ev])
+    check("the organizer can take their cancelled event back to a draft", err is None and state(ro_ev) == "draft", str(err))
+    s.postgres()
+    check("the old sign-ups ended (nobody is promoted from the waiting list either)",
+          s.scalar("select count(*) from public.registrations where event_id = %s and status <> 'cancelled'", [ro_ev]) == 0
+          and s.scalar("select count(*) from public.tickets where event_id = %s and voided_at is null", [ro_ev]) == 0
+          and s.scalar("select count(*) from public.notifications where event_id = %s and kind = 'waitlist_promoted'", [ro_ev]) == 0)
+    check("the review that was already written stays", s.scalar("select count(*) from public.reviews where event_id = %s", [ro_ev]) == 1)
+    s.user(ro_b)
+    check("a draft is not visible to others", s.scalar("select count(*) from public.events where id = %s", [ro_ev]) == 0)
+    s.user(ro_org)
+    _, e1 = s.call("update public.events set title = 'Reopened', starts_at = now() + interval '5 days', ends_at = now() + interval '5 days 2 hours' where id = %s", [ro_ev])
+    s.user(ro_org)
+    _, e2 = s.call("update public.events set status = 'published' where id = %s", [ro_ev])
+    check("the draft can be edited and published again", e1 is None and e2 is None and state(ro_ev) == "published", f"{e1} {e2}")
+    s.user(ro_b)
+    r, err = s.call("select (public.register_for_event(%s)).status", [ro_ev])
+    check("people can register again, with a new ticket", r == "registered", f"{r} {err}")
+
+    ro_rm = mk_event(ro_org, tum, "Removed by admin")
+    s.user(ro_a); s.call("select public.report_event(%s,'scam','x')", [ro_rm])
+    s.user(p_admin); s.call("select public.resolve_report((select id from public.event_reports where event_id = %s), true, 'scam')", [ro_rm])
+    s.user(ro_org)
+    _, err = s.call("update public.events set status = 'draft' where id = %s", [ro_rm])
+    check("an event an admin removed cannot be reopened", err is not None and "removed_by_admin" in err and state(ro_rm) == "cancelled", str(err))
+    ro_rep = mk_event(ro_org, tum, "Reported then cancelled")
+    s.user(ro_a); s.call("select public.report_event(%s,'spam','x')", [ro_rep])
+    s.user(ro_org); s.call("update public.events set status = 'cancelled' where id = %s", [ro_rep])
+    s.user(ro_org)
+    _, err = s.call("update public.events set status = 'draft' where id = %s", [ro_rep])
+    check("... nor one with reports an admin has not decided yet", err is not None and "has_open_reports" in err and state(ro_rep) == "cancelled", str(err))
+    s.user(p_admin); s.call("select public.admin_set_suspended(%s, true, 'checking')", [ro_org])
+    ro_sus = mk_event(ro_org, tum, "Cancelled, organizer suspended", status="cancelled")
+    s.user(ro_org)
+    s.affects_nothing("a suspended organizer cannot reopen anything", "update public.events set status = 'draft' where id = %s", [ro_sus])
+    s.user(p_admin); s.call("select public.admin_set_suspended(%s, false)", [ro_org])
+
+    s.user(ro_org); s.call("update public.events set status = 'cancelled' where id = %s", [ro_ev])
+    s.user(ro_org)
+    _, err = s.call("delete from public.events where id = %s", [ro_ev])
+    s.postgres()
+    check("deleting an event deletes its reviews, sign-ups and tickets with it",
+          err is None and s.scalar("select count(*) from public.events where id = %s", [ro_ev]) == 0
+          and s.scalar("select count(*) from public.reviews where event_id = %s", [ro_ev]) == 0
+          and s.scalar("select count(*) from public.registrations where event_id = %s", [ro_ev]) == 0
+          and s.scalar("select count(*) from public.tickets where event_id = %s", [ro_ev]) == 0, str(err))
+
+    print("\n[42] Organizer teams")
+    tm_org = mk_user(f"tmorg-{tag}@tum.de"); promote(tm_org, "organizer")
+    tm_scan = mk_user(f"tmscan-{tag}@tum.de")
+    tm_edit = mk_user(f"tmedit-{tag}@tum.de")
+    tm_out = mk_user(f"tmout-{tag}@tum.de")
+    tm_haw = mk_user(f"tmhaw-{tag}@haw-hamburg.de")
+    tm_guest = mk_user(f"tmguest-{tag}@tum.de")
+    tm_ev = mk_event(tm_org, tum, "Team event")
+    tm_draft = mk_event(tm_org, tum, "Team draft", status="draft")
+    s.user(tm_guest); s.call("select public.register_for_event(%s)", [tm_ev])
+    s.postgres(); tm_code = code_of(tm_guest, tm_ev)
+
+    def team(org):
+        s.postgres()
+        return {r[0]: r[1:] for r in s.rows("select member_id, status, can_scan, can_edit, id from public.team_members where organizer_id = %s", [org])}
+
+    def can(uid, org, what):
+        s.user(uid)
+        return s.scalar("select public.team_can(%s, %s)", [org, what])
+
+    def scan(uid, code=None, ev=None):
+        s.user(uid)
+        return s.call("select public.check_in_ticket(%s,%s)->>'result'", [code or tm_code, ev or tm_ev])
+
+    s.anon()
+    s.fails("anonymous cannot invite", "select public.team_invite('x@tum.de', true, false)", contains="permission denied")
+    s.user(tm_out)
+    _, err = s.call("select public.team_invite(%s, true, false)", [f"tmscan-{tag}@tum.de"])
+    check("a student cannot build a team", err is not None and "not_authorized" in err, str(err))
+    s.user(tm_org)
+    _, err = s.call("select public.team_invite(%s, false, false)", [f"tmscan-{tag}@tum.de"])
+    check("an invitation needs at least one permission", err is not None and "needs_permission" in err, str(err))
+    s.user(tm_org)
+    _, err = s.call("select public.team_invite(%s, true, false)", [f"tmorg-{tag}@tum.de"])
+    check("an organizer cannot invite themselves", err is not None and "cannot_invite_self" in err, str(err))
+    s.user(tm_org)
+    _, e1 = s.call("select public.team_invite(%s, true, false)", [f"nobody-{tag}@tum.de"])
+    s.user(tm_org)
+    _, e2 = s.call("select public.team_invite(%s, true, false)", [f"tmhaw-{tag}@haw-hamburg.de"])
+    check("an unknown address and one from another university look like a success, but invite nobody",
+          e1 is None and e2 is None and team(tm_org) == {}, f"{e1} {e2} {team(tm_org)}")
+    s.user(tm_org)
+    _, e1 = s.call("select public.team_invite(%s, true, false)", [f"  TMscan-{tag}@TUM.de "])
+    s.user(tm_org)
+    _, e2 = s.call("select public.team_invite(%s, false, true)", [f"tmedit-{tag}@tum.de"])
+    tm = team(tm_org)
+    check("the organizer invites two people of their university", e1 is None and e2 is None
+          and tm.get(tm_scan, ())[:3] == ("invited", True, False) and tm.get(tm_edit, ())[:3] == ("invited", False, True), f"{e1} {e2} {tm}")
+    s.postgres()
+    check("the invited person gets a notification naming the organizer",
+          s.rows("select kind, event_title from public.notifications where user_id = %s and kind = 'team_invite'", [tm_scan]) == [("team_invite", f"tmorg-{tag}")])
+    s.user(tm_org)
+    _, err = s.call("select public.team_invite(%s, true, true)", [f"tmscan-{tag}@tum.de"])
+    check("inviting the same person twice is refused", err is not None and "already_in_team" in err, str(err))
+    scan_row, edit_row = tm[tm_scan][3], tm[tm_edit][3]
+
+    check("an invitation alone gives no rights", not can(tm_scan, tm_org, "scan") and not can(tm_edit, tm_org, "edit"))
+    r, err = scan(tm_scan)
+    check("... so the invited person cannot scan yet", err is not None and "not_authorized" in err, f"{r} {err}")
+    s.user(tm_out)
+    _, err = s.call("select public.team_respond(%s, true)", [scan_row])
+    check("nobody can accept someone else's invitation", err is not None and "not_found" in err and team(tm_org)[tm_scan][0] == "invited", str(err))
+    s.user(tm_org)
+    _, err = s.call("select public.team_respond(%s, true)", [scan_row])
+    check("... not even the organizer", err is not None and "not_found" in err, str(err))
+    s.user(tm_scan); _, e1 = s.call("select public.team_respond(%s, true)", [scan_row])
+    s.user(tm_edit); _, e2 = s.call("select public.team_respond(%s, true)", [edit_row])
+    check("both accept", e1 is None and e2 is None and team(tm_org)[tm_scan][0] == "active" and team(tm_org)[tm_edit][0] == "active", f"{e1} {e2}")
+
+    # --- what a scanner may do
+    s.user(tm_scan)
+    seen = {r[0] for r in s.rows("select id from public.events where organizer_id = %s", [tm_org])}
+    check("a teammate sees the organizer's events, drafts included", {tm_ev, tm_draft} <= seen, str(seen))
+    s.user(tm_out)
+    check("an outsider does not see the draft", s.scalar("select count(*) from public.events where id = %s", [tm_draft]) == 0)
+    r, err = scan(tm_out)
+    check("an outsider cannot scan", err is not None and "not_authorized" in err, f"{r} {err}")
+    r, err = scan(tm_edit)
+    check("a teammate without the scan permission cannot scan", err is not None and "not_authorized" in err, f"{r} {err}")
+    r, err = scan(tm_scan)
+    s.postgres()
+    check("a teammate with the scan permission checks a guest in", r == "granted", f"{r} {err}")
+    check("... and the log says who scanned",
+          s.scalar("select scanned_by from public.scan_log where event_id = %s and result = 'granted'", [tm_ev]) == tm_scan
+          and s.scalar("select checked_in_by from public.tickets where code = %s", [tm_code]) == tm_scan)
+    r, err = scan(tm_org)
+    check("the organizer scanning the same ticket gets 'already used'", r == "already_used", f"{r} {err}")
+    other_ev = mk_event(org_tum, tum, "Someone else's event")
+    r, err = scan(tm_scan, ev=other_ev)
+    check("a teammate cannot scan for another organizer's event", err is not None and "not_authorized" in err, f"{r} {err}")
+    s.user(tm_scan)
+    s.affects_nothing("a scanner cannot edit the event", "update public.events set title = 'Hacked' where id = %s", [tm_ev])
+    s.fails("a scanner cannot create events for the organizer",
+            "insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status) "
+            "values (%s, %s, 'By scanner', 'Room 2', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published')", [tum, tm_org], contains="row-level security")
+    s.user(tm_scan)
+    check("a teammate cannot read the guest list", s.scalar("select count(*) from public.registrations where event_id = %s", [tm_ev]) == 0)
+
+    # --- what an editor may do
+    s.user(tm_edit)
+    _, err = s.call("update public.events set title = 'Team event (edited)' where id = %s", [tm_ev])
+    s.postgres()
+    row = s.rows("select title, updated_by, created_by, organizer_id from public.events where id = %s", [tm_ev])[0]
+    check("an editor can change the event; it stays the organizer's and records who changed it",
+          err is None and row == ("Team event (edited)", tm_edit, tm_org, tm_org), f"{err} {row}")
+    s.user(tm_edit)
+    _, err = s.call("update public.events set status = 'cancelled' where id = %s", [tm_ev])
+    check("an editor cannot cancel an event", err is not None and "only_organizer" in err, str(err))
+    s.user(tm_edit)
+    s.affects_nothing("an editor cannot delete an event", "delete from public.events where id = %s", [tm_draft])
+    s.user(tm_edit)
+    _, err = s.call("update public.events set status = 'published' where id = %s", [tm_draft])
+    check("an editor cannot publish the organizer's draft", err is not None and "only_organizer" in err, str(err))
+    s.user(tm_edit)
+    s.fails("an editor cannot move an event to another organizer", "update public.events set organizer_id = %s where id = %s", [tm_edit, tm_ev])
+    s.user(tm_edit)
+    new_ev, err = s.call("insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status, created_by) "
+                         "values (%s, %s, 'By the editor', 'Room', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published', %s) "
+                         "returning id", [tum, tm_org, tm_out])
+    s.postgres()
+    row = s.rows("select organizer_id, created_by from public.events where id = %s", [new_ev]) if new_ev else None
+    check("an editor can create an event for the organizer; the creator cannot be forged",
+          err is None and row == [(tm_org, tm_edit)], f"{err} {row}")
+    s.user(tm_edit)
+    s.fails("an editor cannot create a PUBLIC event for a university organizer",
+            "insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status) "
+            "values (null, %s, 'Public by editor', 'Room 2', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published')", [tm_org], contains="row-level security")
+    s.fails("... nor one for another university",
+            "insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status) "
+            "values (%s, %s, 'HAW by editor', 'Room 2', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published')", [haw, tm_org], contains="row-level security")
+    s.fails("... nor in the name of an organizer whose team they are not in",
+            "insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status) "
+            "values (%s, %s, 'Fake', 'Room 2', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published')", [tum, org_tum], contains="row-level security")
+    s.fails("... nor in their own name (they are not an organizer)",
+            "insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status) "
+            "values (%s, %s, 'Own', 'Room 2', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published')", [tum, tm_edit], contains="row-level security")
+    s.user(tm_edit)
+    s.affects_nothing("an editor cannot touch another organizer's event", "update public.events set title = 'Hacked' where id = %s", [other_ev])
+    s.user(tm_org)
+    _, err = s.call("update public.events set status = 'cancelled' where id = %s", [new_ev])
+    check("the organizer can cancel an event a teammate created", err is None, str(err))
+
+    # --- managing the team
+    s.user(tm_scan)
+    _, err = s.call("select public.team_set_permissions(%s, true, true)", [scan_row])
+    check("a teammate cannot give themselves more rights", err is not None and "not_found" in err and not can(tm_scan, tm_org, "edit"), str(err))
+    s.user(tm_out)
+    _, err = s.call("select public.team_remove(%s)", [scan_row])
+    check("an outsider cannot remove a teammate", err is not None and "not_found" in err and tm_scan in team(tm_org), str(err))
+    s.user(tm_scan)
+    s.fails("the team table cannot be read directly", "select * from public.team_members", contains="permission denied")
+    s.fails("... or written", "update public.team_members set can_edit = true", contains="permission denied")
+    s.user(tm_org)
+    mine = s.rows("select member_id, email, status from public.team_my_members()")
+    check("the organizer sees their team with addresses", {(m[0], m[1]) for m in mine} == {(tm_scan, f"tmscan-{tag}@tum.de"), (tm_edit, f"tmedit-{tag}@tum.de")}, str(mine))
+    s.user(tm_scan)
+    check("a teammate sees no team list of their own", s.rows("select * from public.team_my_members()") == [])
+    ms = s.rows("select organizer_id, organizer_name, can_scan, can_edit, status, usable from public.team_my_memberships()")
+    check("... but sees the team they are in", ms == [(tm_org, f"tmorg-{tag}", True, False, "active", True)], str(ms))
+    s.user(tm_out)
+    check("an outsider sees no memberships", s.rows("select * from public.team_my_memberships()") == [])
+    s.user(tm_org)
+    _, err = s.call("select public.team_set_permissions(%s, true, true)", [scan_row])
+    check("the organizer can change a teammate's permissions", err is None and can(tm_scan, tm_org, "edit"), str(err))
+    s.user(tm_org)
+    _, err = s.call("select public.team_set_permissions(%s, false, false)", [scan_row])
+    check("... but not to 'nothing'", err is not None and "needs_permission" in err, str(err))
+    s.user(tm_org); s.call("select public.team_set_permissions(%s, true, false)", [scan_row])
+
+    # --- freezing
+    s.user(p_admin); s.call("select public.admin_set_suspended(%s, true, 'x')", [tm_scan])
+    check("a suspended teammate has no team rights", not can(tm_scan, tm_org, "scan"))
+    s.user(p_admin); s.call("select public.admin_set_suspended(%s, false)", [tm_scan])
+    check("... and gets them back when reinstated", can(tm_scan, tm_org, "scan"))
+    s.user(p_admin); s.call("select public.admin_set_suspended(%s, true, 'x')", [tm_org])
+    frozen = not can(tm_scan, tm_org, "scan") and not can(tm_edit, tm_org, "edit")
+    s.user(tm_edit)
+    s.affects_nothing("a suspended organizer freezes the whole team", "update public.events set title = 'While frozen' where id = %s", [tm_ev])
+    s.user(tm_scan)
+    usable = s.scalar("select usable from public.team_my_memberships()")
+    check("... and the teammates are told the team is not usable", frozen and usable is False)
+    s.user(p_admin); s.call("select public.admin_set_suspended(%s, false)", [tm_org])
+    check("reinstating the organizer brings the team back", can(tm_scan, tm_org, "scan") and can(tm_edit, tm_org, "edit"))
+    promote(tm_org, "student", verified=False)
+    check("an organizer who is made a student again has no working team", not can(tm_scan, tm_org, "scan"))
+    promote(tm_org, "organizer")
+    s.postgres(); c.execute("update public.profiles set tenant_id = null where id = %s", [tm_scan])
+    check("a teammate who is no longer at the university loses the rights", not can(tm_scan, tm_org, "scan"))
+    s.postgres(); c.execute("update public.profiles set tenant_id = %s where id = %s", [tum, tm_scan])
+
+    s.user(tm_scan)
+    _, err = s.call("select public.team_remove(%s)", [scan_row])
+    check("a teammate can leave", err is None and tm_scan not in team(tm_org) and not can(tm_scan, tm_org, "scan"), str(err))
+    s.user(tm_org)
+    _, err = s.call("select public.team_remove(%s)", [edit_row])
+    s.user(tm_edit)
+    s.affects_nothing("a removed teammate loses access at once", "update public.events set title = 'After removal' where id = %s", [tm_ev])
+    check("the organizer can remove a teammate", err is None and team(tm_org) == {}, str(err))
+
+    # --- declining, the limit, and teams of commercial planners
+    s.user(tm_org); s.call("select public.team_invite(%s, true, false)", [f"tmout-{tag}@tum.de"])
+    row_id = team(tm_org)[tm_out][3]
+    s.user(tm_out)
+    _, err = s.call("select public.team_respond(%s, false)", [row_id])
+    check("declining removes the invitation", err is None and team(tm_org) == {}, str(err))
+    s.postgres()
+    for i in range(15):
+        filler = mk_user(f"tmfill{i}-{tag}@tum.de")
+        c.execute("insert into public.team_members (organizer_id, member_id) values (%s, %s)", [tm_org, filler])
+    s.user(tm_org)
+    _, err = s.call("select public.team_invite(%s, true, false)", [f"tmout-{tag}@tum.de"])
+    check("a team is limited to 15 people", err is not None and "team_full" in err, str(err))
+    tm_com = mk_user(f"tmcom-{tag}@gmail.com"); promote(tm_com, "commercial_planner")
+    tm_gm = mk_user(f"tmgm-{tag}@gmail.com")
+    s.user(tm_com)
+    _, err = s.call("select public.team_invite(%s, true, true)", [f"tmgm-{tag}@gmail.com"])
+    gm_row = team(tm_com)[tm_gm][3]
+    s.user(tm_gm); s.call("select public.team_respond(%s, true)", [gm_row])
+    s.user(tm_gm)
+    pub, e2 = s.call("insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status) "
+                     "values (null, %s, 'Public by teammate', 'Town hall', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published') returning id", [tm_com])
+    check("a commercial planner's team can include accounts without a university, and they publish public events for it",
+          err is None and e2 is None and pub is not None, f"{err} {e2}")
+    s.user(tm_gm)
+    s.fails("... but no campus events", "insert into public.events (tenant_id, organizer_id, title, location, starts_at, ends_at, categories, status) "
+            "values (%s, %s, 'Campus by teammate', 'Room 2', now() + interval '2 days', now() + interval '2 days 1 hour', array['Tech'], 'published')", [tum, tm_com], contains="row-level security")
+    s.user(p_admin); s.call("select public.admin_delete_user(%s)", [tm_com])
+    s.postgres()
+    check("removing an organizer removes their team", s.scalar("select count(*) from public.team_members where organizer_id = %s", [tm_com]) == 0)
+
+    print("\n[43] Two people editing the same event")
+    ed_org = mk_user(f"edorg-{tag}@tum.de"); promote(ed_org, "organizer")
+    ed_mate = mk_user(f"edmate-{tag}@tum.de")
+    ed_scan = mk_user(f"edscan-{tag}@tum.de")
+    ed_out = mk_user(f"edout-{tag}@tum.de")
+    ed_ev = mk_event(ed_org, tum, "Edited by two")
+    s.user(ed_org); s.call("select public.team_invite(%s, false, true)", [f"edmate-{tag}@tum.de"])
+    s.user(ed_org); s.call("select public.team_invite(%s, true, false)", [f"edscan-{tag}@tum.de"])
+    s.postgres(); c.execute("update public.team_members set status = 'active' where organizer_id = %s", [ed_org])
+
+    def editing(uid, done=False):
+        s.user(uid)
+        return s.call("select public.event_editing(%s, %s)", [ed_ev, done])
+
+    s.anon()
+    s.fails("anonymous cannot use the editing notice", "select public.event_editing(%s)", [ed_ev], contains="permission denied")
+    r, err = editing(ed_out)
+    check("an outsider cannot ask who is editing", err is not None and "not_authorized" in err, f"{r} {err}")
+    r, err = editing(ed_scan)
+    check("... nor a teammate who may only scan", err is not None and "not_authorized" in err, f"{r} {err}")
+    r, err = editing(ed_org)
+    check("the first person editing sees nobody else", err is None and r == [], f"{r} {err}")
+    r, err = editing(ed_mate)
+    check("a teammate opening the same event sees the organizer's name", err is None and r == [f"edorg-{tag}"], f"{r} {err}")
+    r, err = editing(ed_org)
+    check("... and the organizer now sees the teammate", err is None and r == [f"edmate-{tag}"], f"{r} {err}")
+    r, err = editing(ed_mate, True)
+    r2, err2 = editing(ed_org)
+    check("closing the form removes the notice", err is None and err2 is None and r2 == [], f"{r2} {err} {err2}")
+    editing(ed_mate)
+    s.postgres(); c.execute("update public.event_editors set seen_at = now() - interval '2 minutes' where user_id = %s", [ed_mate])
+    r, err = editing(ed_org)
+    check("someone who left without closing disappears after a moment", err is None and r == [], f"{r} {err}")
+    s.user(ed_org)
+    s.fails("the list of editors cannot be read directly", "select * from public.event_editors", contains="permission denied")
+
     print("\n[13] Privileges audit (what is exposed at all)")
     s.postgres()
     allowed_exec = {
         "anon": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
-                 "categories_ok", "event_seat_counts", "is_suspended"},
+                 "categories_ok", "event_seat_counts", "is_suspended", "team_can"},
         "authenticated": {"auth_role", "auth_tenant", "is_platform_admin", "can_publish_for", "can_manage_event", "event_registered_count",
                           "register_for_event", "cancel_registration", "check_in_ticket", "submit_review", "admin_set_role",
                           "is_verified_publisher", "user_tenant", "request_organizer_access",
@@ -1827,7 +2219,9 @@ def run(s: Sim, tag: str) -> None:
                           "can_moderate_event", "report_event", "resolve_report",
                           "register_push_token", "unregister_push_token", "confirm_attendance", "event_insights",
                           "event_seat_counts", "admin_delete_user", "admin_list_blocked_emails", "admin_unblock_email",
-                          "admin_delete_review", "my_event_feedback", "admin_list_cases", "admin_set_suspended", "is_suspended", "confirm_university_email", "admin_set_email_check"},
+                          "admin_delete_review", "my_event_feedback", "admin_list_cases", "admin_set_suspended", "is_suspended", "confirm_university_email", "admin_set_email_check", "event_has_open_reports",
+                          "team_can", "team_can_publish", "team_can_edit_folder", "team_invite", "team_respond",
+                          "team_set_permissions", "team_remove", "team_my_members", "team_my_memberships", "event_editing"},
     }
     funcs = s.rows("select p.proname, has_function_privilege('anon', p.oid, 'execute'), has_function_privilege('authenticated', p.oid, 'execute'), "
                    "p.prosecdef, p.proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'")
@@ -1840,6 +2234,8 @@ def run(s: Sim, tag: str) -> None:
         "tenant_domains": (set(), set(["SELECT", "INSERT", "UPDATE", "DELETE"])),
         "profiles": (set(), set(["SELECT"])),
         "moderation_cases": (set(), set()),
+        "team_members": (set(), set()),
+        "event_editors": (set(), set()),
         "events": (set(["SELECT"]), set(["SELECT", "INSERT", "DELETE"])),
         "registrations": (set(), set(["SELECT"])), "tickets": (set(), set(["SELECT"])), "scan_log": (set(), set(["SELECT"])),
         "reviews": (set(["SELECT"]), set(["SELECT"])),

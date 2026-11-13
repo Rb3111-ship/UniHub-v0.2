@@ -24,6 +24,11 @@ class Event {
   // Set when an admin removed the event after reports.
   final DateTime? moderatedAt;
   final String? moderationNote;
+  // When the organizer first saved the event (null for demo data).
+  final DateTime? createdAt;
+  // The server's "last changed" stamp exactly as received. A save only goes
+  // through if it still matches, so two people cannot overwrite each other.
+  final String? updatedAtRaw;
   // Free seats of people who did not confirm, 24 h before the start, if others wait.
   final bool releaseUnconfirmed;
 
@@ -51,6 +56,8 @@ class Event {
     this.websiteUrl,
     this.moderatedAt,
     this.moderationNote,
+    this.createdAt,
+    this.updatedAtRaw,
     this.releaseUnconfirmed = false,
   }) : _endDate = endDate;
 
@@ -92,6 +99,8 @@ class Event {
       websiteUrl: row['website_url'] as String?,
       moderatedAt: row['moderated_at'] == null ? null : DateTime.parse(row['moderated_at'] as String).toLocal(),
       moderationNote: row['moderation_note'] as String?,
+      createdAt: row['created_at'] == null ? null : DateTime.parse(row['created_at'] as String).toLocal(),
+      updatedAtRaw: row['updated_at'] as String?,
       releaseUnconfirmed: (row['release_unconfirmed'] as bool?) ?? false,
     );
   }
@@ -146,6 +155,8 @@ class Event {
       websiteUrl: websiteUrl ?? this.websiteUrl,
       moderatedAt: moderatedAt,
       moderationNote: moderationNote,
+      createdAt: createdAt,
+      updatedAtRaw: updatedAtRaw,
       releaseUnconfirmed: releaseUnconfirmed ?? this.releaseUnconfirmed,
     );
   }

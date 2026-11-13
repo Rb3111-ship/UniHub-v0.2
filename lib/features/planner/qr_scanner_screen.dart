@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../core/models/team_model.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -11,7 +12,10 @@ import '../../../core/models/event_model.dart';
 import '../../../core/models/registration_model.dart';
 
 class PlannerScannerScreen extends StatefulWidget {
-  const PlannerScannerScreen({super.key});
+  /// [team]: scan for that organizer's events as their teammate.
+  const PlannerScannerScreen({super.key, this.team});
+
+  final TeamMembership? team;
 
   @override
   State<PlannerScannerScreen> createState() => _PlannerScannerScreenState();
@@ -49,10 +53,15 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
     if (mounted) setState(() => _eventsFailed = false);
     try {
       // Cancelled events have no valid tickets, so there is nothing to scan for.
-      final events = (await appState.loadManagedEvents()).where((e) => !e.isCancelled).toList();
-      if (!mounted) return;
-      // Prefer events that are happening soon: upcoming first, then recent ones.
+      // Nothing to scan at open-entry events, cancelled events or events that ended a while ago
+      // (a few hours stay, for late arrivals and events that run over).
       final now = DateTime.now();
+      final team = widget.team;
+      final events = (await (team == null ? appState.loadManagedEvents() : appState.loadEventsOf(team.organizerId)))
+          .where((e) => e.requiresQrCode && !e.isCancelled && e.endDate.isAfter(now.subtract(const Duration(hours: 6))))
+          .toList();
+      if (!mounted) return;
+      // Events that are still running or coming first, soonest on top.
       events.sort((a, b) {
         final aLive = a.endDate.isAfter(now) ? 0 : 1;
         final bLive = b.endDate.isAfter(now) ? 0 : 1;
@@ -357,7 +366,9 @@ class _PlannerScannerScreenState extends State<PlannerScannerScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations.plannerScannerTitle),
+        title: Text(widget.team == null
+            ? localizations.plannerScannerTitle
+            : '${localizations.plannerScannerTitle} · ${widget.team!.organizerName}'),
         actions: [
           if (appState.usesBackend)
             IconButton(

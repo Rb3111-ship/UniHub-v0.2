@@ -14,6 +14,7 @@ import '../services/notification_repository.dart';
 import '../services/push_service.dart';
 import '../models/dashboard_model.dart';
 import '../models/registration_model.dart';
+import '../models/team_model.dart';
 import '../services/account_repository.dart';
 import '../services/event_repository.dart';
 import '../services/insights_repository.dart';
@@ -171,6 +172,8 @@ class AppState extends ChangeNotifier {
       _avatarPath = null;
       _organizerVerified = false;
       _suspended = false;
+      _teamMembers = [];
+      _teamMemberships = [];
       _emailCheckedAt = null;
       _emailCheckExempt = false;
       _emailCheckLapsed = false;
@@ -223,6 +226,8 @@ class AppState extends ChangeNotifier {
       final slug = ((row['tenants'] as Map?)?['slug'] as String?)?.toUpperCase();
       final firstLoad = _remoteProfile == null;
       final role = row['role'] as String;
+      // Approved as an organizer while the app was open: switch to the organizer tools.
+      final becameOrganizer = !firstLoad && _dbRole == 'student' && role != 'student';
       _dbRole = role;
       _tenantId = row['tenant_id'] as String?;
       _avatarPath = row['avatar_path'] as String?;
@@ -246,8 +251,9 @@ class AppState extends ChangeNotifier {
       // Organizers start in organizer view but may switch to student view; keep their choice on reloads.
       if (type == ProfileType.student) {
         _currentRole = UserRole.student;
-      } else if (firstLoad) {
+      } else if (firstLoad || becameOrganizer) {
         _currentRole = UserRole.planner;
+        if (becameOrganizer) _loginNotice = 'became_organizer';
       }
       if (type != ProfileType.student) {
         _currentPlannerType = type == ProfileType.commercialPlanner
@@ -278,6 +284,7 @@ class AppState extends ChangeNotifier {
       if (_pushStartedFor != user.id) _startPush(); // once per sign-in
       if (_dbRole != 'student') refreshDashboard();
       if (_dbRole == 'student') refreshMyRequest();
+      refreshTeams();
       if (isAdmin) {
         refreshRequests();
         refreshReports();
@@ -481,7 +488,228 @@ class AppState extends ChangeNotifier {
 
   Future<void> resetPasswordWithCode(String email, String code, String newPassword) async {
     await _client!.auth.verifyOTP(email: email.trim(), token: code.trim(), type: OtpType.recovery);
-    await _client!.auth.updateUser(UserAttributes(password: newPassword));
+    // The code was right, so the person is signed in from here on.
+    try {
+      await _client!.auth.updateUser(UserAttributes(password: newPassword));
+      _loginNotice = 'password_changed';
+    } on AuthApiException catch (e) {
+      // Typing the old password again is not an error for the user: it simply stays.
+      if (e.code != 'same_password') {
+        _loginNotice = 'password_not_changed';
+        notifyListeners();
+        return;
+      }
+      _loginNotice = 'password_same';
+    }
+    notifyListeners();
+  }
+
+  // ---- teams -----------------------------------------------------------------
+  // An organizer's helpers: who may scan and who may create and edit events.
+  // The server decides every time; these lists are only for showing.
+
+  List<TeamMember> _teamMembers = [];
+  List<TeamMembership> _teamMemberships = [];
+
+  /// The signed-in organizer's own team (invited and accepted).
+  List<TeamMember> get teamMembers => List.unmodifiable(_teamMembers);
+
+  /// Teams this account helps, and invitations waiting for an answer.
+  List<TeamMembership> get teamMemberships => List.unmodifiable(_teamMemberships);
+
+  int get teamInvitationCount => _teamMemberships.where((m) => !m.isActive).length;
+
+  /// Approved organizers and admins can have a team.
+  bool get canHaveTeam => usesBackend && _dbRole != 'student' && _organizerVerified && !_suspended;
+
+  Future<void> refreshTeams() async {
+    final c = _client;
+    final uid = currentUserId;
+    if (c == null || uid == null) return;
+    try {
+      final results = await Future.wait([
+        c.rpc('team_my_memberships'),
+        if (canHaveTeam) c.rpc('team_my_members'),
+      ]).timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      _teamMemberships = [for (final r in results[0] as List) TeamMembership.fromRow(r as Map<String, dynamic>)];
+      _teamMembers = results.length > 1
+          ? [for (final r in results[1] as List) TeamMember.fromRow(r as Map<String, dynamic>)]
+          : [];
+      notifyListeners();
+    } catch (_) {
+      // Shown again on the next refresh.
+    }
+  }
+
+  /// Invites the account with [email]. The server answers the same whether or
+  /// not such an account exists, so the invite box reveals nothing.
+  Future<void> inviteTeammate(String email, {required bool canScan, required bool canEdit}) async {
+    await _client!.rpc('team_invite', params: {'p_email': email, 'p_can_scan': canScan, 'p_can_edit': canEdit})
+        .timeout(_requestTimeout);
+    await refreshTeams();
+  }
+
+  Future<void> answerTeamInvite(String id, bool accept) async {
+    await _client!.rpc('team_respond', params: {'p_id': id, 'p_accept': accept}).timeout(_requestTimeout);
+    await refreshTeams();
+  }
+
+  Future<void> setTeamPermissions(String id, {required bool canScan, required bool canEdit}) async {
+    await _client!.rpc('team_set_permissions', params: {'p_id': id, 'p_can_scan': canScan, 'p_can_edit': canEdit})
+        .timeout(_requestTimeout);
+    await refreshTeams();
+  }
+
+  /// The organizer removes a teammate (or withdraws an invitation), or a teammate leaves.
+  Future<void> removeFromTeam(String id) async {
+    await _client!.rpc('team_remove', params: {'p_id': id}).timeout(_requestTimeout);
+    await refreshTeams();
+  }
+
+  /// Tells the server this event's edit form is open and returns the names of
+  /// other people who have it open too. [done]: the form was closed.
+  Future<List<String>> eventEditing(String eventId, {bool done = false}) async {
+    final c = _client;
+    if (c == null) return const [];
+    final names = await c.rpc('event_editing', params: {'p_event': eventId, 'p_done': done}).timeout(_requestTimeout);
+    return [for (final n in (names as List?) ?? const []) '$n'];
+  }
+
+  /// An event of the same organizer with the same title on the same day, if
+  /// there is one (to warn before publishing it twice). Null if none, or if
+  /// the list cannot be loaded.
+  Future<Event?> findSimilarEvent(String title, DateTime start, {String? organizerId}) async {
+    if (!usesBackend) return null;
+    String norm(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    try {
+      final list = organizerId == null ? await loadManagedEvents() : await loadEventsOf(organizerId);
+      for (final e in list) {
+        if (!e.isCancelled &&
+            norm(e.title) == norm(title) &&
+            e.date.year == start.year &&
+            e.date.month == start.month &&
+            e.date.day == start.day) {
+          return e;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// All events of an organizer whose team this account is in.
+  Future<List<Event>> loadEventsOf(String organizerId) =>
+      _registrationRepository!.fetchManagedEvents(organizerId: organizerId).timeout(_requestTimeout);
+
+  // ---- live updates ---------------------------------------------------------
+  // The app asks the server every 20 seconds (and when it comes back to the
+  // front), so changes made elsewhere show up without reloading.
+
+  static const _liveEvery = Duration(seconds: 20);
+  Timer? _liveTimer;
+  int _liveTick = 0;
+  bool _liveBusy = false;
+
+  void startLiveUpdates() => _liveTimer ??= Timer.periodic(_liveEvery, (_) => refreshLive());
+
+  void stopLiveUpdates() {
+    _liveTimer?.cancel();
+    _liveTimer = null;
+  }
+
+  /// [everything]: also the event feed and the organizer numbers (otherwise
+  /// those are fetched on every third round only).
+  Future<void> refreshLive({bool everything = false}) async {
+    if (_client == null || _session == null || _remoteProfile == null || _liveBusy) return;
+    _liveBusy = true;
+    _liveTick++;
+    final slow = everything || _liveTick % 3 == 0;
+    try {
+      await Future.wait([
+        refreshRegistrations(),
+        refreshNotifications(),
+        _pollProfile(),
+        if (isAdmin) _pollAdminLists(),
+        if (slow) _refreshEventsQuietly(),
+        if (slow && _dbRole != 'student') refreshDashboard(),
+        if (slow) refreshTeams(),
+        if (_dbRole == 'student') refreshMyRequest(),
+      ]);
+    } catch (_) {
+      // The next round tries again.
+    } finally {
+      _liveBusy = false;
+    }
+  }
+
+  /// Role, university or suspension changed on the server: reload the profile.
+  Future<void> _pollProfile() async {
+    final c = _client;
+    final uid = currentUserId;
+    if (c == null || uid == null) return;
+    try {
+      final row = await c
+          .from('profiles')
+          .select('role, tenant_id, organizer_verified, suspended_at, email_checked_at, email_check_exempt, email_check_lapsed_at')
+          .eq('id', uid)
+          .single()
+          .timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      final checked = row['email_checked_at'] as String?;
+      final changed = row['role'] != _dbRole ||
+          row['tenant_id'] != _tenantId ||
+          (row['organizer_verified'] as bool? ?? false) != _organizerVerified ||
+          (row['suspended_at'] != null) != _suspended ||
+          (row['email_check_exempt'] as bool? ?? false) != _emailCheckExempt ||
+          (row['email_check_lapsed_at'] != null) != _emailCheckLapsed ||
+          (checked == null ? null : DateTime.parse(checked).toLocal()) != _emailCheckedAt;
+      if (changed) await loadProfile();
+    } catch (_) {
+      // Not critical; the next round asks again.
+    }
+  }
+
+  /// Requests and reports for admins, without the loading spinner.
+  Future<void> _pollAdminLists() async {
+    final account = _accountRepository;
+    final uid = currentUserId;
+    if (account == null) return;
+    try {
+      final requests = await account.fetchRequests().timeout(_requestTimeout);
+      if (!_stillSignedInAs(uid)) return;
+      _requests = requests;
+      notifyListeners();
+    } catch (_) {}
+    await refreshReports();
+  }
+
+  /// The event feed without the loading skeleton.
+  Future<void> _refreshEventsQuietly() async {
+    if (_eventsLoading) return;
+    final account = _session?.user.id;
+    try {
+      final events = await _eventRepository.fetchUpcoming().timeout(_requestTimeout);
+      if (account == _session?.user.id && !_eventsLoading) {
+        _events = events;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  /// "You are checked in": set when a refresh shows a ticket that was just scanned.
+  String? _checkInNotice;
+  String? takeCheckInNotice() {
+    final n = _checkInNotice;
+    _checkInNotice = null;
+    return n;
+  }
+
+  /// A one-time message for right after signing in (shown by the main screen).
+  String? _loginNotice;
+  String? takeLoginNotice() {
+    final n = _loginNotice;
+    _loginNotice = null;
+    return n;
   }
 
   Future<void> signOut() async {
@@ -518,6 +746,13 @@ class AppState extends ChangeNotifier {
   /// refuses sign-ups, reviews, reports and publishing until it is lifted.
   bool _suspended = false;
   bool get isSuspended => _suspended;
+
+  /// Only accounts that belong to a university can register for events
+  /// (the server enforces it; this is for explaining it on the button).
+  bool get needsUniversityToRegister => usesBackend && !isGuest && _tenantId == null;
+
+  /// Organizers get a different suspension text than plain users.
+  bool get isOrganizerAccount => _dbRole == 'organizer' || _dbRole == 'commercial_planner';
 
   // Yearly check that the university address still works (the server decides;
   // this only tells the app when to ask).
@@ -960,6 +1195,11 @@ class AppState extends ChangeNotifier {
     try {
       final registrations = await repo.fetchMine().timeout(_requestTimeout);
       if (!_stillSignedInAs(uid)) return;
+      // Scanned at the door since the last look: tell the person.
+      final notScanned = {for (final r in _registrations) if (!r.isCheckedIn) r.id};
+      for (final r in registrations) {
+        if (r.isCheckedIn && notScanned.contains(r.id)) _checkInNotice = r.event.title;
+      }
       _registrations = registrations;
       notifyListeners();
     } catch (_) {
@@ -1058,12 +1298,15 @@ class AppState extends ChangeNotifier {
   }
 
   /// Publishes an event. Throws (e.g. PostgrestException 42501) if not allowed.
-  Future<void> addEvent(Event event) async {
-    final tenantId = event.isUniversityOfficial ? _tenantId : null;
-    if (event.isUniversityOfficial && usesBackend && tenantId == null) {
+  /// [team]: set when a teammate publishes the event for that organizer.
+  Future<void> addEvent(Event event, {TeamMembership? team}) async {
+    final tenantId = team != null
+        ? (team.isCampus ? team.organizerTenant : null)
+        : (event.isUniversityOfficial ? _tenantId : null);
+    if (team == null && event.isUniversityOfficial && usesBackend && tenantId == null) {
       throw const AuthException('No university linked to this account');
     }
-    final created = await _eventRepository.create(event, tenantId: tenantId);
+    final created = await _eventRepository.create(event, tenantId: tenantId, organizerId: team?.organizerId);
     _events = [..._events, created]..sort((a, b) => a.date.compareTo(b.date));
     notifyListeners();
     refreshDashboard();
@@ -1220,7 +1463,7 @@ class AppState extends ChangeNotifier {
       refreshRatings();
       return;
     }
-    final verified = event.requiresQrCode;
+    const verified = true; // every accepted review counts (see submit_review on the server)
     _reviews.add(Review(
       id: 'rev-${DateTime.now().millisecondsSinceEpoch}',
       eventId: event.id,
@@ -1228,7 +1471,7 @@ class AppState extends ChangeNotifier {
       comment: comment,
       timestamp: DateTime.now(),
       isVerified: verified,
-      claimedAttendance: verified ? true : claimedAttendance,
+      claimedAttendance: event.requiresQrCode || claimedAttendance,
     ));
     _locallyReviewed.add(event.id);
     notifyListeners();
@@ -1248,11 +1491,27 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
-  Future<String> uploadEventImage(Uint8List bytes, String contentType, String extension) =>
-      _eventRepository.uploadImage(bytes, contentType, extension);
+  /// [folder]: the organizer's id when a teammate uploads a poster for them.
+  Future<String> uploadEventImage(Uint8List bytes, String contentType, String extension, {String? folder}) =>
+      _eventRepository.uploadImage(bytes, contentType, extension, folder: folder);
 
   /// Deletes a poster that is no longer used (after it was replaced). Best effort:
   /// a leftover file is invisible and removed with the organizer's account.
+  /// Deletes one of the organizer's own draft or cancelled events for good.
+  /// Returns false if the server did not allow it.
+  Future<bool> deleteEvent(String id) async {
+    final image = managedEventById(id)?.imagePath;
+    // The server only deletes what the rules allow; nothing deleted means refused.
+    final rows = await _client!.from('events').delete().eq('id', id).select('id').timeout(_requestTimeout);
+    if (rows.isEmpty) return false;
+    if (image != null) deleteEventImage(image);
+    _managedEvents = [for (final e in _managedEvents) if (e.id != id) e];
+    notifyListeners();
+    await refreshDashboard();
+    refreshEvents();
+    return true;
+  }
+
   Future<void> deleteEventImage(String path) async {
     try {
       await _client?.storage.from('event-images').remove([path]);
@@ -1268,7 +1527,37 @@ class AppState extends ChangeNotifier {
     refreshDashboard();
   }
 
-  /// Cancels an event for good. Ticket holders keep seeing it as cancelled.
+  /// Publishes a cancelled (or draft) event again with the edited details.
+  /// The server ends the old sign-ups when a cancelled event is reopened.
+  /// If a step fails the event stays a draft and this can simply be repeated.
+  Future<void> republishEvent(Event event) async {
+    final c = _client!;
+    if (event.isCancelled) {
+      final rows = await c.from('events').update({'status': 'draft'}).eq('id', event.id).select('id').timeout(_requestTimeout);
+      if (rows.isEmpty) throw const PostgrestException(message: 'not_allowed', code: '42501');
+    }
+    // The step above already changed the event, so its stamp is no longer the one that was opened.
+    await _eventRepository.update(event, checkUnchanged: !event.isCancelled);
+    final rows =
+        await c.from('events').update({'status': 'published'}).eq('id', event.id).select('id').timeout(_requestTimeout);
+    if (rows.isEmpty) throw const PostgrestException(message: 'not_allowed', code: '42501');
+    await Future.wait([refreshEvents(), refreshDashboard()]);
+  }
+
+  /// One page of the reviews of an event the organizer manages, newest first.
+  Future<List<Review>> loadEventReviews(String eventId, {int offset = 0, int pageSize = 20}) async {
+    final rows = await _client!
+        .from('reviews')
+        .select()
+        .eq('event_id', eventId)
+        .order('created_at', ascending: false)
+        .range(offset, offset + pageSize - 1)
+        .timeout(_requestTimeout);
+    return [for (final r in rows) Review.fromRow(r)];
+  }
+
+  /// Cancels an event. Ticket holders keep seeing it as cancelled. The organizer
+  /// can later publish it again or delete it.
   Future<void> cancelEvent(String eventId) async {
     await _eventRepository.cancel(eventId);
     _events = _events.where((e) => e.id != eventId).toList();

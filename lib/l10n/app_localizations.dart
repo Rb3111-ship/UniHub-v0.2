@@ -551,7 +551,7 @@ abstract class AppLocalizations {
   /// No description provided for @authPublicAccount.
   ///
   /// In en, this message translates to:
-  /// **'No university email detected. You will see public events only.'**
+  /// **'No university email detected. You can look at public events and apply as an organizer, but only university accounts can register for events.'**
   String get authPublicAccount;
 
   /// No description provided for @authVerifyTitle.
@@ -613,6 +613,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New password'**
   String get authNewPassword;
+
+  /// No description provided for @authPasswordAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Password again'**
+  String get authPasswordAgain;
+
+  /// No description provided for @authErrPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two passwords are not the same.'**
+  String get authErrPasswordMismatch;
+
+  /// No description provided for @authPasswordChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Your password was changed. You are signed in.'**
+  String get authPasswordChanged;
+
+  /// No description provided for @authPasswordSame.
+  ///
+  /// In en, this message translates to:
+  /// **'That is the password you already had, so nothing changed. You are signed in.'**
+  String get authPasswordSame;
+
+  /// No description provided for @authPasswordNotChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'You are signed in, but the new password could not be saved. Change it under Profile.'**
+  String get authPasswordNotChanged;
+
+  /// No description provided for @becameOrganizerNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your organizer request was approved. The organizer tools are now unlocked.'**
+  String get becameOrganizerNotice;
+
+  /// No description provided for @checkedInNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'You are checked in: {title}'**
+  String checkedInNotice(String title);
+
+  /// No description provided for @qrCheckedInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked in'**
+  String get qrCheckedInTitle;
 
   /// No description provided for @authResetSubmit.
   ///
@@ -1280,6 +1328,12 @@ abstract class AppLocalizations {
   /// **'Student'**
   String get roleStudent;
 
+  /// No description provided for @roleMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get roleMember;
+
   /// No description provided for @roleOrganizer.
   ///
   /// In en, this message translates to:
@@ -1451,7 +1505,7 @@ abstract class AppLocalizations {
   /// No description provided for @universityNone.
   ///
   /// In en, this message translates to:
-  /// **'No university - public account. Sign up with your university email to join one.'**
+  /// **'No university - public account. You can browse, but only university accounts can register for events.'**
   String get universityNone;
 
   /// No description provided for @privacyTitle.
@@ -1646,6 +1700,12 @@ abstract class AppLocalizations {
   /// **'Hosted by'**
   String get detailsHostedBy;
 
+  /// No description provided for @detailsPostedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Posted on {date}'**
+  String detailsPostedOn(String date);
+
   /// No description provided for @detailsGallery.
   ///
   /// In en, this message translates to:
@@ -1808,6 +1868,24 @@ abstract class AppLocalizations {
   /// **'Open entry'**
   String get ticketEntryOpen;
 
+  /// No description provided for @ticketOpenEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open entry'**
+  String get ticketOpenEntryTitle;
+
+  /// No description provided for @ticketOpenEntryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is scanned at this event. This ticket is your registration; just come along.'**
+  String get ticketOpenEntryBody;
+
+  /// No description provided for @reviewOpenEntryNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This event had no check-in, so please review it only if you were really there. Your review is public and counts in the stars.'**
+  String get reviewOpenEntryNote;
+
   /// No description provided for @ticketLabelId.
   ///
   /// In en, this message translates to:
@@ -1925,7 +2003,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanNoEvents.
   ///
   /// In en, this message translates to:
-  /// **'You have no events to scan for. Create one to start checking in guests.'**
+  /// **'You have no events with QR check-in to scan for right now.'**
   String get scanNoEvents;
 
   /// No description provided for @scanEventsFailed.
@@ -1999,6 +2077,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You can select up to 3 categories.'**
   String get formCategoriesMax;
+
+  /// No description provided for @formCategoriesTooMany.
+  ///
+  /// In en, this message translates to:
+  /// **'That makes {total} categories: {picked} selected above plus {own} of your own. An event can have 3 in total, so remove {extra}.'**
+  String formCategoriesTooMany(int picked, int own, int total, int extra);
 
   /// No description provided for @categoryAcademic.
   ///
@@ -2143,6 +2227,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'University roles need an account with a university email.'**
   String get adminNeedsUniversity;
+
+  /// No description provided for @adminRoleChangeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change role?'**
+  String get adminRoleChangeTitle;
+
+  /// No description provided for @adminRoleChangeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}: from {from} to {to}.'**
+  String adminRoleChangeBody(String name, String from, String to);
+
+  /// No description provided for @adminRoleChangeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Change role'**
+  String get adminRoleChangeConfirm;
+
+  /// No description provided for @adminRoleChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The role of {name} was changed.'**
+  String adminRoleChanged(String name);
+
+  /// No description provided for @adminRoleMeansBasic.
+  ///
+  /// In en, this message translates to:
+  /// **'This account loses all organizer and admin rights. Events it already published stay online, but it can no longer manage them.'**
+  String get adminRoleMeansBasic;
+
+  /// No description provided for @adminRoleMeansOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'This account can publish events for its university and check guests in, without sending a request first.'**
+  String get adminRoleMeansOrganizer;
+
+  /// No description provided for @adminRoleMeansCommercial.
+  ///
+  /// In en, this message translates to:
+  /// **'This account can publish public events and check guests in, without sending a request first.'**
+  String get adminRoleMeansCommercial;
+
+  /// No description provided for @adminRoleMeansTenantAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'This account can approve organizers, handle reports, and suspend or remove users of its university.'**
+  String get adminRoleMeansTenantAdmin;
+
+  /// No description provided for @adminRoleMeansPlatformAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'This account gets full control over everything: all universities, all users, all events. Only give this to someone you trust completely.'**
+  String get adminRoleMeansPlatformAdmin;
 
   /// No description provided for @caseTitle.
   ///
@@ -2315,7 +2453,7 @@ abstract class AppLocalizations {
   /// No description provided for @suspendedBanner.
   ///
   /// In en, this message translates to:
-  /// **'Your account is suspended while we look into reports about it. Until this is decided you cannot sign up for events, write reviews or publish events. Tickets you already have stay valid.'**
+  /// **'Your account is suspended while we look into reports about it. Until this is decided you cannot register for events, write reviews or report events. Tickets you already have stay valid.'**
   String get suspendedBanner;
 
   /// No description provided for @suspendedAction.
@@ -2323,6 +2461,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your account is suspended, so this is not possible right now.'**
   String get suspendedAction;
+
+  /// No description provided for @suspendedBannerOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is suspended while we look into reports about it. Until this is decided your events are hidden, and you cannot publish, edit or scan. Nothing has been deleted.'**
+  String get suspendedBannerOrganizer;
+
+  /// No description provided for @registerNeedsUniversityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'University accounts only'**
+  String get registerNeedsUniversityTitle;
+
+  /// No description provided for @registerNeedsUniversity.
+  ///
+  /// In en, this message translates to:
+  /// **'Only accounts with a university email can register for events. You can still look around.'**
+  String get registerNeedsUniversity;
 
   /// No description provided for @notifSuspendedTitle.
   ///
@@ -2333,7 +2489,7 @@ abstract class AppLocalizations {
   /// No description provided for @notifSuspendedBody.
   ///
   /// In en, this message translates to:
-  /// **'Your account is suspended while we look into reports about it. Tickets you already have stay valid.'**
+  /// **'Your account is suspended while we look into reports about it. The notice at the top of the app says what this means for you.'**
   String get notifSuspendedBody;
 
   /// No description provided for @notifReinstatedTitle.
@@ -2371,6 +2527,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your university address was not confirmed, so you now see public events only. You can confirm it any time in your profile.'**
   String get notifEmailCheckLapsedBody;
+
+  /// No description provided for @notifTeamInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Team invitation'**
+  String get notifTeamInviteTitle;
+
+  /// No description provided for @notifTeamInviteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} invited you to help with their events. Tap to answer.'**
+  String notifTeamInviteBody(String name);
+
+  /// No description provided for @teamTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get teamTitle;
+
+  /// No description provided for @teamRowOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite helpers for scanning and for creating events'**
+  String get teamRowOrganizer;
+
+  /// No description provided for @teamRowHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Teams you help, and invitations'**
+  String get teamRowHelper;
+
+  /// No description provided for @teamInvitationsWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 team invitation} other{{count} team invitations}}'**
+  String teamInvitationsWaiting(int count);
+
+  /// No description provided for @teamMineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My team'**
+  String get teamMineTitle;
+
+  /// No description provided for @teamMineIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite people to help with your events. You decide what each person may do. Only you can cancel or delete events, and only you see the guest list and the statistics.'**
+  String get teamMineIntro;
+
+  /// No description provided for @teamInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite someone'**
+  String get teamInviteTitle;
+
+  /// No description provided for @teamInviteEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Their UniHub email address'**
+  String get teamInviteEmail;
+
+  /// No description provided for @teamCanScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan tickets'**
+  String get teamCanScan;
+
+  /// No description provided for @teamCanScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Check guests in at your events'**
+  String get teamCanScanHint;
+
+  /// No description provided for @teamCanEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Create and edit events'**
+  String get teamCanEdit;
+
+  /// No description provided for @teamCanEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish new events in your name and change existing ones'**
+  String get teamCanEditHint;
+
+  /// No description provided for @teamInviteSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send invitation'**
+  String get teamInviteSend;
+
+  /// No description provided for @teamInviteSent.
+  ///
+  /// In en, this message translates to:
+  /// **'If this address has a UniHub account that can join your team, it now has an invitation.'**
+  String get teamInviteSent;
+
+  /// No description provided for @teamCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of 15 people'**
+  String teamCount(int count);
+
+  /// No description provided for @teamMineEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody yet.'**
+  String get teamMineEmpty;
+
+  /// No description provided for @teamInvited.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited'**
+  String get teamInvited;
+
+  /// No description provided for @teamRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get teamRemove;
+
+  /// No description provided for @teamWithdraw.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw invitation'**
+  String get teamWithdraw;
+
+  /// No description provided for @teamRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}?'**
+  String teamRemoveTitle(String name);
+
+  /// No description provided for @teamRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They can no longer scan tickets or edit your events. This takes effect at once.'**
+  String get teamRemoveBody;
+
+  /// No description provided for @teamRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from the team.'**
+  String get teamRemoved;
+
+  /// No description provided for @teamHelpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Teams I help'**
+  String get teamHelpTitle;
+
+  /// No description provided for @teamHelpEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not in anyone\'s team. An organizer can invite you with your UniHub email address.'**
+  String get teamHelpEmpty;
+
+  /// No description provided for @teamInvitationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} invited you to help with their events.'**
+  String teamInvitationBody(String name);
+
+  /// No description provided for @teamAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get teamAccept;
+
+  /// No description provided for @teamDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get teamDecline;
+
+  /// No description provided for @teamAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'You joined the team.'**
+  String get teamAccepted;
+
+  /// No description provided for @teamDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation declined.'**
+  String get teamDeclined;
+
+  /// No description provided for @teamPaused.
+  ///
+  /// In en, this message translates to:
+  /// **'This team is paused at the moment, so you cannot scan or edit for it.'**
+  String get teamPaused;
+
+  /// No description provided for @teamScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan tickets'**
+  String get teamScan;
+
+  /// No description provided for @teamEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Events'**
+  String get teamEvents;
+
+  /// No description provided for @teamLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave team'**
+  String get teamLeave;
+
+  /// No description provided for @teamLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave the team of {name}?'**
+  String teamLeaveTitle(String name);
+
+  /// No description provided for @teamLeaveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You can no longer scan or edit for this organizer. They can invite you again.'**
+  String get teamLeaveBody;
+
+  /// No description provided for @teamLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'You left the team.'**
+  String get teamLeft;
+
+  /// No description provided for @teamEventsIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Events of {name}. You can publish new ones and edit the ones that are online. Cancelling and deleting is up to the organizer.'**
+  String teamEventsIntro(String name);
+
+  /// No description provided for @teamEventsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No events yet.'**
+  String get teamEventsEmpty;
+
+  /// No description provided for @teamNewEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'New event'**
+  String get teamNewEvent;
+
+  /// No description provided for @teamNewEventFor.
+  ///
+  /// In en, this message translates to:
+  /// **'New event for {name}'**
+  String teamNewEventFor(String name);
+
+  /// No description provided for @teamErrFull.
+  ///
+  /// In en, this message translates to:
+  /// **'A team can have at most 15 people.'**
+  String get teamErrFull;
+
+  /// No description provided for @teamErrAlready.
+  ///
+  /// In en, this message translates to:
+  /// **'This person is already in your team or has an invitation.'**
+  String get teamErrAlready;
+
+  /// No description provided for @teamErrSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'You cannot invite yourself.'**
+  String get teamErrSelf;
+
+  /// No description provided for @teamErrNeedsPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose at least one thing the person may do.'**
+  String get teamErrNeedsPermission;
+
+  /// No description provided for @teamErrGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'That did not work. Please try again.'**
+  String get teamErrGeneric;
 
   /// No description provided for @emailCheckBanner.
   ///
@@ -2453,7 +2891,7 @@ abstract class AppLocalizations {
   /// No description provided for @adminPermanentAddress.
   ///
   /// In en, this message translates to:
-  /// **'Permanent organization address (for example AStA): no yearly email check'**
+  /// **'Permanent address of an organization (not a person): no yearly email check'**
   String get adminPermanentAddress;
 
   /// No description provided for @adminNoYearlyCheck.
@@ -2585,7 +3023,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardAttendanceByEvent.
   ///
   /// In en, this message translates to:
-  /// **'Attendance by event'**
+  /// **'Your events'**
   String get dashboardAttendanceByEvent;
 
   /// No description provided for @dashboardRecentScans.
@@ -2621,19 +3059,19 @@ abstract class AppLocalizations {
   /// No description provided for @formCustomCategoryLabel.
   ///
   /// In en, this message translates to:
-  /// **'Your own category (optional)'**
+  /// **'Your own categories (optional)'**
   String get formCustomCategoryLabel;
 
   /// No description provided for @formCustomCategoryHint.
   ///
   /// In en, this message translates to:
-  /// **'e.g. Yoga, Gaming, Careers'**
+  /// **'Up to 3, with commas: Yoga, Gaming, Careers'**
   String get formCustomCategoryHint;
 
   /// No description provided for @formCustomCategoryError.
   ///
   /// In en, this message translates to:
-  /// **'Use 2 to 30 letters or numbers.'**
+  /// **'Up to 3 categories, separated by commas. Each one 2 to 30 letters or numbers.'**
   String get formCustomCategoryError;
 
   /// No description provided for @posterShowFull.
@@ -3458,6 +3896,126 @@ abstract class AppLocalizations {
   /// **'Tap an event to see its statistics.'**
   String get insightsTapHint;
 
+  /// No description provided for @insightsReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews'**
+  String get insightsReviews;
+
+  /// No description provided for @insightsNoReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'No reviews yet.'**
+  String get insightsNoReviews;
+
+  /// No description provided for @insightsMoreReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more reviews'**
+  String get insightsMoreReviews;
+
+  /// No description provided for @eventRepublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish again'**
+  String get eventRepublish;
+
+  /// No description provided for @eventRepublishTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish this event again?'**
+  String get eventRepublishTitle;
+
+  /// No description provided for @eventRepublishBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The event goes back online with the details on this page. People who had signed up were told it was cancelled, so their sign-ups do not come back: they register again if they still want to come.'**
+  String get eventRepublishBody;
+
+  /// No description provided for @eventRepublishRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'An admin removed this event after reports, so it cannot be published again.'**
+  String get eventRepublishRemoved;
+
+  /// No description provided for @eventRepublishReported.
+  ///
+  /// In en, this message translates to:
+  /// **'There are reports about this event that an admin has not decided yet. It can be published again after that.'**
+  String get eventRepublishReported;
+
+  /// No description provided for @eventOthersEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} also has this event open for editing right now. Whoever saves second is asked to reload, so nothing gets overwritten.'**
+  String eventOthersEditing(String names);
+
+  /// No description provided for @eventChangedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone changed this event'**
+  String get eventChangedTitle;
+
+  /// No description provided for @eventChangedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'While you were editing, someone else saved changes to this event. Your changes were not saved, so nothing of theirs was overwritten. Note down what you wanted to change, close this page and open the event again to see the current version.'**
+  String get eventChangedBody;
+
+  /// No description provided for @eventChangedOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get eventChangedOk;
+
+  /// No description provided for @eventDuplicateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This event may already exist'**
+  String get eventDuplicateTitle;
+
+  /// No description provided for @eventDuplicateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'There is already an event called \"{title}\" on {date}. Did you or a teammate publish it already?'**
+  String eventDuplicateBody(String title, String date);
+
+  /// No description provided for @eventDuplicatePublish.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish anyway'**
+  String get eventDuplicatePublish;
+
+  /// No description provided for @dashboardDeleteEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete event'**
+  String get dashboardDeleteEvent;
+
+  /// No description provided for @dashboardDeleteEventTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{title}\"?'**
+  String dashboardDeleteEventTitle(String title);
+
+  /// No description provided for @dashboardDeleteEventBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The event and its sign-ups, tickets and reviews are deleted for good. This cannot be undone.'**
+  String get dashboardDeleteEventBody;
+
+  /// No description provided for @dashboardEventDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Event deleted.'**
+  String get dashboardEventDeleted;
+
+  /// No description provided for @dashboardDeleteRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'This event cannot be deleted right now. If it was reported, an admin has to look at the reports first.'**
+  String get dashboardDeleteRefused;
+
   /// No description provided for @insightsOverviewTitle.
   ///
   /// In en, this message translates to:
@@ -3786,7 +4344,7 @@ abstract class AppLocalizations {
   /// No description provided for @campusNoUniversityBody.
   ///
   /// In en, this message translates to:
-  /// **'Your account isn\'t linked to a university, so you see public events only. Sign up with your university email to see your campus events.'**
+  /// **'Your account isn\'t linked to a university, so you see public events only and cannot register for events. Sign up with your university email to take part.'**
   String get campusNoUniversityBody;
 }
 

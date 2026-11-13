@@ -190,7 +190,7 @@ class _StudentReviewScreenState extends State<StudentReviewScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        localizations.reviewWarningDisclaimer,
+                        localizations.reviewOpenEntryNote,
                         style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary),
                       ),
                     ),

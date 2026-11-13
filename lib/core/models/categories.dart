@@ -24,6 +24,22 @@ String? normalizeCustomCategory(String input) {
   return text;
 }
 
+/// How many own categories one event may have (typed with commas between them).
+const maxCustomCategories = 3;
+
+/// "Yoga, Gaming" -> [Yoga, Gaming]. Returns null if any part is not usable or
+/// there are too many; an empty list if nothing was typed.
+List<String>? normalizeCustomCategories(String input) {
+  final result = <String>[];
+  for (final part in input.split(',')) {
+    if (part.trim().isEmpty) continue;
+    final one = normalizeCustomCategory(part);
+    if (one == null) return null;
+    if (!result.any((r) => r.toLowerCase() == one.toLowerCase())) result.add(one);
+  }
+  return result.length > maxCustomCategories ? null : result;
+}
+
 String categoryLabel(AppLocalizations l10n, String key) => switch (key) {
       'Music' => l10n.categoryMusic,
       'Tech' => l10n.categoryTech,

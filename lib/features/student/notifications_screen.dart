@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/widgets/ticket_stub.dart';
+import '../team/team_screen.dart';
 import '../../core/widgets/page_width.dart';
 import '../../../core/widgets/empty_state.dart';
 import 'package:intl/intl.dart';
@@ -27,6 +28,7 @@ import 'review_screen.dart';
     'review_prompt' => (l10n.notifReviewPromptTitle, l10n.notifReviewPromptBody(t)),
     'account_suspended' => (l10n.notifSuspendedTitle, l10n.notifSuspendedBody),
     'account_reinstated' => (l10n.notifReinstatedTitle, l10n.notifReinstatedBody),
+    'team_invite' => (l10n.notifTeamInviteTitle, l10n.notifTeamInviteBody(t)),
     'email_check_due' => (l10n.notifEmailCheckDueTitle, l10n.notifEmailCheckDueBody),
     'email_check_lapsed' => (l10n.notifEmailCheckLapsedTitle, l10n.notifEmailCheckLapsedBody),
     _ => (l10n.notificationsTitle, t),
@@ -54,6 +56,7 @@ IconData _icon(String kind) => switch (kind) {
       'account_suspended' => Icons.pause_circle_filled_rounded,
       'account_reinstated' => Icons.check_circle_rounded,
       'email_check_due' || 'email_check_lapsed' => Icons.mark_email_unread_rounded,
+      'team_invite' => Icons.groups_rounded,
       _ => Icons.notifications_rounded,
     };
 
@@ -197,7 +200,11 @@ class NotificationsScreen extends StatelessWidget {
                               n.isRead ? null : Icon(Icons.circle, size: 10, color: theme.colorScheme.primary),
                           onTap: () {
                             appState.markNotificationsRead([n.id]);
-                            if (n.eventId != null) openNotificationEvent(context, n.eventId!, kind: n.kind);
+                            if (n.eventId != null) {
+                              openNotificationEvent(context, n.eventId!, kind: n.kind);
+                            } else if (n.kind == 'team_invite') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const TeamScreen()));
+                            }
                           },
                         ),
                       ),

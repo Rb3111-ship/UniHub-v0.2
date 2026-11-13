@@ -212,6 +212,15 @@ class EventDetailsScreen extends StatelessWidget {
         ),
       if (event.organizerId != null) _HostCard(organizerId: event.organizerId!),
       if (event.hasContact) _ContactCard(event: event, color: brandColor),
+      if (event.createdAt != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Text(
+            l10n.detailsPostedOn(DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(event.createdAt!))
+                .toUpperCase(),
+            style: monoStyle(size: 10.5, color: theme.colorScheme.secondary, spacing: 0.8),
+          ),
+        ),
       const SizedBox(height: 24),
       if (event.description.trim().isNotEmpty) ...[
         StubSectionHeader(l10n.detailsAbout),
@@ -404,12 +413,17 @@ class EventDetailsScreen extends StatelessWidget {
     final closed = event.isCancelled || event.endDate.isBefore(DateTime.now());
     final own = appState.isOwnEvent(event);
     final locale = Localizations.localeOf(context).toString();
+    // Without a university e-mail you can look, but not register.
+    final noUniversity = appState.needsUniversityToRegister && !own && !isRegistered;
 
     final String headline;
     final String subline;
     if (own) {
       headline = l10n.ownEventHeadline;
       subline = l10n.ownEventBody;
+    } else if (noUniversity) {
+      headline = l10n.registerNeedsUniversityTitle;
+      subline = l10n.registerNeedsUniversity;
     } else if (isRegistered) {
       headline = waitlisted ? l10n.detailsWaitlistedLabel : l10n.detailsTicketReserved;
       subline = waitlisted ? l10n.detailsWaitlistBody : l10n.detailsSeeTickets;
@@ -421,13 +435,13 @@ class EventDetailsScreen extends StatelessWidget {
     }
     final ctaText = own
         ? l10n.ctaOwnEvent
-        : closed && !isRegistered
+        : (closed && !isRegistered) || noUniversity
         ? l10n.ctaUnavailable
         : isRegistered
             ? (waitlisted ? l10n.ctaWaitlisted : l10n.ctaRegistered)
             : l10n.ctaRegister;
 
-    final enabled = !(own || isRegistered || closed);
+    final enabled = !(own || isRegistered || closed || noUniversity);
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
       decoration: BoxDecoration(
@@ -453,7 +467,7 @@ class EventDetailsScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(subline, maxLines: 2, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
+                  Text(subline, maxLines: 3, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary)),
                 ],
               ),
             ),

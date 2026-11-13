@@ -1,5 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:uni_events_app/l10n/app_localizations.dart';
+import '../../core/auth/user_role.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 
@@ -25,14 +29,20 @@ class QrFullscreenPage extends StatefulWidget {
 }
 
 class _QrFullscreenPageState extends State<QrFullscreenPage> {
+  Timer? _watch;
+
   @override
   void initState() {
     super.initState();
     _brightness(true);
+    // While the code is on screen, ask every few seconds whether it was scanned.
+    final appState = context.read<AppState>();
+    _watch = Timer.periodic(const Duration(seconds: 3), (_) => appState.refreshRegistrations());
   }
 
   @override
   void dispose() {
+    _watch?.cancel();
     _brightness(false);
     super.dispose();
   }
@@ -54,6 +64,38 @@ class _QrFullscreenPageState extends State<QrFullscreenPage> {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final side = (size.shortestSide * 0.78).clamp(180.0, 420.0);
+    final l10n = AppLocalizations.of(context)!;
+    if (context.watch<AppState>().isTicketScanned(widget.ticketId)) {
+      _watch?.cancel();
+      return Scaffold(
+        backgroundColor: const Color(0xFF137A50),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.white, size: 120),
+                  const SizedBox(height: 16),
+                  Text(l10n.qrCheckedInTitle,
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white)),
+                  const SizedBox(height: 8),
+                  Text(widget.title,
+                      textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, color: Colors.white)),
+                  const SizedBox(height: 28),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF137A50)),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(MaterialLocalizations.of(context).closeButtonLabel),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

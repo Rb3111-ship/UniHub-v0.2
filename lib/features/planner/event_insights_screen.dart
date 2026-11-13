@@ -6,6 +6,7 @@ import 'package:uni_events_app/l10n/app_localizations.dart';
 import '../../../core/widgets/ticket_stub.dart';
 import '../../../core/auth/user_role.dart';
 import '../../../core/models/dashboard_model.dart';
+import '../../../core/models/review_model.dart';
 import 'charts.dart';
 
 const registeredColor = Color(0xFF636AE8);
@@ -27,10 +28,104 @@ class _EventInsightsScreenState extends State<EventInsightsScreen> {
   EventInsights? _insights;
   bool _failed = false;
 
+  // The event's reviews, loaded a page at a time (an event can have hundreds).
+  static const _reviewPage = 20;
+  final List<Review> _reviews = [];
+  bool _reviewsLoading = false;
+  bool _reviewsFailed = false;
+  bool _moreReviews = true;
+
   @override
   void initState() {
     super.initState();
     _load();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews({bool restart = false}) async {
+    if (_reviewsLoading) return;
+    final appState = context.read<AppState>();
+    if (!appState.usesBackend) return;
+    setState(() => (_reviewsLoading = true, _reviewsFailed = false));
+    try {
+      final page = await appState.loadEventReviews(widget.stat.eventId,
+          offset: restart ? 0 : _reviews.length, pageSize: _reviewPage);
+      if (!mounted) return;
+      setState(() {
+        if (restart) _reviews.clear();
+        _reviews.addAll(page);
+        _moreReviews = page.length == _reviewPage;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _reviewsFailed = true);
+    } finally {
+      if (mounted) setState(() => _reviewsLoading = false);
+    }
+  }
+
+  Future<void> _removeReview(Review review) async {
+    final l10n = AppLocalizations.of(context)!;
+    final appState = context.read<AppState>();
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.adminRemoveReview),
+        content: Text(l10n.adminRemoveReviewConfirm),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.adminRemoveReview),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await appState.deleteReview(review.id);
+      if (mounted) setState(() => _reviews.removeWhere((r) => r.id == review.id));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.adminReviewRemoved)));
+      _load();
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.adminActionFailed)));
+    }
+  }
+
+  List<Widget> _reviewList(BuildContext context, AppState appState, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.secondary;
+    final date = DateFormat.yMMMd(l10n.localeName);
+    return [
+      if (_reviews.isEmpty && !_reviewsLoading && !_reviewsFailed) Text(l10n.insightsNoReviews),
+      for (final r in _reviews) ...[
+        Row(children: [
+          for (var i = 1; i <= 5; i++)
+            Icon(i <= r.rating.round() ? Icons.star_rounded : Icons.star_border_rounded,
+                size: 18, color: Colors.amber.shade700),
+          const SizedBox(width: 8),
+          Expanded(child: Text(date.format(r.timestamp).toUpperCase(), style: monoStyle(size: 10, color: muted))),
+          // Admins can take an abusive review down.
+          if (appState.isAdmin)
+            IconButton(
+              key: ValueKey('remove-review-${r.id}'),
+              tooltip: l10n.adminRemoveReview,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+              onPressed: () => _removeReview(r),
+            ),
+        ]),
+        if (r.comment.trim().isNotEmpty) Padding(padding: const EdgeInsets.only(top: 2), child: Text(r.comment)),
+        const Divider(height: 20),
+      ],
+      if (_reviewsFailed)
+        TextButton(onPressed: _loadReviews, child: Text(l10n.authRetry))
+      else if (_reviewsLoading)
+        const Padding(padding: EdgeInsets.all(8), child: Center(child: CircularProgressIndicator()))
+      else if (_moreReviews && _reviews.isNotEmpty)
+        Center(child: OutlinedButton(onPressed: _loadReviews, child: Text(l10n.insightsMoreReviews))),
+    ];
   }
 
   Future<void> _load() async {
@@ -44,7 +139,7 @@ class _EventInsightsScreenState extends State<EventInsightsScreen> {
   }
 
   Future<void> _refresh() async {
-    await Future.wait([context.read<AppState>().refreshDashboard(), _load()]);
+    await Future.wait([context.read<AppState>().refreshDashboard(), _load(), _loadReviews(restart: true)]);
   }
 
   @override
@@ -121,6 +216,7 @@ class _EventInsightsScreenState extends State<EventInsightsScreen> {
                 ],
               ]),
             ],
+            if (appState.usesBackend) _section(context, l10n.insightsReviews, _reviewList(context, appState, l10n)),
             const SizedBox(height: 32),
           ],
         ),

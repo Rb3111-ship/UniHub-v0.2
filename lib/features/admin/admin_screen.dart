@@ -44,12 +44,13 @@ class _AdminScreenState extends State<AdminScreen> {
     super.dispose();
   }
 
-  String _roleLabel(AppLocalizations l10n, String role) => switch (role) {
+  /// The basic role is called "Student" only for university accounts.
+  String _roleLabel(AppLocalizations l10n, String role, {required bool hasUniversity}) => switch (role) {
         'organizer' => l10n.roleOrganizer,
         'commercial_planner' => l10n.roleCommercial,
         'tenant_admin' => l10n.roleTenantAdmin,
         'platform_admin' => l10n.rolePlatformAdmin,
-        _ => l10n.roleStudent,
+        _ => hasUniversity ? l10n.roleStudent : l10n.roleMember,
       };
 
   Future<void> _review(AppState appState, OrganizerRequest r, bool approve) async {
@@ -357,8 +358,43 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> _changeRole(AppState appState, AdminUser u, String role) async {
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
+    final hasUniversity = u.tenantId != null;
+    final name = u.displayName.isEmpty ? u.email : u.displayName;
+    // A role decides what someone may do, so one tap must not be enough.
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.adminRoleChangeTitle),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(l10n.adminRoleChangeBody(
+              name, _roleLabel(l10n, u.role, hasUniversity: hasUniversity), _roleLabel(l10n, role, hasUniversity: hasUniversity))),
+          const SizedBox(height: 4),
+          Text(u.email, style: TextStyle(fontSize: 12, color: Theme.of(ctx).colorScheme.secondary)),
+          const SizedBox(height: 12),
+          Text(switch (role) {
+            'organizer' => l10n.adminRoleMeansOrganizer,
+            'commercial_planner' => l10n.adminRoleMeansCommercial,
+            'tenant_admin' => l10n.adminRoleMeansTenantAdmin,
+            'platform_admin' => l10n.adminRoleMeansPlatformAdmin,
+            _ => l10n.adminRoleMeansBasic,
+          }),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
+          FilledButton(
+            style: role == 'platform_admin' || role == 'tenant_admin'
+                ? FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error)
+                : null,
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.adminRoleChangeConfirm),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
     try {
       await appState.setUserRole(u.id, role, role != 'student', _search.text.trim());
+      messenger.showSnackBar(SnackBar(content: Text(l10n.adminRoleChanged(name))));
     } catch (e) {
       final noUniversity = e is PostgrestException && e.message == 'needs_university_email';
       messenger.showSnackBar(SnackBar(
@@ -671,7 +707,7 @@ class _AdminScreenState extends State<AdminScreen> {
                     title: Text(u.displayName.isEmpty ? u.email : u.displayName,
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text.rich(TextSpan(children: [
-                      TextSpan(text: '${u.email}\n${_roleLabel(l10n, u.role)}'),
+                      TextSpan(text: '${u.email}\n${_roleLabel(l10n, u.role, hasUniversity: u.tenantId != null)}'),
                       if (!u.emailConfirmed)
                         TextSpan(
                           text: '  ·  ${l10n.adminUnconfirmed}',
@@ -701,7 +737,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               for (final r in assignable)
                                 // University roles make no sense without a university e-mail.
                                 if (u.tenantId != null || (r != 'organizer' && r != 'tenant_admin'))
-                                  PopupMenuItem(value: r, enabled: r != u.role, child: Text(_roleLabel(l10n, r))),
+                                  PopupMenuItem(value: r, enabled: r != u.role, child: Text(_roleLabel(l10n, r, hasUniversity: u.tenantId != null))),
                               if (u.tenantId == null)
                                 PopupMenuItem(
                                   enabled: false,

@@ -66,6 +66,9 @@ function text(row: Row, locale: string): { title: string; body: string } {
     case "account_reinstated":
       return de ? { title: "Konto wieder freigegeben", body: "Die Prüfung ist abgeschlossen. Du kannst UniHub wieder normal nutzen." }
                 : { title: "Account reinstated", body: "The check is finished. You can use UniHub normally again." };
+    case "team_invite":
+      return de ? { title: "Team-Einladung", body: `${t} hat dich eingeladen, bei Events zu helfen. Öffne UniHub: Profil > Team.` }
+                : { title: "Team invitation", body: `${t} invited you to help with their events. Open UniHub: Profile > Team.` };
     case "email_check_due":
       return de ? { title: "Hochschul-E-Mail bestätigen", body: "Bitte bestätige innerhalb von 30 Tagen, dass deine Hochschul-Adresse noch funktioniert. Öffne UniHub dafür." }
                 : { title: "Confirm your university email", body: "Please confirm within 30 days that your university address still works. Open UniHub to do it." };

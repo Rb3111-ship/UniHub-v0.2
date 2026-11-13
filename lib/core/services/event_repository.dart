@@ -14,16 +14,20 @@ abstract class EventRepository {
   Future<Event?> fetchById(String id);
 
   /// Publishes [event]. [tenantId] is null for public (commercial) events.
-  Future<Event> create(Event event, {required String? tenantId});
+  /// [organizerId]: set when a teammate creates the event for an organizer.
+  Future<Event> create(Event event, {required String? tenantId, String? organizerId});
 
   /// Saves changes to an event the user organizes.
-  Future<Event> update(Event event);
+  /// Throws PostgrestException 'changed_meanwhile' if someone else changed the
+  /// event since it was loaded (unless [checkUnchanged] is false).
+  Future<Event> update(Event event, {bool checkUnchanged = true});
 
   /// Cancels an event (final; ticket holders can still see it).
   Future<void> cancel(String eventId);
 
   /// Uploads a poster and returns its storage path (store it in Event.imagePath).
-  Future<String> uploadImage(Uint8List bytes, String contentType, String extension);
+  /// [folder]: the organizer's id when a teammate uploads for them.
+  Future<String> uploadImage(Uint8List bytes, String contentType, String extension, {String? folder});
 }
 
 class SupabaseEventRepository implements EventRepository {
@@ -66,7 +70,7 @@ class SupabaseEventRepository implements EventRepository {
   }
 
   @override
-  Future<Event> create(Event event, {required String? tenantId}) async {
+  Future<Event> create(Event event, {required String? tenantId, String? organizerId}) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       throw const AuthException('Not signed in');
@@ -75,7 +79,7 @@ class SupabaseEventRepository implements EventRepository {
         .from('events')
         .insert({
           'tenant_id': tenantId,
-          'organizer_id': user.id,
+          'organizer_id': organizerId ?? user.id,
           'title': event.title.trim(),
           'description': event.description.trim(),
           'location': event.location.trim(),
@@ -99,8 +103,8 @@ class SupabaseEventRepository implements EventRepository {
   }
 
   @override
-  Future<Event> update(Event event) async {
-    final row = await _client
+  Future<Event> update(Event event, {bool checkUnchanged = true}) async {
+    var query = _client
         .from('events')
         .update({
           'title': event.title.trim(),
@@ -118,10 +122,19 @@ class SupabaseEventRepository implements EventRepository {
           'website_url': event.websiteUrl,
           'release_unconfirmed': event.releaseUnconfirmed,
         })
-        .eq('id', event.id)
-        .select(_select)
-        .single(); // throws if the row is not yours (RLS hides it)
-    return _fromRow(row);
+        .eq('id', event.id);
+    final stamp = event.updatedAtRaw;
+    if (checkUnchanged && stamp != null) query = query.eq('updated_at', stamp);
+    final rows = await query.select(_select);
+    if (rows.isEmpty) {
+      // Nothing was saved: either the event changed since it was opened, or
+      // it is not (or no longer) the user's to edit.
+      final still = await _client.from('events').select('id').eq('id', event.id).maybeSingle();
+      throw still != null && checkUnchanged && stamp != null
+          ? const PostgrestException(message: 'changed_meanwhile', code: '40001')
+          : const PostgrestException(message: 'not_allowed', code: '42501');
+    }
+    return _fromRow(rows.first);
   }
 
   @override
@@ -137,8 +150,8 @@ class SupabaseEventRepository implements EventRepository {
   }
 
   @override
-  Future<String> uploadImage(Uint8List bytes, String contentType, String extension) async {
-    final uid = _client.auth.currentUser?.id;
+  Future<String> uploadImage(Uint8List bytes, String contentType, String extension, {String? folder}) async {
+    final uid = folder ?? _client.auth.currentUser?.id;
     if (uid == null) throw const AuthException('Not signed in');
     final random = Random.secure();
     final name = List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
@@ -237,13 +250,13 @@ class MockEventRepository implements EventRepository {
   }
 
   @override
-  Future<Event> create(Event event, {required String? tenantId}) async {
+  Future<Event> create(Event event, {required String? tenantId, String? organizerId}) async {
     _events.add(event);
     return event;
   }
 
   @override
-  Future<Event> update(Event event) async {
+  Future<Event> update(Event event, {bool checkUnchanged = true}) async {
     final i = _events.indexWhere((e) => e.id == event.id);
     if (i >= 0) _events[i] = event;
     return event;
@@ -255,6 +268,6 @@ class MockEventRepository implements EventRepository {
   }
 
   @override
-  Future<String> uploadImage(Uint8List bytes, String contentType, String extension) async =>
+  Future<String> uploadImage(Uint8List bytes, String contentType, String extension, {String? folder}) async =>
       'mock/image.$extension';
 }

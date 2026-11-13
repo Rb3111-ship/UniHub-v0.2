@@ -152,8 +152,7 @@ class PlannerDashboardScreen extends StatelessWidget {
         _buildEmptyFeedback(theme, l10n.scanLogEmpty)
       else
         for (final e in d.scans) _buildLogTile(context, _scanText(e, l10n), _ago(e.scannedAt, l10n), e.ok),
-      const SizedBox(height: 28),
-      _buildFeedbackSection(context, appState, l10n),
+      // Reviews are shown inside each event (tap an event above).
       const SizedBox(height: 40),
     ];
   }
@@ -161,13 +160,8 @@ class PlannerDashboardScreen extends StatelessWidget {
   /// Simple graphs: registered / confirmed / came for recent events, and the
   /// average stars of past events.
   List<Widget> _overviewCharts(BuildContext context, DashboardData d, AppLocalizations l10n) {
-    final recent = d.stats.where((s) => s.status != 'draft').take(6).toList();
-    if (recent.isEmpty) return const [];
+    if (d.stats.where((s) => s.status != 'draft').isEmpty) return const [];
     final rated = d.stats.where((s) => s.averageRating != null).take(8).toList().reversed.toList();
-    final max = recent.fold<int>(1, (m, s) => s.registered > m ? s.registered : m);
-    final muted = Theme.of(context).colorScheme.secondary;
-    Widget bar(String label, int value, Color color) =>
-        HBar(label: label, labelWidth: 92, value: value, max: max, color: color, height: 10);
     Widget card(String title, List<Widget> children) => Card(
           margin: const EdgeInsets.only(top: 16),
           child: Padding(
@@ -180,40 +174,6 @@ class PlannerDashboardScreen extends StatelessWidget {
           ),
         );
     return [
-      card(l10n.insightsOverviewTitle, [
-        for (var i = 0; i < recent.length; i++) ...[
-          if (i > 0) const Divider(height: 1),
-          InkWell(
-            onTap: () => _openInsights(context, recent[i]),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Expanded(
-                    child: Text(recent[i].title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                  ),
-                  Icon(Icons.chevron_right_rounded, size: 20, color: muted),
-                ]),
-                const SizedBox(height: 6),
-                if (recent[i].registered == 0)
-                  Text(l10n.insightsNoSignupsYet, style: TextStyle(fontSize: 12, color: muted))
-                else ...[
-                  bar(l10n.legendRegistered, recent[i].registered, registeredColor),
-                  bar(l10n.legendConfirmed, recent[i].confirmed, confirmedColor),
-                  if (recent[i].requiresQr)
-                    bar(l10n.legendCame, recent[i].checkedIn, cameColor)
-                  else
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Text(l10n.insightsCameNotCounted, style: TextStyle(fontSize: 11, color: muted)),
-                    ),
-                ],
-              ]),
-            ),
-          ),
-        ],
-      ]),
       card(l10n.insightsRatingTrend, [
         if (rated.isEmpty)
           Text(l10n.insightsNoRatings)
@@ -228,6 +188,36 @@ class PlannerDashboardScreen extends StatelessWidget {
           ),
       ]),
     ];
+  }
+
+  Future<void> _deleteEvent(BuildContext context, EventStat stat, AppLocalizations l10n) async {
+    final appState = context.read<AppState>();
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.dashboardDeleteEventTitle(stat.title)),
+        content: Text(l10n.dashboardDeleteEventBody),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.profileCancel)),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.dashboardDeleteEvent),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final deleted = await appState.deleteEvent(stat.eventId);
+      messenger.showSnackBar(SnackBar(
+        backgroundColor: deleted ? null : Colors.red,
+        content: Text(deleted ? l10n.dashboardEventDeleted : l10n.dashboardDeleteRefused),
+      ));
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(backgroundColor: Colors.red, content: Text(l10n.dashboardDeleteRefused)));
+    }
   }
 
   void _openInsights(BuildContext context, EventStat stat) {
@@ -256,6 +246,9 @@ class PlannerDashboardScreen extends StatelessWidget {
 
   Widget _buildRealEventRow(BuildContext context, EventStat stat, AppLocalizations l10n) {
     final theme = Theme.of(context);
+    final barMax = (stat.capacity ?? 0) > stat.registered ? stat.capacity! : (stat.registered < 1 ? 1 : stat.registered);
+    Widget bar(String label, int value, Color color) =>
+        HBar(label: label, labelWidth: 92, value: value, max: barMax, color: color, height: 10);
     final detail = stat.capacity == null
         ? l10n.dashboardUnlimitedLine(stat.registered, stat.checkedIn)
         : l10n.dashboardSeatsLine(stat.registered, stat.capacity!, stat.checkedIn);
@@ -279,9 +272,11 @@ class PlannerDashboardScreen extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                 ),
-                if (stat.status != 'cancelled' && context.read<AppState>().managedEventById(stat.eventId) != null)
+                if (context.read<AppState>().managedEventById(stat.eventId) != null &&
+                    !(stat.status == 'cancelled' &&
+                        context.read<AppState>().managedEventById(stat.eventId)!.moderatedAt != null))
                   IconButton(
-                    tooltip: l10n.dashboardEdit,
+                    tooltip: stat.status == 'published' ? l10n.dashboardEdit : l10n.eventRepublish,
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.edit_rounded, size: 18),
                     onPressed: () => Navigator.push(
@@ -292,6 +287,14 @@ class PlannerDashboardScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ),
+                // Drafts and cancelled events can be cleared away for good.
+                if (stat.status != 'published')
+                  IconButton(
+                    tooltip: l10n.dashboardDeleteEvent,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(Icons.delete_outline_rounded, size: 19, color: theme.colorScheme.error),
+                    onPressed: () => _deleteEvent(context, stat, l10n),
                   ),
                 if (stat.status != 'published')
                   Container(
@@ -316,16 +319,24 @@ class PlannerDashboardScreen extends StatelessWidget {
             if (stat.waitlisted > 0)
               Text(l10n.dashboardWaitlistCount(stat.waitlisted),
                   style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: stat.fillShare,
-                minHeight: 8,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
-                valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
-              ),
-            ),
+            const SizedBox(height: 10),
+            // Registered / confirmed / came, measured against the seats (or the sign-ups).
+            if (stat.status == 'draft')
+              const SizedBox.shrink()
+            else if (stat.registered == 0)
+              Text(l10n.insightsNoSignupsYet, style: TextStyle(fontSize: 12, color: theme.colorScheme.secondary))
+            else ...[
+              bar(l10n.legendRegistered, stat.registered, registeredColor),
+              bar(l10n.legendConfirmed, stat.confirmed, confirmedColor),
+              if (stat.requiresQr)
+                bar(l10n.legendCame, stat.checkedIn, cameColor)
+              else
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text(l10n.insightsCameNotCounted,
+                      style: TextStyle(fontSize: 11, color: theme.colorScheme.secondary)),
+                ),
+            ],
           ],
         ),
       ),

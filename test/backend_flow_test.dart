@@ -191,6 +191,36 @@ class _FakeBackend {
         body = [
           {'email': 'spammer@example.com', 'created_at': '2026-11-05T10:00:00Z', 'blocked_by_name': 'Test Admin'},
         ];
+      } else if (path.endsWith('/rpc/team_my_memberships')) {
+        body = [
+          {
+            'id': 'aaaaaaaa-0000-0000-0000-000000000001',
+            'organizer_id': 'aaaaaaaa-0000-0000-0000-000000000002',
+            'organizer_name': 'Campus Film Club',
+            'can_scan': true,
+            'can_edit': false,
+            // An invitation until this test user has answered it.
+            'status': bodies.containsKey('/rest/v1/rpc/team_respond') ? 'active' : 'invited',
+            'usable': bodies.containsKey('/rest/v1/rpc/team_respond'),
+            'organizer_tenant': null,
+            'organizer_role': 'commercial_planner',
+          },
+        ];
+      } else if (path.endsWith('/rpc/team_my_members')) {
+        body = [
+          {
+            'id': 'aaaaaaaa-0000-0000-0000-000000000003',
+            'member_id': 'aaaaaaaa-0000-0000-0000-000000000004',
+            'name': 'Door Helper',
+            'email': 'helper@example.com',
+            'can_scan': true,
+            'can_edit': false,
+            'status': 'active',
+            'invited_at': '2026-11-10T10:00:00Z',
+          },
+        ];
+      } else if (path.endsWith('/rpc/team_invite') || path.endsWith('/rpc/team_respond')) {
+        body = true;
       } else if (path.endsWith('/rpc/admin_set_suspended')) {
         body = true;
       } else if (path.endsWith('/rpc/admin_unblock_email')) {
@@ -419,9 +449,11 @@ void main() {
 
   testWidgets('organizer dashboard graphs and the event statistics page', (tester) async {
     await launchSignedIn(tester);
-    expect(find.text('Registered, confirmed and came'), findsOneWidget);
+    expect(find.text('YOUR EVENTS'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Average stars per event'), 200, scrollable: find.byType(Scrollable).first);
     expect(find.text('4.5'), findsOneWidget);
+    await tester.ensureVisible(find.text('Open Air Concert').first);
+    await _settle(tester, rounds: 2);
     await tester.tap(find.text('Open Air Concert').first);
     await _settle(tester, rounds: 4);
     expect(find.text('Event statistics'), findsOneWidget);
@@ -516,12 +548,12 @@ void main() {
     await launchSignedIn(tester);
     await tester.tap(find.byIcon(Icons.add_circle_outline_rounded));
     await _settle(tester, rounds: 3);
-    expect(find.text('Your own category (optional)'), findsNothing);
+    expect(find.text('Your own categories (optional)'), findsNothing);
     await tester.dragUntilVisible(find.text('Other'), find.byType(SingleChildScrollView).first, const Offset(0, -200));
     await _settle(tester, rounds: 6);
     await tester.tap(find.text('Other'));
     await _settle(tester, rounds: 3);
-    final field = find.widgetWithText(TextFormField, 'Your own category (optional)');
+    final field = find.widgetWithText(TextFormField, 'Your own categories (optional)');
     expect(field, findsOneWidget);
     await tester.enterText(field, 'Yoga');
     await _settle(tester, rounds: 2);
@@ -545,6 +577,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextFormField, 'Your name'), 'New Person');
     await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'new@example.org');
     await tester.enterText(find.widgetWithText(TextFormField, 'Password'), 'long-password');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Password again'), 'long-password');
     await tester.tap(find.text('Create account').last);
     await _settle(tester, rounds: 8);
     expect(find.text("Check your email"), findsOneWidget);
@@ -704,6 +737,43 @@ void main() {
     expect(body, contains('"p_suspend":true'));
     expect(body, contains('Three scam reports'));
     expect(find.text('Troll Account is suspended'), findsOneWidget);
+    await _settle(tester, rounds: 6);
+    await _finish(tester);
+  });
+
+  testWidgets('team: invite a helper and accept an invitation', (tester) async {
+    await launchSignedIn(tester);
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await _settle(tester, rounds: 6);
+    await tester.ensureVisible(find.byIcon(Icons.groups_rounded));
+    await _settle(tester, rounds: 3);
+    await tester.tap(find.byIcon(Icons.groups_rounded));
+    await _settle(tester, rounds: 10);
+    expect(find.text('MY TEAM'), findsOneWidget);
+    expect(find.text('Door Helper'), findsOneWidget);
+    expect(find.text('1 of 15 people'.toUpperCase()), findsOneWidget);
+
+    await tester.enterText(find.widgetWithText(TextField, 'Their UniHub email address'), 'new@example.com');
+    await tester.ensureVisible(find.text('Send invitation'));
+    await tester.tap(find.text('Send invitation'));
+    await _settle(tester, rounds: 10);
+    final invite = backend.bodies['/rest/v1/rpc/team_invite'] ?? '';
+    expect(invite, contains('new@example.com'));
+    expect(invite, contains('"p_can_scan":true'));
+    expect(invite, contains('"p_can_edit":false'));
+
+    // The invitation from another organizer: no scan button until it is accepted.
+    // Take the 'invitation sent' message away; it covers the bottom of the screen.
+    ScaffoldMessenger.of(tester.element(find.text('Accept'))).clearSnackBars();
+    await _settle(tester, rounds: 6);
+    await tester.ensureVisible(find.text('Accept'));
+    await _settle(tester, rounds: 3);
+    expect(find.widgetWithText(FilledButton, 'Scan tickets'), findsNothing);
+    await tester.tap(find.text('Accept'));
+    await _settle(tester, rounds: 10);
+    expect(backend.bodies['/rest/v1/rpc/team_respond'], contains('"p_accept":true'));
+    expect(find.text('Accept'), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Scan tickets'), findsOneWidget);
     await _settle(tester, rounds: 6);
     await _finish(tester);
   });

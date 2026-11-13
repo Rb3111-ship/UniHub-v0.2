@@ -88,8 +88,10 @@ class RegistrationRepository {
   }
 
   /// Events the current user organizes (any status), newest first.
-  Future<List<Event>> fetchManagedEvents() async {
-    final uid = _client.auth.currentUser?.id;
+  /// [organizerId]: another organizer's events, for a teammate (the server
+  /// only returns them to members of that team).
+  Future<List<Event>> fetchManagedEvents({String? organizerId}) async {
+    final uid = organizerId ?? _client.auth.currentUser?.id;
     if (uid == null) return [];
     final rows = await _client
         .from('events')
